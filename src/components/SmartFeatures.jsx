@@ -1,87 +1,222 @@
 import React from 'react';
-import { CheckCircle2, Brain } from 'lucide-react';
+import * as motion from 'motion/react-client';
+import { CheckCircle2, Brain, Sparkles, Zap, ArrowRight, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function SmartFeatures() {
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.15,
+                delayChildren: 0.2
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, x: -30 },
+        visible: {
+            opacity: 1,
+            x: 0,
+            transition: { duration: 0.6, ease: "easeOut" }
+        }
+    };
+
+    const floatingVariants = {
+        animate: {
+            y: [0, -15, 0],
+            rotate: [3, 1, 3],
+            transition: {
+                duration: 5,
+                repeat: Infinity,
+                ease: "easeInOut"
+            }
+        }
+    };
+
     return (
-        <div className="py-24 bg-slate-900 relative overflow-hidden">
-            {/* Background glow */}
-            <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <section className="py-24 md:py-32 bg-white relative overflow-hidden font-sans">
+            {/* Soft decorative gradients */}
+            <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-50 rounded-full blur-[120px] -z-10 opacity-60"></div>
+            <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-violet-50 rounded-full blur-[120px] -z-10 opacity-60"></div>
 
-            <div className="max-w-7xl mx-auto px-4 lg:px-8 relative z-10">
-                <div className="grid lg:grid-cols-2 gap-16 items-center">
-                    <div className="space-y-8">
-                        <h2 className="text-3xl lg:text-5xl font-bold font-['Lexend'] text-white leading-tight">
-                            Trải nghiệm ngay <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                                tính năng học thông minh
-                            </span>
-                        </h2>
-                        <p className="text-slate-400 text-lg leading-relaxed">
-                            Hệ thống AI sẽ tự động điều chỉnh độ khó và tần suất lặp lại để đảm bảo bạn không bao giờ quên kiến thức đã học.
-                        </p>
+            <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+                <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
 
-                        <div className="space-y-4">
+                    {/* Left Content */}
+                    <motion.div
+                        variants={containerVariants}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true, margin: "-100px" }}
+                        className="space-y-10"
+                    >
+                        <motion.div variants={itemVariants} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-sm font-bold uppercase tracking-wider">
+                            <Sparkles className="w-4 h-4" />
+                            Đột phá công nghệ AI
+                        </motion.div>
+
+                        <motion.div variants={itemVariants} className="space-y-6">
+                            <h2 className="text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight">
+                                Trải nghiệm ngay <br />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 italic">
+                                    tính năng học thông minh
+                                </span>
+                            </h2>
+                            <p className="text-slate-600 text-xl leading-relaxed font-medium max-w-xl">
+                                Hệ thống AI tiên tiến tự động phân tích hành vi học tập, điều chỉnh độ khó và tối ưu hóa tần suất lặp lại để bạn ghi nhớ kiến thức vĩnh viễn.
+                            </p>
+                        </motion.div>
+
+                        <div className="grid gap-5">
                             {[
-                                "File Flashcard để xem lời giải",
-                                "Quiz trắc nghiệm có giải thích chi tiết",
-                                "Theo dõi tiến độ theo thời gian thực"
+                                { text: "Tự động hóa Flashcard thông minh", icon: Zap },
+                                { text: "Phân tích điểm yếu & Gợi ý cải thiện", icon: Brain },
+                                { text: "Theo dõi tiến độ học tập 24/7", icon: Star }
                             ].map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-3 text-slate-300">
-                                    <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
-                                    <span>{item}</span>
-                                </div>
+                                <motion.div
+                                    key={idx}
+                                    variants={itemVariants}
+                                    whileHover={{ x: 10 }}
+                                    className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                                        <item.icon className="w-5 h-5" />
+                                    </div>
+                                    <span className="font-bold text-slate-700">{item.text}</span>
+                                </motion.div>
                             ))}
                         </div>
 
-                        <button className="btn btn-primary bg-blue-600 border-none hover:bg-blue-500 text-white btn-lg rounded-xl mt-4">
-                            Học thử miễn phí ngay
-                        </button>
-                    </div>
+                        <motion.div variants={itemVariants} className="pt-4">
+                            <Link to="/login">
+                                <motion.button
+                                    whileHover={{ scale: 1.05, y: -2 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="btn btn-lg h-16 px-10 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-2xl shadow-xl shadow-blue-600/30 font-black text-lg group"
+                                >
+                                    Học thử miễn phí ngay
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                                </motion.button>
+                            </Link>
+                        </motion.div>
+                    </motion.div>
 
-                    <div className="relative">
-                        {/* Mock UI Container */}
-                        <div className="bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700/50 backdrop-blur-sm relative transform lg:rotate-3 hover:rotate-0 transition-transform duration-500">
+                    {/* Right Mockup UI */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="relative"
+                    >
+                        <motion.div
+                            variants={floatingVariants}
+                            animate="animate"
+                            className="bg-white rounded-[2.5rem] p-8 lg:p-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-slate-100 relative z-20 overflow-hidden"
+                        >
+                            {/* Decorative elements inside card */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -z-10"></div>
+
                             {/* Header Mock */}
-                            <div className="flex items-center justify-between mb-6 border-b border-slate-700 pb-4">
-                                <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                                    <Brain className="w-4 h-4 text-purple-400" />
-                                    QUESTION #12 - BIOLOGY
+                            <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                                        <Brain className="w-6 h-6 text-violet-600" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Question #12</div>
+                                        <div className="text-sm font-bold text-slate-900">Biology Specialist</div>
+                                    </div>
                                 </div>
-                                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
-                            </div>
-
-                            {/* Question */}
-                            <div className="mb-8">
-                                <h3 className="text-xl font-bold text-white mb-2">Chức năng chính của ti thể (Mitochondria) trong tế bào là gì?</h3>
-                                <div className="flex gap-2 mt-4">
-                                    <span className="badge badge-outline text-slate-400 border-slate-600">Sinh học</span>
-                                    <span className="badge badge-outline text-slate-400 border-slate-600">Khó</span>
-                                </div>
-                            </div>
-
-                            {/* Options */}
-                            <div className="space-y-3">
-                                <div className="p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700 cursor-pointer transition-colors flex justify-between items-center group">
-                                    <span>A. Tổng hợp Protein</span>
-                                    <div className="w-4 h-4 rounded-full border border-slate-500 group-hover:border-blue-400"></div>
-                                </div>
-                                <div className="p-4 rounded-xl bg-green-500/20 border border-green-500/50 text-green-300 cursor-pointer transition-colors flex justify-between items-center shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                                    <span>B. Sản xuất năng lượng (ATP)</span>
-                                    <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                </div>
-                                <div className="p-4 rounded-xl bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700 cursor-pointer transition-colors flex justify-between items-center group">
-                                    <span>C. Lưu trữ thông tin di truyền</span>
-                                    <div className="w-4 h-4 rounded-full border border-slate-500 group-hover:border-blue-400"></div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                                    <span className="text-[10px] font-bold text-slate-400">Live AI Analysis</span>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Decoration */}
-                        <div className="absolute -z-10 top-10 -right-10 w-full h-full bg-blue-600/20 rounded-2xl transform rotate-6"></div>
-                    </div>
+                            {/* Question Section */}
+                            <div className="mb-10">
+                                <h3 className="text-2xl font-black text-slate-900 leading-tight mb-4">
+                                    Chức năng chính của ti thể (Mitochondria) trong tế bào là gì?
+                                </h3>
+                                <div className="flex gap-2">
+                                    <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider">Sinh học</span>
+                                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-wider">Mức độ: Khó</span>
+                                </div>
+                            </div>
+
+                            {/* Options with staggered entrance */}
+                            <div className="space-y-4">
+                                {[
+                                    { label: "A", text: "Tổng hợp Protein", status: "idle" },
+                                    { label: "B", text: "Sản xuất năng lượng (ATP)", status: "correct" },
+                                    { label: "C", text: "Lưu trữ thông tin di truyền", status: "idle" }
+                                ].map((option, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.8 + (i * 0.1) }}
+                                        className={`p-5 rounded-2xl border transition-all duration-300 flex justify-between items-center group cursor-pointer ${option.status === 'correct'
+                                                ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/10'
+                                                : 'bg-slate-50 border-slate-100 hover:border-blue-200 hover:bg-white hover:shadow-md'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black transition-colors ${option.status === 'correct' ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 group-hover:text-blue-600 shadow-sm'
+                                                }`}>
+                                                {option.label}
+                                            </span>
+                                            <span className={`font-bold transition-colors ${option.status === 'correct' ? 'text-emerald-700' : 'text-slate-600 group-hover:text-slate-900'
+                                                }`}>
+                                                {option.text}
+                                            </span>
+                                        </div>
+                                        {option.status === 'correct' ? (
+                                            <motion.div
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 1.5 }}
+                                            >
+                                                <CheckCircle2 className="w-6 h-6 text-emerald-500 fill-emerald-50" />
+                                            </motion.div>
+                                        ) : (
+                                            <div className="w-5 h-5 rounded-full border-2 border-slate-200 group-hover:border-blue-400 transition-colors"></div>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        {/* Background Decor */}
+                        <motion.div
+                            animate={{ rotate: [-6, -8, -6], scale: [1, 1.02, 1] }}
+                            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute -z-10 inset-0 bg-gradient-to-br from-blue-600/10 to-violet-600/10 rounded-[3rem] transform -rotate-6 translate-x-4 translate-y-4 blur-sm"
+                        ></motion.div>
+
+                        {/* Floating elements */}
+                        <motion.div
+                            animate={{ y: [0, -20, 0] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                            className="absolute -top-10 -right-10 p-5 bg-white rounded-2xl shadow-xl border border-slate-100 z-30 hidden lg:block"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                                    <Brain className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <div className="text-xs font-black text-slate-900">AI Tutor Active</div>
+                                    <div className="text-[10px] text-slate-400 font-bold">Optimal learning path</div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }

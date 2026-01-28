@@ -38,14 +38,14 @@ const courses = [
 
 export default function CourseShowcase() {
     return (
-        <div className="py-24 bg-white">
+        <div className="py-24 bg-base-100">
             <div className="max-w-7xl mx-auto px-4 lg:px-8">
                 <div className="flex justify-between items-end mb-12">
                     <div>
-                        <h2 className="text-3xl lg:text-4xl font-bold font-['Lexend'] text-slate-900 mb-2">
+                        <h2 className="text-3xl lg:text-4xl font-bold font-['Lexend'] text-base-content mb-2">
                             Môn học nổi bật
                         </h2>
-                        <p className="text-slate-500">Khám phá các lộ trình học tập phổ biến nhất</p>
+                        <p className="text-base-content/60">Khám phá các lộ trình học tập phổ biến nhất</p>
                     </div>
                     <a href="#" className="hidden md:flex items-center text-blue-600 font-semibold hover:gap-2 transition-all">
                         Xem tất cả <ArrowRight className="w-4 h-4 ml-1" />
@@ -54,7 +54,7 @@ export default function CourseShowcase() {
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {courses.map((course, idx) => (
-                        <div key={idx} className="card bg-white shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 group cursor-pointer h-full">
+                        <div key={idx} className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 border border-base-200 group cursor-pointer h-full">
                             <figure className="relative h-48 overflow-hidden">
                                 <img src={course.image} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                 <div className={`badge ${course.color} absolute top-4 left-4 text-white uppercase font-bold text-xs tracking-wider shadow-md`}>
@@ -62,10 +62,10 @@ export default function CourseShowcase() {
                                 </div>
                             </figure>
                             <div className="card-body p-6">
-                                <h3 className="card-title text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
+                                <h3 className="card-title text-lg font-bold text-base-content group-hover:text-blue-600 transition-colors">
                                     {course.title}
                                 </h3>
-                                <div className="flex items-center gap-4 text-sm text-slate-500 mt-auto pt-4 border-t border-slate-100">
+                                <div className="flex items-center gap-4 text-sm text-base-content/60 mt-auto pt-4 border-t border-base-200">
                                     <div className="flex items-center gap-1">
                                         <Users className="w-4 h-4" />
                                         <span>{course.students}<span> lượt học</span></span>

@@ -11,10 +11,12 @@
   --font-lexend: 'Lexend', sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--font-inter);
-  color: #0f172a;
-  background-color: #ffffff;
 }
 
 h1,
@@ -30,4 +32,22 @@ h6 {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--b2));
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgb(37, 99, 235), rgb(124, 58, 237));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgb(29, 78, 216), rgb(109, 40, 217));
 }
