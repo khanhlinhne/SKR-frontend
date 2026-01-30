@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import * as motion from 'motion/react-client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Mail,
     UserPen,
@@ -38,13 +38,19 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => (
     </motion.div>
 );
 
-const InputField = ({
+const InputField = React.forwardRef(({
     label,
     type = 'text',
     placeholder,
     icon: Icon,
     isPassword = false,
-}) => {
+    value,
+    onChange,
+    name,
+    onBlur,
+    onFocus,
+    hasError = false,
+}, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
@@ -71,11 +77,16 @@ const InputField = ({
                     </div>
 
                     <input
+                        ref={ref}
+                        name={name}
+                        value={value}
+                        onChange={onChange}
                         type={inputType}
                         placeholder={placeholder}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setIsFocused(false)}
-                        className="input w-full pl-12 bg-base-100 border-base-300 focus:border-blue-500 focus:outline-none transition-all rounded-xl font-medium h-12 text-sm"
+                        onFocus={() => { setIsFocused(true); onFocus && onFocus(); }}
+                        onBlur={() => { setIsFocused(false); onBlur && onBlur(); }}
+                        className={`input w-full pl-12 bg-base-100 ${hasError ? 'border-red-500 focus:border-red-500' : 'border-base-300 focus:border-blue-500'} focus:outline-none transition-all rounded-xl font-medium h-12 text-sm`}
+                        aria-invalid={hasError}
                     />
 
                     {isPassword && (
@@ -91,7 +102,9 @@ const InputField = ({
             </div>
         </motion.div>
     );
-};
+});
+
+InputField.displayName = 'InputField';
 
 /* ================== Main Component ================== */
 
@@ -113,6 +126,113 @@ export default function SignUp() {
             opacity: 1,
             y: 0,
             transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+        }
+    };
+
+    const navigate = useNavigate();
+    const nameRef = useRef(null);
+    const emailRef = useRef(null);
+    const passwordRef = useRef(null);
+    const confirmRef = useRef(null);
+    const termsRef = useRef(null);
+
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // Inline validation state
+    const [nameError, setNameError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [confirmPasswordError, setConfirmPasswordError] = useState('');
+    const [termsError, setTermsError] = useState('');
+
+    const [touchedName, setTouchedName] = useState(false);
+    const [touchedEmail, setTouchedEmail] = useState(false);
+    const [touchedPassword, setTouchedPassword] = useState(false);
+    const [touchedConfirm, setTouchedConfirm] = useState(false);
+    const [touchedTerms, setTouchedTerms] = useState(false);
+
+    // Validation helpers
+    const validateName = (v) => (!v.trim() ? 'Họ và tên là bắt buộc' : '');
+    const validateEmail = (v) => {
+        if (!v) return 'Email là bắt buộc';
+        if (!v.toLowerCase().endsWith('@gmail.com')) return 'Email phải có đuôi @gmail.com';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Email không hợp lệ';
+        return '';
+    };
+    const validatePassword = (v) => {
+        if (!v) return 'Mật khẩu là bắt buộc';
+        if (v.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+        return '';
+    };
+    const validateConfirm = (v) => (v !== password ? 'Mật khẩu xác nhận không khớp' : '');
+    const validateTerms = (checked) => (!checked ? 'Bạn phải đồng ý với Điều khoản và Chính sách bảo mật' : '');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
+
+        // Client-side validations (set touched states & inline errors)
+        setTouchedName(true);
+        setTouchedEmail(true);
+        setTouchedPassword(true);
+        setTouchedConfirm(true);
+        setTouchedTerms(true);
+
+        const nErr = validateName(fullName);
+        const emErr = validateEmail(email);
+        const pwErr = validatePassword(password);
+        const cpwErr = validateConfirm(confirmPassword);
+        const tErr = validateTerms(acceptedTerms);
+
+        setNameError(nErr);
+        setEmailError(emErr);
+        setPasswordError(pwErr);
+        setConfirmPasswordError(cpwErr);
+        setTermsError(tErr);
+
+        if (nErr || emErr || pwErr || cpwErr || tErr) {
+            setError('Vui lòng sửa các trường có lỗi');
+            // focus first invalid field
+            setTimeout(() => {
+                if (nErr) nameRef.current?.focus();
+                else if (emErr) emailRef.current?.focus();
+                else if (pwErr) passwordRef.current?.focus();
+                else if (cpwErr) confirmRef.current?.focus();
+                else if (tErr) termsRef.current?.focus();
+            }, 0);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const resp = await fetch('http://localhost:4000/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: fullName, email, password, acceptedTerms }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.message || 'Đăng ký thất bại');
+
+            // Hiển thị thông báo thành công và điều hướng đến trang đăng nhập
+            setSuccess('Đăng ký thành công!');
+
+            // Đặt timeout để hiển thị thông báo trước khi điều hướng
+            setTimeout(() => {
+                // truyền state để trang Login có thể hiển thị thông báo nếu muốn
+                navigate('/login', { state: { message: 'Đăng ký thành công. Vui lòng đăng nhập.' } });
+            }, 1200);
+        } catch (err) {
+            setError(err.message || 'Đã xảy ra lỗi');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -221,61 +341,94 @@ export default function SignUp() {
                         </motion.p>
                     </div>
 
-                    <form className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         <motion.div variants={itemVariants}>
+                            {success && <div className="alert alert-success mb-4">{success}</div>}
+                            {error && <div className="alert alert-error mb-4">{error}</div>}
+
                             <InputField
+                                ref={nameRef}
                                 label="Họ và tên"
                                 placeholder="Nguyễn Văn A"
                                 icon={UserPen}
+                                name="fullname"
+                                value={fullName}
+                                hasError={!!nameError}
+                                onChange={(e) => { setFullName(e.target.value); if (touchedName) setNameError(validateName(e.target.value)); }}
+                                onBlur={() => { setTouchedName(true); setNameError(validateName(fullName)); }}
                             />
+                            {touchedName && nameError && <p className="text-xs text-error mt-1">{nameError}</p>}
                         </motion.div>
 
                         <motion.div variants={itemVariants}>
                             <InputField
+                                ref={emailRef}
                                 label="Địa chỉ Email"
                                 type="email"
                                 placeholder="name@example.com"
                                 icon={Mail}
+                                name="email"
+                                value={email}
+                                hasError={!!emailError}
+                                onChange={(e) => { setEmail(e.target.value); if (touchedEmail) setEmailError(validateEmail(e.target.value)); }}
+                                onBlur={() => { setTouchedEmail(true); setEmailError(validateEmail(email)); }}
                             />
+                            {touchedEmail && emailError && <p className="text-xs text-error mt-1">{emailError}</p>}
                         </motion.div>
 
                         <motion.div variants={itemVariants}>
                             <InputField
+                                ref={passwordRef}
                                 label="Mật khẩu"
                                 placeholder="••••••••"
                                 icon={Lock}
                                 isPassword
+                                name="password"
+                                value={password}
+                                hasError={!!passwordError}
+                                onChange={(e) => { setPassword(e.target.value); if (touchedPassword) setPasswordError(validatePassword(e.target.value)); }}
+                                onBlur={() => { setTouchedPassword(true); setPasswordError(validatePassword(password)); }}
                             />
+                            {touchedPassword && passwordError && <p className="text-xs text-error mt-1">{passwordError}</p>}
                         </motion.div>
 
                         <motion.div variants={itemVariants}>
                             <InputField
+                                ref={confirmRef}
                                 label="Xác nhận mật khẩu"
                                 placeholder="••••••••"
                                 icon={RotateCcw}
                                 isPassword
+                                name="confirmPassword"
+                                value={confirmPassword}
+                                hasError={!!confirmPasswordError}
+                                onChange={(e) => { setConfirmPassword(e.target.value); if (touchedConfirm) setConfirmPasswordError(validateConfirm(e.target.value)); }}
+                                onBlur={() => { setTouchedConfirm(true); setConfirmPasswordError(validateConfirm(confirmPassword)); }}
                             />
+                            {touchedConfirm && confirmPasswordError && <p className="text-xs text-error mt-1">{confirmPasswordError}</p>}
                         </motion.div>
 
                         <motion.div variants={itemVariants}>
                             <label className="flex items-center gap-3 group cursor-pointer">
-                                <input type="checkbox" className="checkbox checkbox-sm checkbox-primary rounded-lg transition-all" />
+                                <input ref={termsRef} type="checkbox" checked={acceptedTerms} onChange={(e) => { const checked = e.target.checked; setAcceptedTerms(checked); setTouchedTerms(true); setTermsError(validateTerms(checked)); }} className="checkbox checkbox-sm checkbox-primary rounded-lg transition-all" />
                                 <span className="text-xs text-base-content/60 font-medium group-hover:text-base-content transition-colors">
                                     Tôi đồng ý với <a href="#" className="text-blue-600 font-bold hover:underline">Điều khoản</a> và <a href="#" className="text-blue-600 font-bold hover:underline">Chính sách bảo mật</a>
                                 </span>
                             </label>
+                            {touchedTerms && termsError && <p className="text-xs text-error mt-1">{termsError}</p>}
                         </motion.div>
 
                         <motion.button
+                            type="submit"
                             variants={itemVariants}
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             className="btn w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl shadow-xl shadow-blue-600/20 border-none text-base h-12 font-bold group transition-all duration-300 mt-2"
+                            disabled={loading || !acceptedTerms || password.length < 6 || !email.toLowerCase().endsWith('@gmail.com') || password !== confirmPassword}
                         >
-                            Đăng ký miễn phí
+                            {loading ? 'Đang đăng ký...' : 'Đăng ký miễn phí'}
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </motion.button>
-
                         <motion.div variants={itemVariants} className="relative py-2">
                             <div className="absolute inset-0 flex items-center">
                                 <div className="w-full border-t border-base-200"></div>
