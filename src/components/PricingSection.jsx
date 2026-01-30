@@ -1,47 +1,62 @@
+import { useState } from 'react';
 import * as motion from 'motion/react-client';
-import { Check, X, ArrowRight, Zap, Star } from 'lucide-react';
+import { Check, X, ArrowRight, Sparkles, Crown, Zap, Shield, Clock, Gift } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function PricingSection() {
+    const [billingCycle, setBillingCycle] = useState('monthly');
+
     const plans = [
         {
-            name: "GÓI FREE",
-            price: "0",
+            name: "Starter",
+            subtitle: "Miễn phí mãi mãi",
+            price: { monthly: "0", yearly: "0" },
             period: "vĩnh viễn",
-            description: "Trải nghiệm các tính năng cơ bản của hệ thống",
+            description: "Khám phá sức mạnh học tập thông minh với các tính năng cơ bản",
+            icon: Zap,
             features: [
-                "Giới hạn số lượng câu hỏi/flashcard",
-                "Giới hạn dung lượng upload tài liệu",
-                "Giới hạn lượt thi thử mỗi ngày",
-                "Dashboard học tập cơ bản (7 ngày)",
-                "Forum thảo luận cộng đồng"
-            ],
-            notIncluded: [
-                "Giải thích chi tiết bằng AI",
-                "Spaced Repetition thông minh",
-                "Phân tích điểm yếu cá nhân",
-                "Tích hợp Notion & Mind Map"
+                { text: "50 Flashcards / tháng", included: true },
+                { text: "3 bộ Flashcard tùy chỉnh", included: true },
+                { text: "5 lượt thi thử / ngày", included: true },
+                { text: "Dashboard học tập (7 ngày)", included: true },
+                { text: "Forum cộng đồng", included: true },
+                { text: "Giải thích AI chi tiết", included: false },
+                { text: "Spaced Repetition thông minh", included: false },
+                { text: "Phân tích điểm yếu cá nhân", included: false },
             ],
             popular: false,
-            gradient: "from-slate-400 to-slate-600",
-            cta: "Bắt đầu ngay"
+            gradient: "from-slate-500 to-slate-700",
+            bgGradient: "from-slate-500/5 to-slate-700/5",
+            iconBg: "bg-slate-500/10",
+            iconColor: "text-slate-600",
+            cta: "Bắt đầu miễn phí",
+            ctaStyle: "secondary"
         },
         {
-            name: "GÓI PREMIUM",
-            price: "99.000",
+            name: "Premium",
+            subtitle: "Phổ biến nhất",
+            price: { monthly: "99.000", yearly: "79.000" },
             period: "tháng",
-            description: "Sức mạnh AI tối thượng cho hành trình ôn thi",
+            description: "Unlock toàn bộ sức mạnh AI cho hành trình chinh phục tri thức",
+            icon: Crown,
             features: [
-                "Tạo nội dung bằng AI không giới hạn",
-                "Giải thích AI chi tiết cho mọi câu hỏi",
-                "Lên lịch Spaced Repetition thông minh",
-                "Phân tích điểm yếu & lộ trình đề xuất",
-                "Tạo Mind Map & Đồng bộ Notion",
-                "Thi thử & Upload không giới hạn"
+                { text: "Flashcards không giới hạn", included: true, highlight: true },
+                { text: "Bộ Flashcard không giới hạn", included: true, highlight: true },
+                { text: "Thi thử không giới hạn", included: true, highlight: true },
+                { text: "AI giải thích mọi câu hỏi", included: true, highlight: true },
+                { text: "Spaced Repetition thông minh", included: true, highlight: true },
+                { text: "Phân tích điểm yếu & lộ trình", included: true, highlight: true },
+                { text: "Mind Map & Đồng bộ Notion", included: true },
+                { text: "Hỗ trợ ưu tiên 24/7", included: true },
             ],
             popular: true,
-            gradient: "from-blue-600 to-violet-600",
-            cta: "Nâng cấp Premium"
+            gradient: "from-blue-600 via-violet-600 to-purple-600",
+            bgGradient: "from-blue-600/10 via-violet-600/10 to-purple-600/10",
+            iconBg: "bg-gradient-to-br from-blue-500 to-violet-500",
+            iconColor: "text-white",
+            cta: "Nâng cấp ngay",
+            ctaStyle: "primary",
+            savings: "Tiết kiệm 20%"
         }
     ];
 
@@ -50,61 +65,181 @@ export default function PricingSection() {
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.15
+                staggerChildren: 0.2,
+                delayChildren: 0.1
             }
         }
     };
 
     const itemVariants = {
-        hidden: { opacity: 0, y: 50 },
+        hidden: { opacity: 0, y: 60, scale: 0.95 },
         visible: {
             opacity: 1,
             y: 0,
+            scale: 1,
             transition: {
-                duration: 0.6,
+                duration: 0.7,
                 ease: [0.22, 1, 0.36, 1]
             }
         }
     };
 
     return (
-        <section className="py-24 bg-base-100 relative overflow-hidden" id="pricing">
-            {/* Background decoration */}
-            <motion.div
-                className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px]"
-                animate={{
-                    x: [0, 50, 0],
-                    y: [0, -30, 0],
-                }}
-                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-                className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[120px]"
-                animate={{
-                    x: [0, -50, 0],
-                    y: [0, 30, 0],
-                }}
-                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            />
+        <section className="py-28 bg-base-100 relative overflow-hidden" id="pricing">
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {/* Floating orbs */}
+                <motion.div
+                    className="absolute top-20 left-[10%] w-72 h-72 bg-gradient-to-br from-blue-500/20 to-violet-500/20 rounded-full blur-[100px]"
+                    animate={{
+                        y: [0, -40, 0],
+                        x: [0, 20, 0],
+                        scale: [1, 1.1, 1],
+                    }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                    className="absolute bottom-20 right-[10%] w-96 h-96 bg-gradient-to-br from-purple-500/15 to-pink-500/15 rounded-full blur-[120px]"
+                    animate={{
+                        y: [0, 30, 0],
+                        x: [0, -30, 0],
+                        scale: [1, 0.9, 1],
+                    }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                />
+
+                {/* Grid pattern */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
+
+                {/* Floating particles */}
+                {[...Array(6)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className="absolute w-2 h-2 bg-gradient-to-r from-blue-500 to-violet-500 rounded-full opacity-30"
+                        style={{
+                            left: `${15 + i * 15}%`,
+                            top: `${20 + (i % 3) * 25}%`,
+                        }}
+                        animate={{
+                            y: [0, -30, 0],
+                            opacity: [0.2, 0.5, 0.2],
+                        }}
+                        transition={{
+                            duration: 4 + i,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: i * 0.5,
+                        }}
+                    />
+                ))}
+            </div>
 
             <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
                 {/* Section Header */}
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                     className="text-center mb-16"
                 >
-                    <h2 className="text-5xl md:text-6xl font-black text-base-content mb-4 tracking-tight">
-                        Lựa chọn{' '}
-                        <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent italic">
-                            phù hợp
+                    {/* Badge */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 mb-6"
+                    >
+                        <Sparkles className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                            Bảng giá minh bạch
+                        </span>
+                    </motion.div>
+
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-base-content mb-6 tracking-tight leading-tight">
+                        Đầu tư cho{' '}
+                        <span className="relative">
+                            <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
+                                tương lai
+                            </span>
+                            <motion.svg
+                                className="absolute -bottom-2 left-0 w-full"
+                                viewBox="0 0 200 12"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                whileInView={{ pathLength: 1, opacity: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 1, delay: 0.5 }}
+                            >
+                                <motion.path
+                                    d="M2 8 Q 50 2, 100 8 T 198 6"
+                                    fill="none"
+                                    stroke="url(#gradient)"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                />
+                                <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#2563eb" />
+                                        <stop offset="50%" stopColor="#7c3aed" />
+                                        <stop offset="100%" stopColor="#9333ea" />
+                                    </linearGradient>
+                                </defs>
+                            </motion.svg>
                         </span>
                     </h2>
-                    <p className="text-xl text-base-content/60 max-w-2xl mx-auto font-medium">
-                        Đầu tư cho kiến thức là khoản đầu tư sinh lợi nhất. Chọn gói dịch vụ phù hợp để bứt phá điểm số ngay hôm nay.
+
+                    <p className="text-lg md:text-xl text-base-content/60 max-w-2xl mx-auto font-medium leading-relaxed">
+                        Kiến thức là khoản đầu tư sinh lời nhất. Chọn gói phù hợp và bắt đầu hành trình chinh phục mọi kỳ thi.
                     </p>
+
+                    {/* Billing Toggle */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        className="mt-10 inline-flex items-center gap-4 p-1.5 bg-base-200/80 backdrop-blur-sm rounded-2xl"
+                    >
+                        <button
+                            onClick={() => setBillingCycle('monthly')}
+                            className={`relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${billingCycle === 'monthly'
+                                    ? 'text-white'
+                                    : 'text-base-content/60 hover:text-base-content'
+                                }`}
+                        >
+                            {billingCycle === 'monthly' && (
+                                <motion.div
+                                    layoutId="billingBg"
+                                    className="absolute inset-0 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <span className="relative z-10">Hàng tháng</span>
+                        </button>
+                        <button
+                            onClick={() => setBillingCycle('yearly')}
+                            className={`relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2 ${billingCycle === 'yearly'
+                                    ? 'text-white'
+                                    : 'text-base-content/60 hover:text-base-content'
+                                }`}
+                        >
+                            {billingCycle === 'yearly' && (
+                                <motion.div
+                                    layoutId="billingBg"
+                                    className="absolute inset-0 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            <span className="relative z-10">Hàng năm</span>
+                            <span className={`relative z-10 px-2 py-0.5 text-xs font-bold rounded-full ${billingCycle === 'yearly'
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-green-500/10 text-green-600'
+                                }`}>
+                                -20%
+                            </span>
+                        </button>
+                    </motion.div>
                 </motion.div>
 
                 {/* Pricing Cards */}
@@ -112,11 +247,40 @@ export default function PricingSection() {
                     variants={containerVariants}
                     initial="hidden"
                     whileInView="visible"
-                    viewport={{ once: true, margin: "-100px" }}
-                    className="flex flex-col md:flex-row justify-center gap-8 max-w-5xl mx-auto"
+                    viewport={{ once: true, margin: "-50px" }}
+                    className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto"
                 >
                     {plans.map((plan, index) => (
-                        <PricingCard key={index} plan={plan} itemVariants={itemVariants} />
+                        <PricingCard
+                            key={index}
+                            plan={plan}
+                            itemVariants={itemVariants}
+                            billingCycle={billingCycle}
+                        />
+                    ))}
+                </motion.div>
+
+                {/* Trust Badges */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    className="mt-16 flex flex-wrap justify-center gap-8"
+                >
+                    {[
+                        { icon: Shield, text: "Bảo mật SSL" },
+                        { icon: Clock, text: "Hủy bất cứ lúc nào" },
+                        { icon: Gift, text: "7 ngày dùng thử" },
+                    ].map((badge, index) => (
+                        <motion.div
+                            key={index}
+                            className="flex items-center gap-2 text-base-content/50"
+                            whileHover={{ scale: 1.05, color: "var(--bc)" }}
+                        >
+                            <badge.icon className="w-5 h-5" />
+                            <span className="font-medium">{badge.text}</span>
+                        </motion.div>
                     ))}
                 </motion.div>
 
@@ -124,108 +288,208 @@ export default function PricingSection() {
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8, delay: 0.4 }}
-                    className="text-center mt-16"
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    className="text-center mt-12"
                 >
-                    <p className="text-base-content/60 mb-4 font-medium">
-                        Tất cả các gói đều bao gồm hỗ trợ chatbot AI cơ bản. Hủy bất cứ lúc nào.
+                    <p className="text-base-content/50 mb-4 font-medium">
+                        Có câu hỏi về gói dịch vụ?{' '}
+                        <a href="#" className="text-blue-600 hover:text-blue-700 font-bold underline-offset-4 hover:underline transition-all">
+                            Liên hệ chúng tôi
+                        </a>
                     </p>
-                    <a href="#" className="font-bold text-blue-600 hover:text-blue-700 flex items-center justify-center gap-2 group transition-colors">
+                    <motion.a
+                        href="#compare"
+                        className="inline-flex items-center gap-2 font-bold text-blue-600 hover:text-blue-700 group transition-colors"
+                        whileHover={{ x: 5 }}
+                    >
                         Xem bảng so sánh chi tiết tính năng
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </a>
+                    </motion.a>
                 </motion.div>
             </div>
         </section>
     );
 }
 
-function PricingCard({ plan, itemVariants }) {
+function PricingCard({ plan, itemVariants, billingCycle }) {
+    const IconComponent = plan.icon;
+    const displayPrice = billingCycle === 'yearly' ? plan.price.yearly : plan.price.monthly;
+
     return (
         <motion.div
             variants={itemVariants}
-            whileHover={{ y: -12, scale: plan.popular ? 1.02 : 1 }}
-            className={`relative flex-1 bg-base-100 border rounded-[2.5rem] p-10 overflow-hidden transition-all duration-500 ${plan.popular
-                ? 'border-blue-500 shadow-2xl shadow-blue-500/20 z-10'
-                : 'border-base-300 hover:border-base-content/20'
-                }`}
+            whileHover={{ y: -8, transition: { duration: 0.3, ease: "easeOut" } }}
+            className={`relative group ${plan.popular ? 'md:-mt-4 md:mb-4' : ''}`}
         >
-            {/* Popular badge */}
+            {/* Glow effect for popular plan */}
             {plan.popular && (
-                <div className="absolute top-0 right-10 px-6 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white text-xs font-black uppercase tracking-widest rounded-b-2xl shadow-lg">
-                    Phổ biến nhất
-                </div>
+                <motion.div
+                    className="absolute -inset-[2px] bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 rounded-[2rem] blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-500"
+                    animate={{
+                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                    }}
+                    transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                    style={{ backgroundSize: "200% 200%" }}
+                />
             )}
 
-            <div className="relative z-10 h-full flex flex-col">
-                {/* Plan Header */}
-                <div className="mb-8">
-                    <h3 className="text-2xl font-black text-base-content mb-2 tracking-tight">
-                        {plan.name}
-                    </h3>
-                    <p className="text-base-content/60 font-medium">
+            <div className={`relative h-full bg-base-100 border-2 rounded-[2rem] p-8 lg:p-10 overflow-hidden transition-all duration-500 ${plan.popular
+                    ? 'border-transparent shadow-2xl'
+                    : 'border-base-200 hover:border-base-300 hover:shadow-xl'
+                }`}>
+
+                {/* Popular badge */}
+                {plan.popular && (
+                    <motion.div
+                        className="absolute top-0 right-8"
+                        initial={{ y: -40 }}
+                        animate={{ y: 0 }}
+                        transition={{ delay: 0.5, type: "spring", bounce: 0.4 }}
+                    >
+                        <div className="px-4 py-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white text-xs font-black uppercase tracking-wider rounded-b-xl shadow-lg flex items-center gap-1.5">
+                            <Crown className="w-3.5 h-3.5" />
+                            {plan.subtitle}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Card Content */}
+                <div className="relative z-10 h-full flex flex-col">
+                    {/* Plan Header */}
+                    <div className="flex items-start gap-4 mb-6">
+                        <motion.div
+                            className={`w-14 h-14 rounded-2xl flex items-center justify-center ${plan.iconBg} shadow-lg`}
+                            whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <IconComponent className={`w-7 h-7 ${plan.iconColor}`} />
+                        </motion.div>
+                        <div className="flex-1">
+                            <h3 className="text-2xl font-black text-base-content tracking-tight">
+                                {plan.name}
+                            </h3>
+                            {!plan.popular && (
+                                <p className="text-sm text-base-content/50 font-medium">{plan.subtitle}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-base-content/60 font-medium mb-6 leading-relaxed">
                         {plan.description}
                     </p>
-                </div>
 
-                {/* Price */}
-                <div className="mb-10">
-                    <div className="flex items-baseline gap-1">
-                        <span className="text-5xl font-black text-base-content tracking-tighter">
-                            {plan.price !== "0" && <span className="text-2xl font-bold align-top mr-1">đ</span>}
-                            {plan.price}
-                        </span>
-                        <span className="text-base-content/60 font-bold ml-1 italic">
-                            /{plan.period}
-                        </span>
+                    {/* Price */}
+                    <div className="mb-8">
+                        <div className="flex items-baseline gap-2">
+                            <motion.span
+                                key={displayPrice}
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-5xl lg:text-6xl font-black text-base-content tracking-tighter"
+                            >
+                                {displayPrice !== "0" && <span className="text-2xl font-bold align-top">đ</span>}
+                                {displayPrice}
+                            </motion.span>
+                            <span className="text-base-content/50 font-bold">
+                                /{plan.period}
+                            </span>
+                        </div>
+                        {plan.popular && billingCycle === 'yearly' && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="mt-2 text-sm text-green-600 font-bold flex items-center gap-1"
+                            >
+                                <Gift className="w-4 h-4" />
+                                {plan.savings} khi thanh toán theo năm
+                            </motion.p>
+                        )}
+                    </div>
+
+                    {/* CTA Button */}
+                    <Link to="/signup" className="mb-8 block">
+                        <motion.button
+                            className={`relative w-full h-14 rounded-2xl text-lg font-black tracking-tight overflow-hidden ${plan.popular
+                                    ? 'text-white shadow-xl shadow-blue-600/25'
+                                    : 'bg-base-200 text-base-content hover:bg-base-300'
+                                }`}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            {plan.popular && (
+                                <>
+                                    <motion.div
+                                        className="absolute inset-0 bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600"
+                                        animate={{
+                                            backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                                        }}
+                                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                        style={{ backgroundSize: "200% 200%" }}
+                                    />
+                                    {/* Shimmer effect */}
+                                    <motion.div
+                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                                        animate={{ x: ["-100%", "100%"] }}
+                                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                                    />
+                                </>
+                            )}
+                            <span className="relative z-10 flex items-center justify-center gap-2">
+                                {plan.cta}
+                                <ArrowRight className="w-5 h-5" />
+                            </span>
+                        </motion.button>
+                    </Link>
+
+                    {/* Features */}
+                    <div className="space-y-3 flex-grow">
+                        <p className="text-xs font-black text-base-content/40 uppercase tracking-widest mb-4">
+                            Tính năng bao gồm
+                        </p>
+                        {plan.features.map((feature, index) => (
+                            <motion.div
+                                key={index}
+                                className={`flex items-start gap-3 ${!feature.included && 'opacity-40'}`}
+                                initial={{ opacity: 0, x: -10 }}
+                                whileInView={{ opacity: feature.included ? 1 : 0.4, x: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.05 }}
+                            >
+                                <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${feature.included
+                                        ? feature.highlight
+                                            ? 'bg-gradient-to-br from-blue-500 to-violet-500'
+                                            : plan.popular ? 'bg-blue-500/10' : 'bg-base-200'
+                                        : 'bg-base-100 border border-base-300'
+                                    }`}>
+                                    {feature.included ? (
+                                        <Check className={`w-3.5 h-3.5 ${feature.highlight ? 'text-white' : plan.popular ? 'text-blue-600' : 'text-base-content/50'}`} strokeWidth={3} />
+                                    ) : (
+                                        <X className="w-3.5 h-3.5 text-base-content/30" strokeWidth={3} />
+                                    )}
+                                </div>
+                                <span className={`font-medium ${feature.included
+                                        ? feature.highlight
+                                            ? 'text-base-content font-semibold'
+                                            : 'text-base-content/70'
+                                        : 'text-base-content/40 line-through'
+                                    }`}>
+                                    {feature.text}
+                                </span>
+                            </motion.div>
+                        ))}
                     </div>
                 </div>
 
-                {/* CTA Button */}
-                <Link to="/login" className="mb-10 block">
-                    <motion.button
-                        className={`w-full h-14 rounded-2xl text-lg font-black tracking-tight transition-all ${plan.popular
-                            ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-xl shadow-blue-600/30'
-                            : 'bg-base-200 text-base-content hover:bg-base-300'
-                            }`}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        {plan.cta}
-                    </motion.button>
-                </Link>
+                {/* Background gradient decoration */}
+                <div className={`absolute -bottom-20 -right-20 w-60 h-60 bg-gradient-to-br ${plan.bgGradient} rounded-full blur-[80px] pointer-events-none transition-opacity duration-500 group-hover:opacity-150`} />
 
-                {/* Features */}
-                <div className="space-y-4 mb-8 flex-grow">
-                    <p className="text-xs font-black text-base-content/40 uppercase tracking-widest mb-4">Bao gồm:</p>
-                    {plan.features.map((feature, index) => (
-                        <div key={index} className="flex items-start gap-4">
-                            <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${plan.popular ? 'bg-blue-500/10' : 'bg-base-200'}`}>
-                                <Check className={`w-3.5 h-3.5 ${plan.popular ? 'text-blue-600' : 'text-base-content/40'}`} strokeWidth={3} />
-                            </div>
-                            <span className="text-base-content/80 font-medium">
-                                {feature}
-                            </span>
-                        </div>
-                    ))}
-
-                    {plan.notIncluded && plan.notIncluded.map((feature, index) => (
-                        <div key={index} className="flex items-start gap-4 opacity-40">
-                            <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center bg-base-100 border border-base-300">
-                                <X className="w-3.5 h-3.5 text-base-content/40" strokeWidth={3} />
-                            </div>
-                            <span className="text-base-content/60 font-medium line-through">
-                                {feature}
-                            </span>
-                        </div>
-                    ))}
-                </div>
+                {/* Corner decoration for popular plan */}
+                {plan.popular && (
+                    <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-blue-500/5 to-transparent rounded-[2rem] pointer-events-none" />
+                )}
             </div>
-
-            {/* Decorative elements */}
-            <div className={`absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-br ${plan.gradient} rounded-full blur-[80px] opacity-10 pointer-events-none`} />
         </motion.div>
     );
 }
-
