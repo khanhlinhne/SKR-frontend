@@ -1,29 +1,32 @@
+import { useState } from 'react';
 import * as motion from 'motion/react-client';
-import { CheckCircle2, Zap, Users, Brain, BookOpen, Share2, Search, LineChart, Globe } from 'lucide-react';
+import { Brain, BookOpen, Zap, Share2, LineChart, Globe, ArrowRight, Sparkles, CheckCircle2, Play } from 'lucide-react';
 
 export default function FeaturesSection() {
-    const features = [
+    const [activeFeature, setActiveFeature] = useState(0);
+
+    const mainFeatures = [
         {
             icon: Brain,
             title: "Tích hợp AI mạnh mẽ",
             subtitle: "Cá nhân hóa tối đa",
             description: "Tự động tạo câu hỏi từ tài liệu, gợi ý lộ trình học tập, chatbot giải đáp 24/7 và phân tích điểm yếu thông minh.",
-            features: ["Tạo câu hỏi tự động", "Gợi ý cá nhân hóa", "Chatbot hỗ trợ", "Phân tích điểm yếu"],
-            gradient: "from-blue-500 to-violet-500",
-            hueA: 210,
-            hueB: 270,
-            size: "large"
+            features: ["Tạo câu hỏi tự động", "Gợi ý cá nhân hóa", "Chatbot hỗ trợ 24/7", "Phân tích điểm yếu"],
+            gradient: "from-blue-500 via-blue-600 to-violet-600",
+            lightGradient: "from-blue-500/10 to-violet-500/10",
+            accentColor: "blue",
+            stats: { value: "99%", label: "Độ chính xác" }
         },
         {
             icon: BookOpen,
             title: "Đa dạng hình thức học",
             subtitle: "Học tập không nhàm chán",
             description: "Từ Flashcard, trắc nghiệm đến tự luận, video và Mind Map. Thậm chí bạn có thể thách đấu cùng bạn bè.",
-            features: ["Flashcard", "Mind Map", "Gamification", "Thách đấu"],
-            gradient: "from-purple-500 to-pink-500",
-            hueA: 280,
-            hueB: 330,
-            size: "large"
+            features: ["Flashcard thông minh", "Mind Map tương tác", "Gamification", "Thách đấu bạn bè"],
+            gradient: "from-violet-500 via-purple-500 to-pink-500",
+            lightGradient: "from-violet-500/10 to-pink-500/10",
+            accentColor: "violet",
+            stats: { value: "10+", label: "Hình thức học" }
         },
         {
             icon: Zap,
@@ -31,230 +34,306 @@ export default function FeaturesSection() {
             subtitle: "Mọi lúc, mọi nơi",
             description: "Tự tạo nội dung, upload file PDF/Video hoặc sử dụng ngân hàng câu hỏi khổng lồ có sẵn từ cộng đồng.",
             features: ["Upload PDF/Video", "Question Bank", "Sync Notion", "Export Anki"],
-            gradient: "from-amber-500 to-orange-500",
-            hueA: 30,
-            hueB: 60,
-            size: "large"
+            gradient: "from-amber-500 via-orange-500 to-red-500",
+            lightGradient: "from-amber-500/10 to-orange-500/10",
+            accentColor: "amber",
+            stats: { value: "1M+", label: "Câu hỏi" }
+        }
+    ];
+
+    const bottomFeatures = [
+        {
+            icon: Share2,
+            title: "Cộng đồng học tập",
+            description: "Học nhóm, chia sẻ tài liệu và thảo luận cùng các chuyên gia.",
+            gradient: "from-emerald-500 to-teal-500",
+            lightGradient: "from-emerald-500/10 to-teal-500/10"
+        },
+        {
+            icon: LineChart,
+            title: "Theo dõi tiến độ",
+            description: "Dashboard chi tiết giúp nắm bắt lộ trình học một cách khoa học.",
+            gradient: "from-cyan-500 to-blue-500",
+            lightGradient: "from-cyan-500/10 to-blue-500/10"
+        },
+        {
+            icon: Globe,
+            title: "Tích hợp mở rộng",
+            description: "Đồng bộ Notion, xuất PDF/Excel và ôn tập qua Anki mọi lúc.",
+            gradient: "from-indigo-500 to-purple-500",
+            lightGradient: "from-indigo-500/10 to-purple-500/10"
         }
     ];
 
     return (
-        <section className="py-24 bg-base-100 relative overflow-hidden" id="features">
-            {/* Background decoration */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-base-200/30 to-transparent pointer-events-none" />
+        <section className="py-28 bg-base-100 relative overflow-hidden" id="features">
+            {/* Background Elements */}
+            <div className="absolute inset-0 pointer-events-none">
+                {/* Animated gradient orbs */}
+                <motion.div
+                    className="absolute top-20 -left-20 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/10 to-violet-500/10 rounded-full blur-[120px]"
+                    animate={{
+                        x: [0, 60, 0],
+                        y: [0, -40, 0],
+                        scale: [1, 1.1, 1],
+                    }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                    className="absolute bottom-20 -right-20 w-[500px] h-[500px] bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-[100px]"
+                    animate={{
+                        x: [0, -50, 0],
+                        y: [0, 30, 0],
+                    }}
+                    transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                />
+
+                {/* Grid pattern */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_70%)]" />
+            </div>
 
             <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
                 {/* Section Header */}
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8 }}
-                    className="text-center mb-16"
+                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-center mb-20"
                 >
-                    <h2 className="text-5xl md:text-6xl font-bold text-base-content mb-4 tracking-tight">
-                        Tính năng{' '}
-                        <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent italic">
-                            vượt trội
+                    {/* Badge */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 mb-6"
+                    >
+                        <Sparkles className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                            Tính năng nổi bật
+                        </span>
+                    </motion.div>
+
+                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-base-content mb-6 tracking-tight">
+                        Tất cả những gì bạn cần{' '}
+                        <span className="relative inline-block">
+                            <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
+                                để thành công
+                            </span>
+                            <motion.svg
+                                className="absolute -bottom-2 left-0 w-full"
+                                viewBox="0 0 300 12"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                whileInView={{ pathLength: 1, opacity: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 1, delay: 0.5 }}
+                            >
+                                <motion.path
+                                    d="M2 8 Q 75 2, 150 8 T 298 6"
+                                    fill="none"
+                                    stroke="url(#featureGradient)"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                />
+                                <defs>
+                                    <linearGradient id="featureGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#2563eb" />
+                                        <stop offset="50%" stopColor="#7c3aed" />
+                                        <stop offset="100%" stopColor="#9333ea" />
+                                    </linearGradient>
+                                </defs>
+                            </motion.svg>
                         </span>
                     </h2>
-                    <p className="text-xl text-base-content/60 max-w-2xl mx-auto font-medium">
-                        Smart Knowledge Revise mang đến trải nghiệm học tập hiện đại, thông minh và hiệu quả hơn bao giờ hết.
+
+                    <p className="text-lg md:text-xl text-base-content/60 max-w-3xl mx-auto font-medium leading-relaxed">
+                        Smart Knowledge Revise mang đến trải nghiệm học tập hiện đại, thông minh và hiệu quả với công nghệ AI tiên tiến nhất.
                     </p>
                 </motion.div>
 
-                {/* Animated Feature Cards */}
-                <div className="max-w-3xl mx-auto pb-20">
-                    {features.map((feature, index) => (
-                        <FeatureCard key={index} feature={feature} index={index} />
+                {/* Main Features - Bento Grid Style */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                    className="grid lg:grid-cols-3 gap-6 mb-16"
+                >
+                    {mainFeatures.map((feature, index) => (
+                        <MainFeatureCard
+                            key={index}
+                            feature={feature}
+                            index={index}
+                            isActive={activeFeature === index}
+                            onClick={() => setActiveFeature(index)}
+                        />
                     ))}
-                </div>
+                </motion.div>
 
-                {/* Bottom Features */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-                    <SmallFeatureCard
-                        icon={Share2}
-                        title="Hỗ trợ cộng đồng"
-                        description="Học nhóm, chia sẻ tài liệu đã kiểm duyệt và thảo luận cùng các chuyên gia trên toàn cầu."
-                        gradient="from-green-500 to-emerald-500"
-                        hueA={120}
-                        hueB={160}
-                    />
-                    <SmallFeatureCard
-                        icon={LineChart}
-                        title="Theo dõi tiến độ"
-                        description="Hệ thống Dashboard chi tiết giúp bạn nắm bắt lộ trình và thời gian học tập một cách khoa học."
-                        gradient="from-cyan-500 to-blue-500"
-                        hueA={180}
-                        hueB={210}
-                    />
-                    <SmallFeatureCard
-                        icon={Globe}
-                        title="Tích hợp mở rộng"
-                        description="Đồng bộ mượt mà với Notion, xuất bản báo cáo PDF/Excel và ôn tập qua Anki mọi lúc."
-                        gradient="from-indigo-500 to-purple-500"
-                        hueA={230}
-                        hueB={260}
-                    />
-                </div>
+                {/* Bottom Features Grid */}
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="grid md:grid-cols-3 gap-6"
+                >
+                    {bottomFeatures.map((feature, index) => (
+                        <BottomFeatureCard key={index} feature={feature} index={index} />
+                    ))}
+                </motion.div>
+
+                {/* CTA Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    className="mt-20 text-center"
+                >
+                    <div className="inline-flex flex-col sm:flex-row gap-4 items-center">
+                        <motion.a
+                            href="#demo"
+                            className="group flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-shadow"
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <Play className="w-5 h-5" />
+                            Xem Demo
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </motion.a>
+                        <a href="#pricing" className="text-base-content/60 hover:text-base-content font-semibold transition-colors">
+                            Xem bảng giá →
+                        </a>
+                    </div>
+                </motion.div>
             </div>
         </section>
     );
 }
 
-const hue = (h) => `hsl(${h}, 100%, 50%)`;
-
-function FeatureCard({ feature, index }) {
+function MainFeatureCard({ feature, index, isActive, onClick }) {
     const Icon = feature.icon;
-    const background = `linear-gradient(306deg, ${hue(feature.hueA)}, ${hue(feature.hueB)})`;
-
-    const cardVariants = {
-        offscreen: {
-            y: 300,
-            opacity: 0,
-        },
-        onscreen: {
-            y: 50,
-            opacity: 1,
-            rotate: index % 2 === 0 ? -1 : 1,
-            transition: {
-                type: "spring",
-                bounce: 0.4,
-                duration: 0.8,
-            },
-        },
-    };
 
     return (
         <motion.div
-            className="relative overflow-hidden flex justify-center items-center pt-5 -mb-32"
-            initial="offscreen"
-            whileInView="onscreen"
-            viewport={{ amount: 0.5, once: false }}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: index * 0.15 }}
+            whileHover={{ y: -8, transition: { duration: 0.3 } }}
+            onClick={onClick}
+            className={`group relative bg-base-100 rounded-[2rem] p-8 overflow-hidden cursor-pointer transition-all duration-500 ${isActive
+                    ? 'border-2 border-blue-500/30 shadow-2xl shadow-blue-500/10'
+                    : 'border-2 border-base-200 hover:border-base-300 shadow-lg hover:shadow-xl'
+                }`}
         >
-            {/* Background splash */}
-            <div
-                className="absolute inset-0"
-                style={{
-                    background,
-                    clipPath: `path("M 0 303.5 C 0 292.454 8.995 285.101 20 283.5 L 460 219.5 C 470.085 218.033 480 228.454 480 239.5 L 500 430 C 500 441.046 491.046 450 480 450 L 20 450 C 8.954 450 0 441.046 0 430 Z")`,
-                    opacity: 0.8
-                }}
-            />
-
-            {/* Card */}
+            {/* Background gradient on hover/active */}
             <motion.div
-                variants={cardVariants}
-                className="relative w-full max-w-2xl min-h-[420px] flex flex-col justify-center items-start rounded-3xl bg-base-100 shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-10 md:p-12 border border-base-200"
-                style={{
-                    transformOrigin: "10% 60%",
-                }}
-            >
-                {/* Icon */}
-                <div
-                    className="w-20 h-20 rounded-2xl flex items-center justify-center mb-8 shadow-2xl"
-                    style={{ background }}
-                >
-                    <Icon className="w-10 h-10 text-white" />
+                className={`absolute inset-0 bg-gradient-to-br ${feature.lightGradient} transition-opacity duration-500`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: isActive ? 1 : 0 }}
+            />
+            <div className={`absolute inset-0 bg-gradient-to-br ${feature.lightGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+            <div className="relative z-10">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-6">
+                    <motion.div
+                        className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-lg`}
+                        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <Icon className="w-8 h-8 text-white" />
+                    </motion.div>
+
+                    {/* Stats Badge */}
+                    <div className="text-right">
+                        <div className={`text-2xl font-black bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent`}>
+                            {feature.stats.value}
+                        </div>
+                        <div className="text-xs font-semibold text-base-content/40 uppercase tracking-wider">
+                            {feature.stats.label}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Content */}
-                {feature.subtitle && (
-                    <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-3">
-                        {feature.subtitle}
-                    </p>
-                )}
+                {/* Subtitle */}
+                <p className={`text-sm font-bold bg-gradient-to-r ${feature.gradient} bg-clip-text text-transparent uppercase tracking-wider mb-2`}>
+                    {feature.subtitle}
+                </p>
 
-                <h3 className="text-3xl md:text-4xl font-black text-base-content mb-5 tracking-tight">
+                {/* Title */}
+                <h3 className="text-2xl font-black text-base-content mb-4 tracking-tight">
                     {feature.title}
                 </h3>
 
-                <p className="text-base-content/70 leading-relaxed text-lg mb-8 font-medium">
+                {/* Description */}
+                <p className="text-base-content/60 leading-relaxed mb-6 font-medium">
                     {feature.description}
                 </p>
 
-                {/* Feature tags */}
-                {feature.features && (
-                    <div className="flex flex-wrap gap-3">
-                        {feature.features.map((item, i) => (
-                            <span
-                                key={i}
-                                className="px-5 py-2.5 bg-base-200/50 rounded-xl text-sm font-bold text-base-content/80 border border-base-300"
-                            >
-                                {item}
-                            </span>
-                        ))}
-                    </div>
-                )}
+                {/* Feature Tags */}
+                <div className="flex flex-wrap gap-2">
+                    {feature.features.map((item, i) => (
+                        <motion.span
+                            key={i}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.3 + i * 0.1 }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-base-200/80 rounded-lg text-xs font-bold text-base-content/70"
+                        >
+                            <CheckCircle2 className={`w-3 h-3 text-${feature.accentColor}-500`} />
+                            {item}
+                        </motion.span>
+                    ))}
+                </div>
+            </div>
 
-                {/* Decorative corner */}
-                <div
-                    className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full blur-[80px] opacity-20"
-                    style={{ background }}
-                />
-            </motion.div>
+            {/* Decorative corner glow */}
+            <div className={`absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-br ${feature.lightGradient} rounded-full blur-[60px] opacity-50`} />
         </motion.div>
     );
 }
 
-function SmallFeatureCard({ icon: Icon, title, description, gradient, hueA, hueB }) {
-    const background = `linear-gradient(306deg, ${hue(hueA)}, ${hue(hueB)})`;
-
-    const cardVariants = {
-        offscreen: {
-            y: 100,
-            opacity: 0,
-        },
-        onscreen: {
-            y: 0,
-            opacity: 1,
-            transition: {
-                type: "spring",
-                bounce: 0.3,
-                duration: 0.6,
-            },
-        },
-    };
+function BottomFeatureCard({ feature, index }) {
+    const Icon = feature.icon;
 
     return (
         <motion.div
-            initial="offscreen"
-            whileInView="onscreen"
-            viewport={{ amount: 0.5, once: false }}
-            variants={cardVariants}
-            whileHover={{ y: -10, scale: 1.02 }}
-            className="group relative bg-base-100 border border-base-300 rounded-[2rem] p-8 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-blue-500/30"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.3 } }}
+            className="group relative bg-base-100 border-2 border-base-200 hover:border-base-300 rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:shadow-xl"
         >
-            {/* Gradient overlay */}
-            <div
-                className="absolute inset-0 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity"
-                style={{ background }}
-            />
+            {/* Background gradient on hover */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${feature.lightGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-            <div className="relative z-10">
-                <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-xl"
-                    style={{ background }}
+            <div className="relative z-10 flex items-start gap-4">
+                <motion.div
+                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}
+                    whileHover={{ rotate: 360 }}
+                    transition={{ duration: 0.6 }}
                 >
-                    <Icon className="w-7 h-7 text-white" />
+                    <Icon className="w-6 h-6 text-white" />
+                </motion.div>
+
+                <div className="flex-1">
+                    <h4 className="text-lg font-bold text-base-content mb-2">
+                        {feature.title}
+                    </h4>
+                    <p className="text-sm text-base-content/60 leading-relaxed">
+                        {feature.description}
+                    </p>
                 </div>
 
-                <h4 className="text-xl font-black text-base-content mb-3 tracking-tight">
-                    {title}
-                </h4>
-
-                <p className="text-base text-base-content/60 leading-relaxed font-medium">
-                    {description}
-                </p>
+                {/* Arrow indicator */}
+                <ArrowRight className="w-5 h-5 text-base-content/20 group-hover:text-base-content/50 group-hover:translate-x-1 transition-all flex-shrink-0" />
             </div>
-
-            {/* Decorative corner */}
-            <div
-                className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full blur-3xl opacity-20"
-                style={{ background }}
-            />
         </motion.div>
     );
 }
-
-
