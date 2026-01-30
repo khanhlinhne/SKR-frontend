@@ -37,7 +37,7 @@ export default function SmartFeatures() {
     };
 
     return (
-        <section className="py-24 md:py-32 bg-white relative overflow-hidden font-sans">
+        <section className="py-24 md:py-32 bg-base-100 relative overflow-hidden font-sans">
             {/* Soft decorative gradients */}
             <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-50 rounded-full blur-[120px] -z-10 opacity-60"></div>
             <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-violet-50 rounded-full blur-[120px] -z-10 opacity-60"></div>
@@ -59,13 +59,13 @@ export default function SmartFeatures() {
                         </motion.div>
 
                         <motion.div variants={itemVariants} className="space-y-6">
-                            <h2 className="text-5xl lg:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight">
+                            <h2 className="text-5xl lg:text-6xl font-black text-base-content leading-[1.1] tracking-tight">
                                 Trải nghiệm ngay <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 italic">
                                     tính năng học thông minh
                                 </span>
                             </h2>
-                            <p className="text-slate-600 text-xl leading-relaxed font-medium max-w-xl">
+                            <p className="text-base-content/70 text-xl leading-relaxed font-medium max-w-xl">
                                 Hệ thống AI tiên tiến tự động phân tích hành vi học tập, điều chỉnh độ khó và tối ưu hóa tần suất lặp lại để bạn ghi nhớ kiến thức vĩnh viễn.
                             </p>
                         </motion.div>
@@ -80,12 +80,12 @@ export default function SmartFeatures() {
                                     key={idx}
                                     variants={itemVariants}
                                     whileHover={{ x: 10 }}
-                                    className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group"
+                                    className="flex items-center gap-4 p-4 rounded-2xl bg-base-200/50 border border-base-300 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group"
                                 >
                                     <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                                         <item.icon className="w-5 h-5" />
                                     </div>
-                                    <span className="font-bold text-slate-700">{item.text}</span>
+                                    <span className="font-bold text-base-content/80">{item.text}</span>
                                 </motion.div>
                             ))}
                         </div>
@@ -115,7 +115,7 @@ export default function SmartFeatures() {
                         <motion.div
                             variants={floatingVariants}
                             animate="animate"
-                            className="bg-white rounded-[2.5rem] p-8 lg:p-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-slate-100 relative z-20 overflow-hidden"
+                            className="bg-base-200/50 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-base-300 relative z-20 overflow-hidden"
                         >
                             {/* Decorative elements inside card */}
                             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-3xl -z-10"></div>
@@ -128,7 +128,7 @@ export default function SmartFeatures() {
                                     </div>
                                     <div>
                                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Question #12</div>
-                                        <div className="text-sm font-bold text-slate-900">Biology Specialist</div>
+                                        <div className="text-sm font-bold text-base-content">Biology Specialist</div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export default function SmartFeatures() {
 
                             {/* Question Section */}
                             <div className="mb-10">
-                                <h3 className="text-2xl font-black text-slate-900 leading-tight mb-4">
+                                <h3 className="text-2xl font-black text-base-content leading-tight mb-4">
                                     Chức năng chính của ti thể (Mitochondria) trong tế bào là gì?
                                 </h3>
                                 <div className="flex gap-2">
@@ -161,16 +161,16 @@ export default function SmartFeatures() {
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 0.8 + (i * 0.1) }}
                                         className={`p-5 rounded-2xl border transition-all duration-300 flex justify-between items-center group cursor-pointer ${option.status === 'correct'
-                                                ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/10'
-                                                : 'bg-slate-50 border-slate-100 hover:border-blue-200 hover:bg-white hover:shadow-md'
+                                            ? 'bg-emerald-50 border-emerald-200 shadow-lg shadow-emerald-500/10'
+                                            : 'bg-base-200/30 border-base-300 hover:border-blue-200 hover:bg-base-200/70 hover:shadow-md'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black transition-colors ${option.status === 'correct' ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 group-hover:text-blue-600 shadow-sm'
+                                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black transition-colors ${option.status === 'correct' ? 'bg-emerald-500 text-white' : 'bg-base-100 text-base-content/40 group-hover:text-blue-600 shadow-sm'
                                                 }`}>
                                                 {option.label}
                                             </span>
-                                            <span className={`font-bold transition-colors ${option.status === 'correct' ? 'text-emerald-700' : 'text-slate-600 group-hover:text-slate-900'
+                                            <span className={`font-bold transition-colors ${option.status === 'correct' ? 'text-emerald-700' : 'text-base-content/70 group-hover:text-base-content'
                                                 }`}>
                                                 {option.text}
                                             </span>
@@ -202,14 +202,14 @@ export default function SmartFeatures() {
                         <motion.div
                             animate={{ y: [0, -20, 0] }}
                             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute -top-10 -right-10 p-5 bg-white rounded-2xl shadow-xl border border-slate-100 z-30 hidden lg:block"
+                            className="absolute -top-10 -right-10 p-5 bg-base-100 rounded-2xl shadow-xl border border-base-300 z-30 hidden lg:block"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
                                     <Brain className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <div className="text-xs font-black text-slate-900">AI Tutor Active</div>
+                                    <div className="text-xs font-black text-base-content">AI Tutor Active</div>
                                     <div className="text-[10px] text-slate-400 font-bold">Optimal learning path</div>
                                 </div>
                             </div>

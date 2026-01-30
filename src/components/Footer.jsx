@@ -39,7 +39,7 @@ export default function Footer() {
                     className="relative mb-16 overflow-hidden"
                 >
                     {/* Light Background Container */}
-                    <div className="relative bg-gradient-to-br from-white via-slate-50 to-blue-50 rounded-[2rem] lg:rounded-[3rem] p-8 md:p-12 lg:p-16 border border-slate-200/60 shadow-xl">
+                    <div className="relative bg-gradient-to-br from-base-100 via-base-200 to-blue-50 rounded-[2rem] lg:rounded-[3rem] p-8 md:p-12 lg:p-16 border border-base-300 shadow-xl">
                         {/* Animated background elements */}
                         <motion.div
                             className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/15 to-violet-400/15 rounded-full blur-[120px]"
@@ -80,7 +80,7 @@ export default function Footer() {
                                         animate={{ y: [0, -3, 0] }}
                                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                                     >
-                                        <h3 className="text-4xl md:text-5xl lg:text-5xl font-black text-slate-900 leading-tight tracking-tight">
+                                        <h3 className="text-4xl md:text-5xl lg:text-5xl font-black text-base-content leading-tight tracking-tight">
                                             Cập nhật tin tức
                                             <motion.span
                                                 className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-violet-600 to-pink-600"
@@ -91,7 +91,7 @@ export default function Footer() {
                                             </motion.span>
                                         </h3>
                                     </motion.div>
-                                    <p className="text-lg text-slate-600 font-medium leading-relaxed max-w-md">
+                                    <p className="text-lg text-base-content/70 font-medium leading-relaxed max-w-md">
                                         Nhận các mẹo ôn thi, ưu đãi đặc quyền, và cập nhật sản phẩm trực tiếp vào hộp thư của bạn.
                                     </p>
 
@@ -101,7 +101,7 @@ export default function Footer() {
                                         whileInView={{ opacity: 1 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: 0.4 }}
-                                        className="flex items-center gap-2 text-sm text-slate-600"
+                                        className="flex items-center gap-2 text-sm text-base-content/70"
                                     >
                                         <motion.div
                                             animate={{ scale: [1, 1.2, 1] }}
@@ -131,7 +131,7 @@ export default function Footer() {
                                         <input
                                             type="email"
                                             placeholder="Nhập email của bạn"
-                                            className="relative w-full input input-lg bg-white/80 backdrop-blur-sm border border-slate-300/60 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 rounded-2xl font-medium transition-all duration-300 group-hover:border-slate-400"
+                                            className="relative w-full input input-lg bg-base-100/80 backdrop-blur-sm border border-base-300 text-base-content placeholder:text-base-content/40 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/30 rounded-2xl font-medium transition-all duration-300 group-hover:border-base-300"
                                         />
                                     </div>
 
@@ -166,7 +166,7 @@ export default function Footer() {
                                         whileInView={{ opacity: 1 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: 0.5 }}
-                                        className="text-center text-xs text-slate-600 font-medium"
+                                        className="text-center text-xs text-base-content/60 font-medium"
                                     >
                                         ✓ Chúng tôi tôn trọng quyền riêng tư của bạn
                                     </motion.p>

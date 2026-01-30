@@ -27,7 +27,7 @@ const itemVariants = {
 
 export default function CTASection() {
     return (
-        <section className="relative py-24 md:py-32 lg:py-40 overflow-hidden bg-gradient-to-b from-white via-blue-50/50 to-slate-50">
+        <section className="relative py-24 md:py-32 lg:py-40 overflow-hidden bg-gradient-to-b from-base-100 via-blue-50/50 to-base-200">
             {/* Animated background gradient orbs */}
             <motion.div
                 className="absolute -top-64 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-cyan-400/10 rounded-full blur-[120px]"
@@ -113,7 +113,7 @@ export default function CTASection() {
 
                         {/* Main Heading */}
                         <motion.div variants={itemVariants} className="space-y-4">
-                            <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 leading-[1.1] tracking-tight">
+                            <h2 className="text-5xl md:text-6xl lg:text-7xl font-black text-base-content leading-[1.1] tracking-tight">
                                 Bắt đầu hành trình <br className="hidden md:block" />
                                 <motion.span
                                     className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent"
@@ -128,7 +128,7 @@ export default function CTASection() {
                         {/* Subtitle */}
                         <motion.p
                             variants={itemVariants}
-                            className="text-lg md:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-medium"
+                            className="text-lg md:text-xl text-base-content/70 max-w-3xl mx-auto leading-relaxed font-medium"
                         >
                             Tham gia cùng hàng ngàn sinh viên đang sử dụng SKR để biến việc ôn thi thành trải nghiệm thú vị và hiệu quả.
                         </motion.p>
@@ -154,7 +154,7 @@ export default function CTASection() {
                                 </motion.button>
                             </Link>
                             <motion.button
-                                className="btn btn-lg h-14 px-10 bg-white border-2 border-slate-300 text-slate-900 hover:bg-slate-50 rounded-xl text-base font-bold transition-all"
+                                className="btn btn-lg h-14 px-10 bg-base-100 border-2 border-base-300 text-base-content hover:bg-base-200 rounded-xl text-base font-bold transition-all"
                                 whileHover={{ scale: 1.08, y: -3 }}
                                 whileTap={{ scale: 0.93 }}
                             >
@@ -174,7 +174,7 @@ export default function CTASection() {
                             ].map((item, idx) => (
                                 <motion.div
                                     key={idx}
-                                    className="flex items-center gap-2 text-sm font-medium text-slate-700"
+                                    className="flex items-center gap-2 text-sm font-medium text-base-content/80"
                                     whileHover={{ x: 5 }}
                                 >
                                     <item.icon className="w-5 h-5 text-blue-600" />

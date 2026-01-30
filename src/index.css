@@ -1,8 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-@plugin "daisyui";
 
-:root {
+@plugin "daisyui" {
+  themes: light --default, synthwave;
+}
+
+@theme {
   --color-primary: 37 99 235;
   /* #2563eb */
   --color-secondary: 124 58 237;
