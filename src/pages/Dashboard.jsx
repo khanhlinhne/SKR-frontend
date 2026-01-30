@@ -286,9 +286,9 @@ export default function Dashboard() {
                             variants={cardVariants}
                             className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300"
                         >
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-black text-base-content">Lịch Ôn Tập Hôm Nay</h3>
-                                <div className="badge badge-primary badge-sm">Spaced Rep.</div>
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <h3 className="text-base sm:text-lg font-black text-base-content whitespace-nowrap">Lịch Ôn Tập Hôm Nay</h3>
+                                <div className="badge badge-primary badge-sm whitespace-nowrap flex-shrink-0">Spaced Rep.</div>
                             </div>
                             <div className="space-y-3">
                                 {upcomingReviews.map((review, i) => (
