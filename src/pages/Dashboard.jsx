@@ -538,7 +538,7 @@ function Header() {
         >
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black text-base-content">Xin chào, Minh!</h2>
+                    <h2 className="text-2xl font-black text-base-content">Xin chào, Anh!</h2>
                     <p className="text-sm text-base-content/60 font-medium">Hôm nay bạn muốn học gì?</p>
                 </div>
 
@@ -564,7 +564,7 @@ function Header() {
                     {/* User Profile */}
                     <div className="flex items-center gap-3 pl-4 border-l border-base-300">
                         <div className="text-right">
-                            <p className="font-bold text-sm text-base-content">Nguyễn Văn Minh</p>
+                            <p className="font-bold text-sm text-base-content">Đoàn Thế Anh</p>
                             <div className="flex items-center justify-end gap-1">
                                 <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
                                 <p className="text-xs text-orange-500 font-bold">Premium User</p>

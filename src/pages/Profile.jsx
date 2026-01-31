@@ -55,8 +55,8 @@ export default function Profile() {
 
     // Mock user data
     const [userData, setUserData] = useState({
-        name: 'Nguyễn Văn Minh',
-        email: 'minh.nguyen@skr.edu.vn',
+        name: 'Đoàn Thế Anh',
+        email: 'anh.nguyen@skr.edu.vn',
         phone: '+84 912 345 678',
         location: 'Hà Nội, Việt Nam',
         bio: 'Sinh viên năm 3 ngành Công nghệ thông tin. Đam mê học AI và Machine Learning.',
@@ -327,9 +327,9 @@ export default function Profile() {
 
 
                                         <div className="form-control">
-                                            <div className="label">
+                                            <label className="label">
                                                 <span className="label-text font-bold">Email</span>
-                                            </div>
+                                            </label>
                                             <input
                                                 type="email"
                                                 value={userData.email}

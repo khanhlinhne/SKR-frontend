@@ -103,16 +103,28 @@ export default function Flashcards() {
         }
     }, [studyMode, handleKeyPress]);
 
-    // Animation variants
+    // Track if initial animation has played
+    const [hasAnimated, setHasAnimated] = useState(false);
+
+    useEffect(() => {
+        // Set hasAnimated to true after initial render
+        const timer = setTimeout(() => setHasAnimated(true), 1000);
+        return () => clearTimeout(timer);
+    }, []);
+
+    // Animation variants - only animate on first load
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
             opacity: 1,
-            transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+            transition: { staggerChildren: hasAnimated ? 0 : 0.08, delayChildren: hasAnimated ? 0 : 0.1 }
         }
     };
 
-    const cardVariants = {
+    const cardVariants = hasAnimated ? {
+        hidden: { opacity: 1, y: 0, scale: 1 },
+        visible: { opacity: 1, y: 0, scale: 1 }
+    } : {
         hidden: { opacity: 0, y: 20, scale: 0.95 },
         visible: {
             opacity: 1, y: 0, scale: 1,
@@ -236,14 +248,14 @@ export default function Flashcards() {
 
                     {/* Flashcard Decks */}
                     {viewMode === 'grid' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div key="grid-view" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {flashcardDecks.map((deck, index) => (
                                 <FlashcardDeckCard key={deck.id} deck={deck} index={index} variants={cardVariants} onStartStudy={handleStartStudy} />
                             ))}
                             <AddDeckCard onClick={() => setShowCreateModal(true)} variants={cardVariants} />
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div key="list-view" className="space-y-3">
                             {flashcardDecks.map((deck) => (
                                 <FlashcardDeckListItem key={deck.id} deck={deck} variants={cardVariants} onStartStudy={handleStartStudy} />
                             ))}

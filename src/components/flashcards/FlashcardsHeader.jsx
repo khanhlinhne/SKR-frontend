@@ -6,7 +6,7 @@ import Icon from '../icons/Icon';
  */
 export default function FlashcardsHeader({ onCreateNew, user }) {
     const defaultUser = {
-        name: 'Nguyễn Văn Minh',
+        name: 'Đoàn Thế Anh',
         isPremium: true,
         avatar: 'https://i.pravatar.cc/150?img=33',
         notifications: 3
