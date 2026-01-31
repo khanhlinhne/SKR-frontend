@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as motion from 'motion/react-client';
 import DashboardSidebar from '../components/DashboardSidebar';
 
@@ -30,6 +30,79 @@ export default function Flashcards() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [studyStats, setStudyStats] = useState({ correct: 0, incorrect: 0, skipped: 0 });
 
+    // Sample cards data (moved here for keyboard handler access)
+    const sampleCards = [
+        { id: 1, front: 'Đạo hàm của hàm số f(x) = x² là gì?', back: "f'(x) = 2x\n\nSử dụng công thức: (xⁿ)' = n·xⁿ⁻¹", difficulty: 'easy' },
+        { id: 2, front: 'Tính đạo hàm của sin(x)', back: "(sin(x))' = cos(x)\n\nĐây là công thức cơ bản cần nhớ", difficulty: 'medium' },
+        { id: 3, front: 'Quy tắc đạo hàm của tích: (uv)\' = ?', back: "(uv)' = u'v + uv'\n\nTích của đạo hàm u nhân v cộng u nhân đạo hàm v", difficulty: 'medium' },
+        { id: 4, front: 'Đạo hàm của e^x là gì?', back: "(eˣ)' = eˣ\n\nHàm mũ cơ số e có đạo hàm bằng chính nó", difficulty: 'easy' },
+        { id: 5, front: 'Đạo hàm của ln(x) là gì?', back: "(ln(x))' = 1/x\n\nVới x > 0", difficulty: 'medium' },
+    ];
+
+    // Keyboard event handler for study mode
+    const handleKeyPress = useCallback((event) => {
+        if (!studyMode) return;
+
+        switch (event.key) {
+            case ' ': // Space - flip card
+                event.preventDefault();
+                setIsFlipped(prev => !prev);
+                break;
+            case 'ArrowLeft': // Left arrow - previous card
+                event.preventDefault();
+                if (currentCardIndex > 0) {
+                    setCurrentCardIndex(prev => prev - 1);
+                    setIsFlipped(false);
+                }
+                break;
+            case 'ArrowRight': // Right arrow - next card (skip)
+                event.preventDefault();
+                if (currentCardIndex < sampleCards.length - 1) {
+                    setStudyStats(prev => ({ ...prev, skipped: prev.skipped + 1 }));
+                    setCurrentCardIndex(prev => prev + 1);
+                    setIsFlipped(false);
+                }
+                break;
+            case '1': // 1 - incorrect
+                event.preventDefault();
+                setStudyStats(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+                if (currentCardIndex < sampleCards.length - 1) {
+                    setCurrentCardIndex(prev => prev + 1);
+                    setIsFlipped(false);
+                } else {
+                    setStudyMode(false);
+                }
+                break;
+            case '2': // 2 - correct
+                event.preventDefault();
+                setStudyStats(prev => ({ ...prev, correct: prev.correct + 1 }));
+                if (currentCardIndex < sampleCards.length - 1) {
+                    setCurrentCardIndex(prev => prev + 1);
+                    setIsFlipped(false);
+                } else {
+                    setStudyMode(false);
+                }
+                break;
+            case 'Escape': // Escape - end study
+                event.preventDefault();
+                setStudyMode(false);
+                setSelectedDeck(null);
+                setCurrentCardIndex(0);
+                setIsFlipped(false);
+                break;
+            default:
+                break;
+        }
+    }, [studyMode, currentCardIndex, sampleCards.length]);
+
+    // Add/remove keyboard event listener
+    useEffect(() => {
+        if (studyMode) {
+            window.addEventListener('keydown', handleKeyPress);
+            return () => window.removeEventListener('keydown', handleKeyPress);
+        }
+    }, [studyMode, handleKeyPress]);
+
     // Animation variants
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -55,14 +128,6 @@ export default function Flashcards() {
         { id: 4, name: 'SQL Commands', subject: 'Cơ Sở Dữ Liệu', totalCards: 56, mastered: 56, learning: 0, new: 0, lastStudied: '1 tuần trước', color: 'purple', icon: '💾', streak: 0, dueToday: 0 },
         { id: 5, name: 'Lịch Sử Việt Nam', subject: 'Lịch Sử', totalCards: 89, mastered: 34, learning: 40, new: 15, lastStudied: '5 giờ trước', color: 'red', icon: '📚', streak: 3, dueToday: 15 },
         { id: 6, name: 'Vật Lý - Cơ Học', subject: 'Vật Lý', totalCards: 62, mastered: 20, learning: 25, new: 17, lastStudied: '2 ngày trước', color: 'orange', icon: '⚛️', streak: 1, dueToday: 12 }
-    ];
-
-    const sampleCards = [
-        { id: 1, front: 'Đạo hàm của hàm số f(x) = x² là gì?', back: "f'(x) = 2x\n\nSử dụng công thức: (xⁿ)' = n·xⁿ⁻¹", difficulty: 'easy' },
-        { id: 2, front: 'Tính đạo hàm của sin(x)', back: "(sin(x))' = cos(x)\n\nĐây là công thức cơ bản cần nhớ", difficulty: 'medium' },
-        { id: 3, front: 'Quy tắc đạo hàm của tích: (uv)\' = ?', back: "(uv)' = u'v + uv'\n\nTích của đạo hàm u nhân v cộng u nhân đạo hàm v", difficulty: 'medium' },
-        { id: 4, front: 'Đạo hàm của e^x là gì?', back: "(eˣ)' = eˣ\n\nHàm mũ cơ số e có đạo hàm bằng chính nó", difficulty: 'easy' },
-        { id: 5, front: 'Đạo hàm của ln(x) là gì?', back: "(ln(x))' = 1/x\n\nVới x > 0", difficulty: 'medium' },
     ];
 
     const stats = { totalCards: 450, mastered: 270, dueToday: 63, streak: 12 };
