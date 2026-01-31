@@ -325,10 +325,11 @@ export default function Profile() {
                                             />
                                         </div>
 
+
                                         <div className="form-control">
-                                            <label className="label">
+                                            <div className="label">
                                                 <span className="label-text font-bold">Email</span>
-                                            </label>
+                                            </div>
                                             <input
                                                 type="email"
                                                 value={userData.email}

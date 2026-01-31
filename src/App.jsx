@@ -6,6 +6,7 @@ import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Flashcards from './pages/Flashcards';
 import './App.css';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/flashcards" element={<Flashcards />} />
     </Routes>
   );
 }
