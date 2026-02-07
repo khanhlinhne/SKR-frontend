@@ -190,6 +190,7 @@ function ExpertCard({ expert, index }) {
                     <img
                         src={expert.avatar}
                         alt={expert.name}
+                        loading="lazy"
                         className="w-20 h-20 rounded-full object-cover ring-4 ring-base-200 group-hover:ring-blue-500/30 transition-all"
                     />
                     {expert.verified && (
@@ -245,6 +246,7 @@ function CourseCard({ course, expert, index, variants }) {
                     <img
                         src={course.bannerUrl}
                         alt={course.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                     />
                     {/* Gradient overlay */}
@@ -367,6 +369,7 @@ function CourseCard({ course, expert, index, variants }) {
                                 <img
                                     src={expert.avatar}
                                     alt={expert.name}
+                                    loading="lazy"
                                     className="w-7 h-7 rounded-full object-cover ring-2 ring-base-200"
                                 />
                                 <div>
@@ -574,56 +577,82 @@ export default function ExpertCoursesSection() {
                     transition={{ duration: 0.6, delay: 0.3 }}
                     className="mt-16 relative"
                 >
-                    <div className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 rounded-3xl p-10 lg:p-14 overflow-hidden">
+                    {/* Gradient border glow */}
+                    <div className="absolute -inset-[1px] bg-gradient-to-r from-violet-500 via-purple-500 to-blue-500 rounded-3xl blur-sm opacity-40" />
+
+                    <div className="relative bg-base-100 rounded-3xl p-10 lg:p-14 overflow-hidden border border-base-200">
                         {/* Background decoration */}
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
                             <motion.div
-                                className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"
-                                animate={{ scale: [1, 1.3, 1], rotate: [0, 90, 0] }}
+                                className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-br from-violet-500/8 to-purple-500/8 rounded-full blur-3xl"
+                                animate={{ scale: [1, 1.2, 1], rotate: [0, 45, 0] }}
                                 transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
                             />
                             <motion.div
-                                className="absolute -bottom-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"
-                                animate={{ scale: [1.3, 1, 1.3], rotate: [90, 0, 90] }}
+                                className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-br from-blue-500/8 to-cyan-500/8 rounded-full blur-3xl"
+                                animate={{ scale: [1.2, 1, 1.2], rotate: [45, 0, 45] }}
                                 transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
                             />
+                            {/* Subtle dot pattern */}
+                            <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(139,92,246,0.03)_1px,transparent_1px)] bg-[size:24px_24px]" />
                         </div>
 
-                        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-                            <div className="text-center lg:text-left">
-                                <div className="flex items-center justify-center lg:justify-start gap-2 mb-3">
-                                    <TrendingUp className="w-5 h-5 text-white/80" />
-                                    <span className="text-white/80 text-sm font-bold uppercase tracking-wider">Cộng đồng đang phát triển</span>
+                        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
+                            {/* Left content */}
+                            <div className="text-center lg:text-left flex-1">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 mb-4">
+                                    <TrendingUp className="w-4 h-4 text-violet-500" />
+                                    <span className="text-xs font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent uppercase tracking-wider">
+                                        Cộng đồng đang phát triển
+                                    </span>
                                 </div>
-                                <h3 className="text-3xl md:text-4xl font-black text-white mb-3 tracking-tight">
-                                    Trở thành Chuyên gia trên SKR
+                                <h3 className="text-3xl md:text-4xl font-black text-base-content mb-4 tracking-tight leading-tight">
+                                    Trở thành{' '}
+                                    <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+                                        Chuyên gia
+                                    </span>
+                                    {' '}trên SKR
                                 </h3>
-                                <p className="text-white/80 text-lg font-medium max-w-xl">
-                                    Chia sẻ kiến thức, xây dựng thương hiệu cá nhân và tạo thu nhập bền vững từ các khóa học & bộ Flashcard chất lượng.
+                                <p className="text-base-content/60 text-lg font-medium max-w-xl leading-relaxed">
+                                    Chia sẻ kiến thức, xây dựng thương hiệu cá nhân và tạo thu nhập bền vững từ các khóa học &amp; bộ Flashcard chất lượng.
                                 </p>
 
                                 {/* Trust Stats */}
-                                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 mt-6">
+                                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-5 mt-8">
                                     {[
-                                        { value: '200+', label: 'Chuyên gia' },
-                                        { value: '1,500+', label: 'Khóa học' },
-                                        { value: '50K+', label: 'Học viên' },
+                                        { value: '200+', label: 'Chuyên gia', icon: GraduationCap, color: 'text-violet-500' },
+                                        { value: '1,500+', label: 'Khóa học', icon: BookOpen, color: 'text-blue-500' },
+                                        { value: '50K+', label: 'Học viên', icon: Users, color: 'text-emerald-500' },
                                     ].map((stat, i) => (
-                                        <div key={i} className="text-center lg:text-left">
-                                            <div className="text-2xl font-black text-white">{stat.value}</div>
-                                            <div className="text-xs font-semibold text-white/60">{stat.label}</div>
-                                        </div>
+                                        <motion.div
+                                            key={i}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            viewport={{ once: true }}
+                                            transition={{ delay: 0.4 + i * 0.1 }}
+                                            className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-base-200/50 border border-base-200"
+                                        >
+                                            <div className={`w-10 h-10 rounded-xl bg-base-200 flex items-center justify-center ${stat.color}`}>
+                                                <stat.icon className="w-5 h-5" />
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="text-xl font-black text-base-content leading-tight">{stat.value}</div>
+                                                <div className="text-xs font-semibold text-base-content/50">{stat.label}</div>
+                                            </div>
+                                        </motion.div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3">
+                            {/* Right buttons */}
+                            <div className="flex flex-col gap-3 min-w-[260px]">
                                 <Link to="/signup">
                                     <motion.button
                                         whileHover={{ scale: 1.05, y: -2 }}
                                         whileTap={{ scale: 0.95 }}
-                                        className="btn btn-lg bg-white text-violet-700 hover:bg-white/90 border-none rounded-xl shadow-xl font-bold group px-8 w-full"
+                                        className="btn btn-lg bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white border-none rounded-2xl shadow-xl shadow-violet-600/20 font-bold group px-8 w-full"
                                     >
+                                        <Award className="w-5 h-5" />
                                         Đăng ký làm Chuyên gia
                                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </motion.button>
@@ -632,8 +661,9 @@ export default function ExpertCoursesSection() {
                                     <motion.button
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
-                                        className="btn btn-lg bg-white/10 text-white hover:bg-white/20 border-2 border-white/30 rounded-xl font-bold px-8 w-full"
+                                        className="btn btn-lg bg-base-200 hover:bg-base-300 text-base-content border-2 border-base-300 hover:border-violet-500/30 rounded-2xl font-bold px-8 w-full transition-all duration-300"
                                     >
+                                        <BookOpen className="w-5 h-5" />
                                         Khám phá khóa học
                                     </motion.button>
                                 </Link>

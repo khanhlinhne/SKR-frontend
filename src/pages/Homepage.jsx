@@ -8,7 +8,6 @@ import PricingSection from '../components/PricingSection';
 import BlogSection from '../components/BlogSection';
 import CTASection from '../components/CTASection';
 import Footer from '../components/Footer';
-import CourseShowcase from '../components/CourseShowcase';
 
 function Homepage() {
     return (
