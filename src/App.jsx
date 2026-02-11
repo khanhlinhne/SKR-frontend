@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Flashcards from './pages/Flashcards';
+import Checkout from './pages/Checkout';
 import './App.css';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/flashcards" element={<Flashcards />} />
+      <Route path="/checkout" element={<Checkout />} />
     </Routes>
   );
 }
