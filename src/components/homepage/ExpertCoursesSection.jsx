@@ -62,7 +62,7 @@ const experts = [
     },
     {
         id: 3,
-        name: 'TS. Lê Hoàng Long',
+        name: 'TS. Đoàn Thế Anh',
         title: 'Tiến sĩ CNTT - ĐH Công Nghệ',
         avatar: 'https://i.pravatar.cc/150?img=12',
         rating: 4.9,

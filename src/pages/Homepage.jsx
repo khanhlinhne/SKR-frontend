@@ -1,12 +1,14 @@
 import NavBar from '../components/NavBar';
-import Hero from '../components/Hero';
-import SmartFeatures from '../components/SmartFeatures';
-import FeaturesSection from '../components/FeaturesSection';
-import AudienceSection from '../components/AudienceSection';
-import ExpertCoursesSection from '../components/ExpertCoursesSection';
-import PricingSection from '../components/PricingSection';
-import BlogSection from '../components/BlogSection';
-import CTASection from '../components/CTASection';
+import {
+    Hero,
+    SmartFeatures,
+    FeaturesSection,
+    AudienceSection,
+    ExpertCoursesSection,
+    PricingSection,
+    BlogSection,
+    CTASection
+} from '../components/homepage';
 import Footer from '../components/Footer';
 
 function Homepage() {

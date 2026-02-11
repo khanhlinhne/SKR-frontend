@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Flashcards from './pages/Flashcards';
 import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import './App.css';
 
 function App() {
@@ -27,6 +29,8 @@ function App() {
       <Route path="/profile" element={<Profile />} />
       <Route path="/flashcards" element={<Flashcards />} />
       <Route path="/checkout" element={<Checkout />} />
+      <Route path="/orders" element={<Orders />} />
+      <Route path="/orders/:id" element={<OrderDetail />} />
     </Routes>
   );
 }

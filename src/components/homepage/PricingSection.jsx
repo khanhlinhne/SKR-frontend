@@ -204,8 +204,8 @@ export default function PricingSection() {
                         <button
                             onClick={() => setBillingCycle('monthly')}
                             className={`relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${billingCycle === 'monthly'
-                                    ? 'text-white'
-                                    : 'text-base-content/60 hover:text-base-content'
+                                ? 'text-white'
+                                : 'text-base-content/60 hover:text-base-content'
                                 }`}
                         >
                             {billingCycle === 'monthly' && (
@@ -220,8 +220,8 @@ export default function PricingSection() {
                         <button
                             onClick={() => setBillingCycle('yearly')}
                             className={`relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 flex items-center gap-2 ${billingCycle === 'yearly'
-                                    ? 'text-white'
-                                    : 'text-base-content/60 hover:text-base-content'
+                                ? 'text-white'
+                                : 'text-base-content/60 hover:text-base-content'
                                 }`}
                         >
                             {billingCycle === 'yearly' && (
@@ -233,8 +233,8 @@ export default function PricingSection() {
                             )}
                             <span className="relative z-10">Hàng năm</span>
                             <span className={`relative z-10 px-2 py-0.5 text-xs font-bold rounded-full ${billingCycle === 'yearly'
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-green-500/10 text-green-600'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-green-500/10 text-green-600'
                                 }`}>
                                 -20%
                             </span>
@@ -284,29 +284,7 @@ export default function PricingSection() {
                     ))}
                 </motion.div>
 
-                {/* Bottom CTA */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: 0.5 }}
-                    className="text-center mt-12"
-                >
-                    <p className="text-base-content/50 mb-4 font-medium">
-                        Có câu hỏi về gói dịch vụ?{' '}
-                        <a href="#" className="text-blue-600 hover:text-blue-700 font-bold underline-offset-4 hover:underline transition-all">
-                            Liên hệ chúng tôi
-                        </a>
-                    </p>
-                    <motion.a
-                        href="#compare"
-                        className="inline-flex items-center gap-2 font-bold text-blue-600 hover:text-blue-700 group transition-colors"
-                        whileHover={{ x: 5 }}
-                    >
-                        Xem bảng so sánh chi tiết tính năng
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </motion.a>
-                </motion.div>
+
             </div>
         </section>
     );
@@ -335,8 +313,8 @@ function PricingCard({ plan, itemVariants, billingCycle }) {
             )}
 
             <div className={`relative h-full bg-base-100 border-2 rounded-[2rem] p-8 lg:p-10 overflow-hidden transition-all duration-500 ${plan.popular
-                    ? 'border-transparent shadow-2xl'
-                    : 'border-base-200 hover:border-base-300 hover:shadow-xl'
+                ? 'border-transparent shadow-2xl'
+                : 'border-base-200 hover:border-base-300 hover:shadow-xl'
                 }`}>
 
                 {/* Popular badge */}
@@ -412,8 +390,8 @@ function PricingCard({ plan, itemVariants, billingCycle }) {
                     <Link to="/signup" className="mb-8 block">
                         <motion.button
                             className={`relative w-full h-14 rounded-2xl text-lg font-black tracking-tight overflow-hidden ${plan.popular
-                                    ? 'text-white shadow-xl shadow-blue-600/25'
-                                    : 'bg-base-200 text-base-content hover:bg-base-300'
+                                ? 'text-white shadow-xl shadow-blue-600/25'
+                                : 'bg-base-200 text-base-content hover:bg-base-300'
                                 }`}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -458,10 +436,10 @@ function PricingCard({ plan, itemVariants, billingCycle }) {
                                 transition={{ delay: index * 0.05 }}
                             >
                                 <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5 ${feature.included
-                                        ? feature.highlight
-                                            ? 'bg-gradient-to-br from-blue-500 to-violet-500'
-                                            : plan.popular ? 'bg-blue-500/10' : 'bg-base-200'
-                                        : 'bg-base-100 border border-base-300'
+                                    ? feature.highlight
+                                        ? 'bg-gradient-to-br from-blue-500 to-violet-500'
+                                        : plan.popular ? 'bg-blue-500/10' : 'bg-base-200'
+                                    : 'bg-base-100 border border-base-300'
                                     }`}>
                                     {feature.included ? (
                                         <Check className={`w-3.5 h-3.5 ${feature.highlight ? 'text-white' : plan.popular ? 'text-blue-600' : 'text-base-content/50'}`} strokeWidth={3} />
@@ -470,10 +448,10 @@ function PricingCard({ plan, itemVariants, billingCycle }) {
                                     )}
                                 </div>
                                 <span className={`font-medium ${feature.included
-                                        ? feature.highlight
-                                            ? 'text-base-content font-semibold'
-                                            : 'text-base-content/70'
-                                        : 'text-base-content/40 line-through'
+                                    ? feature.highlight
+                                        ? 'text-base-content font-semibold'
+                                        : 'text-base-content/70'
+                                    : 'text-base-content/40 line-through'
                                     }`}>
                                     {feature.text}
                                 </span>
