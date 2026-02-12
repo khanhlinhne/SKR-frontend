@@ -10,7 +10,7 @@ import {
     Clock,
 } from 'lucide-react';
 
-import NavBar from '../components/NavBar';
+import { NavBar } from '../components/layout';
 import CheckoutSteps from '../components/checkout/CheckoutSteps';
 import OrderSummary from '../components/checkout/OrderSummary';
 import CouponInput from '../components/checkout/CouponInput';

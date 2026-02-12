@@ -1,4 +1,4 @@
-import NavBar from '../components/NavBar';
+import { NavBar, Footer } from '../components/layout';
 import {
     Hero,
     SmartFeatures,
@@ -9,7 +9,6 @@ import {
     BlogSection,
     CTASection
 } from '../components/homepage';
-import Footer from '../components/Footer';
 
 function Homepage() {
     return (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import * as motion from 'motion/react-client';
-import DashboardSidebar from '../components/DashboardSidebar';
+import { DashboardSidebar } from '../components/learner';
 import {
     Search,
     Bell,

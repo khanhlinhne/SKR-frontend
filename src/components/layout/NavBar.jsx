@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as motion from 'motion/react-client';
 import { Menu, X, Brain, GraduationCap } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import ThemeController from './ThemeController';
+import ThemeController from '../ThemeController';
 
 export default function NavBar() {
     const [isScrolled, setIsScrolled] = useState(false);

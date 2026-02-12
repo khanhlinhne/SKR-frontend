@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import * as motion from 'motion/react-client';
-import DashboardSidebar from '../components/DashboardSidebar';
+import { DashboardSidebar } from '../components/learner';
 import {
     ArrowLeft,
     Search,
