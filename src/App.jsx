@@ -10,6 +10,8 @@ import Flashcards from './pages/Flashcards';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
+import Courses from './pages/Courses';
+import CourseDetail from './pages/CourseDetail';
 import './App.css';
 
 function App() {
@@ -31,6 +33,8 @@ function App() {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/orders" element={<Orders />} />
       <Route path="/orders/:id" element={<OrderDetail />} />
+      <Route path="/courses" element={<Courses />} />
+      <Route path="/courses/:id" element={<CourseDetail />} />
     </Routes>
   );
 }

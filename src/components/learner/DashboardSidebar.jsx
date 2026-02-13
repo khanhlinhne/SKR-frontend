@@ -9,6 +9,7 @@ import {
     MessageSquare,
     Calendar,
     Trophy,
+    ShoppingBag,
     User,
     Settings,
     LogOut,
@@ -21,16 +22,20 @@ export default function DashboardSidebar() {
 
     const menuItems = [
         { icon: BarChart3, label: 'Tổng quan', path: '/dashboard' },
-        { icon: BookOpen, label: 'Môn học', path: '/subjects' },
+        { icon: BookOpen, label: 'Môn học', path: '/courses' },
         { icon: CreditCard, label: 'Flashcards', path: '/flashcards' },
         { icon: FileText, label: 'Thi thử', path: '/tests' },
+        { icon: ShoppingBag, label: 'Đơn hàng', path: '/orders' },
         { icon: Brain, label: 'AI Assistant', path: '/ai-assistant', badge: 'Premium' },
         { icon: MessageSquare, label: 'Cộng đồng', path: '/community' },
         { icon: Calendar, label: 'Lịch học', path: '/schedule' },
         { icon: Trophy, label: 'Thành tích', path: '/achievements' }
     ];
 
-    const isActive = (path) => location.pathname === path;
+    const isActive = (path) => {
+        if (path === '/dashboard') return location.pathname === '/dashboard';
+        return location.pathname === path || location.pathname.startsWith(path + '/');
+    };
 
     return (
         <motion.aside
@@ -66,8 +71,8 @@ export default function DashboardSidebar() {
                         <Link
                             to={item.path}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all relative ${isActive(item.path)
-                                    ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
-                                    : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
+                                ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
+                                : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
                                 }`}
                         >
                             <item.icon className="w-5 h-5" />
@@ -113,8 +118,8 @@ export default function DashboardSidebar() {
                     <Link
                         to="/profile"
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${isActive('/profile')
-                                ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
-                                : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
+                            ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
+                            : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
                             }`}
                     >
                         <User className="w-5 h-5" />
@@ -129,8 +134,8 @@ export default function DashboardSidebar() {
                     <Link
                         to="/settings"
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${isActive('/settings')
-                                ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
-                                : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
+                            ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
+                            : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
                             }`}
                     >
                         <Settings className="w-5 h-5" />
