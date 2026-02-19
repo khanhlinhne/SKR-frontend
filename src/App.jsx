@@ -12,6 +12,9 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
+import Tests from './pages/Tests';
+import TestDetail from './pages/TestDetail';
+import { QuizTaking, QuizResults } from './components/tests';
 import './App.css';
 
 function App() {
@@ -35,6 +38,10 @@ function App() {
       <Route path="/orders/:id" element={<OrderDetail />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:id" element={<CourseDetail />} />
+      <Route path="/tests" element={<Tests />} />
+      <Route path="/tests/:id" element={<TestDetail />} />
+      <Route path="/tests/:id/take" element={<QuizTaking />} />
+      <Route path="/tests/:id/results" element={<QuizResults />} />
     </Routes>
   );
 }
