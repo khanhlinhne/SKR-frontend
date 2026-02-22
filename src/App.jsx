@@ -12,6 +12,7 @@ import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
+import Learn from './pages/Learn';
 import Tests from './pages/Tests';
 import TestDetail from './pages/TestDetail';
 import { QuizTaking, QuizResults } from './components/tests';
@@ -38,6 +39,7 @@ function App() {
       <Route path="/orders/:id" element={<OrderDetail />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:id" element={<CourseDetail />} />
+      <Route path="/courses/:id/learn" element={<Learn />} />
       <Route path="/tests" element={<Tests />} />
       <Route path="/tests/:id" element={<TestDetail />} />
       <Route path="/tests/:id/take" element={<QuizTaking />} />
