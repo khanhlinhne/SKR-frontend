@@ -5,6 +5,7 @@ import {
     LearnVideoPlayer,
     LearnLessonContent,
     LearnHeader,
+    LearnProgressView,
 } from '../components/learn';
 
 // ─── Mock Data ──────────────────────────────────────────
@@ -237,6 +238,7 @@ export default function Learn() {
     const [activeChapter, setActiveChapter] = useState(0);
     const [activeLesson, setActiveLesson] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [viewMode, setViewMode] = useState('learn'); // 'learn' | 'progress'
     const [completedLessons, setCompletedLessons] = useState({
         // Pre-populate some completed lessons for demo
         '0-0': true,
@@ -331,6 +333,8 @@ export default function Learn() {
                 courseGradient={course.gradient}
                 courseIcon={course.icon}
                 courseTitle={course.title}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
             />
 
             {/* Main Content */}
@@ -338,34 +342,46 @@ export default function Learn() {
                 {/* Header */}
                 <LearnHeader
                     course={course}
-                    lessonTitle={currentLesson?.title || ''}
+                    lessonTitle={viewMode === 'progress' ? 'Phân tích tiến độ' : (currentLesson?.title || '')}
                     progress={overallProgress}
                 />
 
                 {/* Scrollable content area */}
                 <main className="flex-1 overflow-y-auto">
-                    <div className="max-w-5xl mx-auto px-6 py-6">
-                        {/* Video Player */}
-                        <LearnVideoPlayer
-                            lesson={currentLesson}
-                            gradient={course.gradient}
-                            isPlaying={isPlaying}
-                            onTogglePlay={handleTogglePlay}
-                        />
-
-                        {/* Lesson Content */}
-                        <LearnLessonContent
-                            lesson={currentLesson}
-                            chapter={currentChapter}
-                            nextLesson={nextLesson}
+                    {viewMode === 'progress' ? (
+                        <LearnProgressView
+                            chapters={chapters}
+                            completedLessons={completedLessons}
+                            courseGradient={course.gradient}
+                            courseTitle={course.title}
+                            courseIcon={course.icon}
                             expertName={expert?.name}
                             expertAvatar={expert?.avatar}
-                            gradient={course.gradient}
-                            onNext={handleNext}
-                            onComplete={handleComplete}
-                            isCompleted={!!completedLessons[`${activeChapter}-${activeLesson}`]}
                         />
-                    </div>
+                    ) : (
+                        <div className="max-w-5xl mx-auto px-6 py-6">
+                            {/* Video Player */}
+                            <LearnVideoPlayer
+                                lesson={currentLesson}
+                                gradient={course.gradient}
+                                isPlaying={isPlaying}
+                                onTogglePlay={handleTogglePlay}
+                            />
+
+                            {/* Lesson Content */}
+                            <LearnLessonContent
+                                lesson={currentLesson}
+                                chapter={currentChapter}
+                                nextLesson={nextLesson}
+                                expertName={expert?.name}
+                                expertAvatar={expert?.avatar}
+                                gradient={course.gradient}
+                                onNext={handleNext}
+                                onComplete={handleComplete}
+                                isCompleted={!!completedLessons[`${activeChapter}-${activeLesson}`]}
+                            />
+                        </div>
+                    )}
                 </main>
             </div>
         </div>
