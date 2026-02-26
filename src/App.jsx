@@ -16,6 +16,7 @@ import Learn from './pages/Learn';
 import Tests from './pages/Tests';
 import TestDetail from './pages/TestDetail';
 import { QuizTaking, QuizResults } from './components/tests';
+import GoogleCallback from './pages/GoogleCallback';
 import './App.css';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/auth/google/callback" element={<GoogleCallback />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/flashcards" element={<Flashcards />} />

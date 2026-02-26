@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as motion from 'motion/react-client';
-import { Mail, Lock, Brain, Eye, EyeOff, Sparkles, HelpCircle, Database, Share2, ArrowRight, CheckCircle2, GraduationCap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Mail, Lock, Brain, Eye, EyeOff, Sparkles, HelpCircle, Database, Share2, ArrowRight, CheckCircle2, GraduationCap, AlertCircle, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { authApi } from '../api';
 
 const FeatureCard = ({ icon: Icon, title, description, index }) => (
     <motion.div
@@ -21,7 +22,7 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => (
     </motion.div>
 );
 
-const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false }) => {
+const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false, value, onChange, name }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
@@ -47,6 +48,9 @@ const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false }
                     </div>
                     <input
                         type={inputType}
+                        name={name}
+                        value={value}
+                        onChange={onChange}
                         placeholder={placeholder}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
@@ -68,6 +72,49 @@ const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false }
 };
 
 export default function Login() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    // Xu ly loi tu Google OAuth (neu co)
+    useEffect(() => {
+        const googleError = searchParams.get('error');
+        if (googleError) {
+            setError('Đăng nhập bằng Google thất bại. Vui lòng thử lại!');
+        }
+    }, [searchParams]);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        setError(''); // Xoa loi khi user go lai
+    };
+
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            const data = await authApi.login({
+                email: formData.email,
+                password: formData.password,
+            });
+
+            // Luu token vao localStorage
+            localStorage.setItem('accessToken', data.token);
+
+            // Chuyen den dashboard
+            navigate('/dashboard');
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại!';
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -194,11 +241,26 @@ export default function Login() {
                         </motion.p>
                     </div>
 
-                    <form className="space-y-6">
+                    <form className="space-y-6" onSubmit={handleLogin}>
+                        {/* Error message */}
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium"
+                            >
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                {error}
+                            </motion.div>
+                        )}
+
                         <motion.div variants={itemVariants}>
                             <InputField
                                 label="Địa chỉ Email"
                                 type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
                                 placeholder="name@example.com"
                                 icon={Mail}
                             />
@@ -208,6 +270,9 @@ export default function Login() {
                             <InputField
                                 label="Mật khẩu"
                                 isPassword={true}
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
                                 placeholder="••••••••"
                                 icon={Lock}
                             />
@@ -229,10 +294,21 @@ export default function Login() {
                             variants={itemVariants}
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
-                            className="btn w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl shadow-xl shadow-blue-600/20 border-none text-base h-12 font-bold group transition-all duration-300"
+                            type="submit"
+                            disabled={loading}
+                            className="btn w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl shadow-xl shadow-blue-600/20 border-none text-base h-12 font-bold group transition-all duration-300 disabled:opacity-60"
                         >
-                            Đăng nhập ngay
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    Đang xử lý...
+                                </>
+                            ) : (
+                                <>
+                                    Đăng nhập ngay
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </motion.button>
 
                         <motion.div variants={itemVariants} className="relative py-2">
@@ -246,8 +322,12 @@ export default function Login() {
 
                         <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4">
                             <motion.button
+                                type="button"
                                 whileHover={{ scale: 1.02, y: -1 }}
                                 whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+                                }}
                                 className="btn w-full btn-ghost border-base-300 hover:bg-base-200 text-base-content rounded-xl font-bold flex items-center justify-center gap-3 transition-all h-12"
                             >
                                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />

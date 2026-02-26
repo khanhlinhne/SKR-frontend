@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import * as motion from 'motion/react-client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Mail,
     UserPen,
@@ -15,8 +15,11 @@ import {
     Share2,
     ArrowRight,
     GraduationCap,
-    CheckCircle2
+    CheckCircle2,
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
+import { authApi } from '../api';
 
 /* ================== Small Components ================== */
 
@@ -44,6 +47,9 @@ const InputField = ({
     placeholder,
     icon: Icon,
     isPassword = false,
+    value,
+    onChange,
+    name,
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -72,6 +78,9 @@ const InputField = ({
 
                     <input
                         type={inputType}
+                        name={name}
+                        value={value}
+                        onChange={onChange}
                         placeholder={placeholder}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
@@ -96,6 +105,56 @@ const InputField = ({
 /* ================== Main Component ================== */
 
 export default function SignUp() {
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        setError('');
+    };
+
+    const handleSignUp = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+        setSuccess('');
+
+        // Kiem tra mat khau khop
+        if (formData.password !== formData.confirmPassword) {
+            setError('Mật khẩu xác nhận không khớp!');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const data = await authApi.register({
+                username: formData.username,
+                email: formData.email,
+                password: formData.password,
+            });
+
+            setSuccess(data.message || 'Đăng ký thành công! Đang chuyển hướng...');
+
+            // Chuyen ve trang login sau 2 giay
+            setTimeout(() => {
+                navigate('/login');
+            }, 2000);
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!';
+            setError(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -221,11 +280,38 @@ export default function SignUp() {
                         </motion.p>
                     </div>
 
-                    <form className="space-y-5">
+                    <form className="space-y-5" onSubmit={handleSignUp}>
+                        {/* Error message */}
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium"
+                            >
+                                <AlertCircle className="w-5 h-5 shrink-0" />
+                                {error}
+                            </motion.div>
+                        )}
+
+                        {/* Success message */}
+                        {success && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-sm font-medium"
+                            >
+                                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                                {success}
+                            </motion.div>
+                        )}
+
                         <motion.div variants={itemVariants}>
                             <InputField
-                                label="Họ và tên"
-                                placeholder="Nguyễn Văn A"
+                                label="Tên đăng nhập"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                placeholder="username123"
                                 icon={UserPen}
                             />
                         </motion.div>
@@ -234,6 +320,9 @@ export default function SignUp() {
                             <InputField
                                 label="Địa chỉ Email"
                                 type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
                                 placeholder="name@example.com"
                                 icon={Mail}
                             />
@@ -245,6 +334,9 @@ export default function SignUp() {
                                 placeholder="••••••••"
                                 icon={Lock}
                                 isPassword
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
                             />
                         </motion.div>
 
@@ -254,6 +346,9 @@ export default function SignUp() {
                                 placeholder="••••••••"
                                 icon={RotateCcw}
                                 isPassword
+                                name="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
                             />
                         </motion.div>
 
@@ -270,10 +365,21 @@ export default function SignUp() {
                             variants={itemVariants}
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
-                            className="btn w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl shadow-xl shadow-blue-600/20 border-none text-base h-12 font-bold group transition-all duration-300 mt-2"
+                            type="submit"
+                            disabled={loading}
+                            className="btn w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl shadow-xl shadow-blue-600/20 border-none text-base h-12 font-bold group transition-all duration-300 mt-2 disabled:opacity-60"
                         >
-                            Đăng ký miễn phí
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    Đang xử lý...
+                                </>
+                            ) : (
+                                <>
+                                    Đăng ký miễn phí
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </motion.button>
 
                         <motion.div variants={itemVariants} className="relative py-2">
@@ -287,8 +393,12 @@ export default function SignUp() {
 
                         <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4">
                             <motion.button
+                                type="button"
                                 whileHover={{ scale: 1.02, y: -1 }}
                                 whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+                                }}
                                 className="btn w-full btn-ghost border-base-300 hover:bg-base-200 text-base-content rounded-xl font-bold flex items-center justify-center gap-3 transition-all h-12"
                             >
                                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />

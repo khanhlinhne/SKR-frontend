@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as motion from 'motion/react-client';
 import {
     BarChart3,
@@ -24,9 +24,16 @@ const SIDEBAR_KEY = 'skr-dashboard-sidebar-collapsed';
 
 export default function DashboardSidebar() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(() => {
         try { return localStorage.getItem(SIDEBAR_KEY) === 'true'; } catch { return false; }
     });
+
+    const handleLogout = () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        navigate('/login');
+    };
 
     useEffect(() => {
         try { localStorage.setItem(SIDEBAR_KEY, collapsed); } catch { }
@@ -205,6 +212,7 @@ export default function DashboardSidebar() {
                     </Link>
                 ))}
                 <button
+                    onClick={handleLogout}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-500/10 transition-all relative group
                         ${collapsed ? 'justify-center' : ''}`}
                 >
