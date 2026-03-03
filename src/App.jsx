@@ -17,6 +17,9 @@ import Tests from './pages/Tests';
 import TestDetail from './pages/TestDetail';
 import { QuizTaking, QuizResults } from './components/tests';
 import GoogleCallback from './pages/GoogleCallback';
+import VerifyEmail from './pages/VerifyEmail';
+import ResetPassword from './pages/ResetPassword';
+import { AdminDashboard, AdminUsers, AdminCourses, AdminOrders } from './pages/admin';
 import './App.css';
 
 function App() {
@@ -32,7 +35,9 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/auth/google/callback" element={<GoogleCallback />} />
+      <Route path="/auth/callback" element={<GoogleCallback />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/flashcards" element={<Flashcards />} />
@@ -46,6 +51,12 @@ function App() {
       <Route path="/tests/:id" element={<TestDetail />} />
       <Route path="/tests/:id/take" element={<QuizTaking />} />
       <Route path="/tests/:id/results" element={<QuizResults />} />
+
+      {/* Admin Routes */}
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/users" element={<AdminUsers />} />
+      <Route path="/admin/courses" element={<AdminCourses />} />
+      <Route path="/admin/orders" element={<AdminOrders />} />
     </Routes>
   );
 }

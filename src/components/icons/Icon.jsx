@@ -1,4 +1,4 @@
-import * as motion from 'motion/react-client';
+
 import * as LucideIcons from 'lucide-react';
 
 /**

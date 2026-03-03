@@ -102,8 +102,21 @@ export default function Login() {
                 password: formData.password,
             });
 
+            console.log('Login response:', data);
+
+            // Backend tra ve: { success, message, data: { user, tokens: { accessToken, refreshToken } } }
+            // axiosClient interceptor tra ve response.data => data = { success, message, data: {...} }
+            const token = data.data?.tokens?.accessToken;
+
+            if (!token) {
+                console.error('No token found in response! Response:', JSON.stringify(data));
+                setError('Đăng nhập thất bại: Không nhận được token từ server.');
+                return;
+            }
+
             // Luu token vao localStorage
-            localStorage.setItem('accessToken', data.token);
+            localStorage.setItem('accessToken', token);
+            console.log('Token saved:', token.substring(0, 20) + '...');
 
             // Chuyen den dashboard
             navigate('/dashboard');

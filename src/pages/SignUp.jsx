@@ -141,12 +141,12 @@ export default function SignUp() {
                 password: formData.password,
             });
 
-            setSuccess(data.message || 'Đăng ký thành công! Đang chuyển hướng...');
+            setSuccess(data.message || 'Đăng ký thành công! Đang chuyển đến xác minh email...');
 
-            // Chuyen ve trang login sau 2 giay
+            // Chuyen den trang xac minh OTP sau 1.5 giay
             setTimeout(() => {
-                navigate('/login');
-            }, 2000);
+                navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+            }, 1500);
         } catch (err) {
             const msg = err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại!';
             setError(msg);

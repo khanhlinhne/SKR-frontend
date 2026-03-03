@@ -13,8 +13,16 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("accessToken");
-        if (token) {
+        if (token && token !== "undefined" && token !== "null") {
+            console.log('Sending request with token:', token.substring(0, 20) + '...');
             config.headers.Authorization = `Bearer ${token}`;
+        } else {
+            // Xoa token khong hop le (neu co)
+            if (token === "undefined" || token === "null") {
+                console.warn('Invalid token found in localStorage, removing it');
+                localStorage.removeItem("accessToken");
+            }
+            console.log('No valid token found in localStorage');
         }
         return config;
     },
@@ -35,12 +43,25 @@ axiosClient.interceptors.response.use(
 
         if (response) {
             switch (response.status) {
-                case 401:
-                    // Token het han hoac khong hop le -> xoa token, chuyen ve login
-                    localStorage.removeItem("accessToken");
-                    localStorage.removeItem("user");
-                    window.location.href = "/login";
+                case 401: {
+                    // Token het han hoac khong hop le
+                    const url = response.config?.url || '';
+
+                    // Khong xoa token neu loi 401 den tu cac API user profile
+                    // (de component tu xu ly, vi co the do StrictMode goi 2 lan)
+                    const isUserDataEndpoint = url.includes('/user/profile') || url.includes('/user/change-password');
+
+                    if (!isUserDataEndpoint) {
+                        localStorage.removeItem("accessToken");
+                        localStorage.removeItem("user");
+                    }
+
+                    // Chi redirect neu la loi tu cac API auth quan trong
+                    if (url.includes('/auth/login') || url.includes('/auth/register')) {
+                        window.location.href = "/login";
+                    }
                     break;
+                }
                 case 403:
                     console.error("Khong co quyen truy cap!");
                     break;

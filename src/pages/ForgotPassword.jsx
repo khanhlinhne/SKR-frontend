@@ -5,13 +5,16 @@ import {
     KeyRound, ShieldCheck, Lock, CheckCircle2, RefreshCw,
     AlertCircle, Clock, HelpCircle
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { authApi } from '../api';
 
 export default function ForgotPassword() {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [isEmailSent, setIsEmailSent] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -36,12 +39,18 @@ export default function ForgotPassword() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
         setIsLoading(true);
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setIsLoading(false);
-        setIsEmailSent(true);
+        try {
+            await authApi.forgotPassword({ email });
+            // Chuyen thang den trang nhap OTP
+            navigate(`/reset-password?email=${encodeURIComponent(email)}`);
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại!';
+            setError(msg);
+            setIsLoading(false);
+        }
     };
 
     const securityFeatures = [
@@ -283,21 +292,32 @@ export default function ForgotPassword() {
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 onClick={() => setIsEmailSent(false)}
-                                                className="px-6 py-3 bg-base-200 text-base-content rounded-xl font-bold text-sm hover:bg-base-300 transition-colors flex items-center justify-center gap-2"
+                                                disabled={isLoading}
+                                                className="px-6 py-3 bg-base-200 text-base-content rounded-xl font-bold text-sm hover:bg-base-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
-                                                <RefreshCw className="w-4 h-4" />
-                                                Gửi lại email
+                                                {isLoading ? (
+                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <RefreshCw className="w-4 h-4" />
+                                                )}
+                                                Gửi lại
                                             </motion.button>
 
-                                            <Link to="/login">
+                                            <Link to={`/reset-password?email=${encodeURIComponent(email)}`}>
                                                 <motion.button
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
-                                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 w-full"
+                                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-violet-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
                                                 >
-                                                    Quay lại đăng nhập
+                                                    Tiếp tục
                                                     <ArrowRight className="w-4 h-4" />
                                                 </motion.button>
+                                            </Link>
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <Link to="/login" className="text-sm text-base-content/50 hover:text-blue-600 font-medium">
+                                                Quay lại đăng nhập
                                             </Link>
                                         </div>
                                     </div>

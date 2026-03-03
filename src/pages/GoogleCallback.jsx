@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 /**
  * Component xu ly Google OAuth callback.
- * Backend redirect ve: /auth/google/callback?token=xxx
+ * Backend redirect ve: /auth/callback?accessToken=xxx&refreshToken=xxx
  * Component nay se lay token tu URL, luu vao localStorage, roi chuyen ve dashboard.
  */
 export default function GoogleCallback() {
@@ -11,12 +11,16 @@ export default function GoogleCallback() {
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
-        const token = searchParams.get('token');
-        const error = searchParams.get('error');
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        const error = searchParams.get('error') || searchParams.get('message');
 
-        if (token) {
+        if (accessToken) {
             // Luu token vao localStorage
-            localStorage.setItem('accessToken', token);
+            localStorage.setItem('accessToken', accessToken);
+            if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+            }
             // Chuyen ve dashboard
             navigate('/dashboard', { replace: true });
         } else if (error) {

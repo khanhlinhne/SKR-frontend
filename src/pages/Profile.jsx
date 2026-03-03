@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as motion from 'motion/react-client';
 import { DashboardSidebar } from '../components/learner';
+import { authApi } from '../api';
 import {
     Search,
     Bell,
@@ -31,6 +32,17 @@ export default function Profile() {
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [activeSection, setActiveSection] = useState('profile');
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // Password change state
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
 
     // Animation variants
     const containerVariants = {
@@ -83,6 +95,94 @@ export default function Profile() {
         achievements: true,
         communityUpdates: false
     });
+
+    // Fetch user data from API
+    useEffect(() => {
+        const fetchUserData = async () => {
+            // Debug: kiem tra token
+            const token = localStorage.getItem('accessToken');
+            console.log('Profile: Token from localStorage:', token ? token.substring(0, 20) + '...' : 'NULL');
+
+            try {
+                setLoading(true);
+                const response = await authApi.getMe();
+                // Backend tra ve: { success, message, data: { userId, email, username, fullName, ... } }
+                // axiosClient interceptor tra ve response.data => response = { success, message, data }
+                const user = response.data || response.user || response;
+                setUserData({
+                    name: user.fullName || user.displayName || user.username || 'User',
+                    email: user.email || '',
+                    phone: user.phoneNumber || '',
+                    location: '',
+                    bio: user.bio || '',
+                    joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' }) : '',
+                    isPremium: user.isPremium || false
+                });
+            } catch (err) {
+                console.error('Failed to fetch user data:', err);
+                // Neu 401 thi khong lam gi - hien thi mock data
+                if (err.response?.status === 401) {
+                    console.log('Unauthorized, using mock data');
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUserData();
+    }, []);
+
+    // Handle save profile
+    const handleSaveProfile = async () => {
+        try {
+            setSaving(true);
+            await authApi.updateProfile({
+                fullName: userData.name,
+                phoneNumber: userData.phone,
+                bio: userData.bio
+            });
+            setIsEditing(false);
+        } catch (err) {
+            console.error('Failed to update profile:', err);
+            alert(err.response?.data?.message || 'Cập nhật thất bại');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Handle change password
+    const handleChangePassword = async () => {
+        setPasswordError('');
+        setPasswordSuccess('');
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError('Mật khẩu mới không khớp');
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            await authApi.changePassword({
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword
+            });
+            setPasswordSuccess('Đổi mật khẩu thành công');
+            setPasswordData({
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            });
+        } catch (err) {
+            console.error('Failed to change password:', err);
+            setPasswordError(err.response?.data?.message || 'Đổi mật khẩu thất bại');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className="flex h-screen bg-base-200 overflow-hidden">
@@ -304,9 +404,13 @@ export default function Profile() {
                                             Thông Tin Cá Nhân
                                         </h2>
                                         {isEditing && (
-                                            <button className="btn btn-sm btn-primary rounded-xl font-bold">
+                                            <button
+                                                className="btn btn-sm btn-primary rounded-xl font-bold"
+                                                onClick={handleSaveProfile}
+                                                disabled={saving}
+                                            >
                                                 <Save className="w-4 h-4" />
-                                                Lưu thay đổi
+                                                {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                                             </button>
                                         )}
                                     </div>
@@ -390,6 +494,17 @@ export default function Profile() {
                                     </h2>
 
                                     <div className="space-y-4">
+                                        {passwordError && (
+                                            <div className="alert alert-error text-sm">
+                                                <span>{passwordError}</span>
+                                            </div>
+                                        )}
+                                        {passwordSuccess && (
+                                            <div className="alert alert-success text-sm">
+                                                <span>{passwordSuccess}</span>
+                                            </div>
+                                        )}
+
                                         <div className="form-control">
                                             <label className="label">
                                                 <span className="label-text font-bold">Mật khẩu hiện tại</span>
@@ -399,6 +514,8 @@ export default function Profile() {
                                                     type={showPassword ? "text" : "password"}
                                                     placeholder="••••••••"
                                                     className="input input-bordered w-full rounded-xl font-medium pr-12"
+                                                    value={passwordData.currentPassword}
+                                                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                                                 />
                                                 <button
                                                     onClick={() => setShowPassword(!showPassword)}
@@ -418,6 +535,8 @@ export default function Profile() {
                                                     type={showNewPassword ? "text" : "password"}
                                                     placeholder="••••••••"
                                                     className="input input-bordered w-full rounded-xl font-medium pr-12"
+                                                    value={passwordData.newPassword}
+                                                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                                                 />
                                                 <button
                                                     onClick={() => setShowNewPassword(!showNewPassword)}
@@ -437,6 +556,8 @@ export default function Profile() {
                                                     type={showConfirmPassword ? "text" : "password"}
                                                     placeholder="••••••••"
                                                     className="input input-bordered w-full rounded-xl font-medium pr-12"
+                                                    value={passwordData.confirmPassword}
+                                                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                                                 />
                                                 <button
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -451,9 +572,11 @@ export default function Profile() {
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
                                             className="btn btn-outline btn-primary rounded-xl font-bold w-full"
+                                            onClick={handleChangePassword}
+                                            disabled={saving}
                                         >
                                             <Lock className="w-4 h-4" />
-                                            Đổi mật khẩu
+                                            {saving ? 'Đang xử lý...' : 'Đổi mật khẩu'}
                                         </motion.button>
                                     </div>
                                 </motion.div>
