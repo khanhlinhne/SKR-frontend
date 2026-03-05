@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as motion from 'motion/react-client';
 import { AdminLayout } from '../../components/admin';
 import {
@@ -54,6 +55,7 @@ export default function AdminCourses() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+    const navigate = useNavigate();
 
     const filteredCourses = mockCourses.filter(course => {
         const matchSearch = course.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -132,7 +134,7 @@ export default function AdminCourses() {
                 {viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {filteredCourses.map((course, i) => (
-                            <CourseCard key={course.id} course={course} index={i} />
+                            <CourseCard key={course.id} course={course} index={i} onView={() => navigate(`/admin/courses/${course.id}`)} />
                         ))}
                     </div>
                 ) : (
@@ -198,7 +200,7 @@ export default function AdminCourses() {
                                                 </td>
                                                 <td>
                                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button className="btn btn-ghost btn-xs btn-circle" title="Xem"><Eye className="w-3.5 h-3.5" /></button>
+                                                        <button onClick={() => navigate(`/admin/courses/${course.id}`)} className="btn btn-ghost btn-xs btn-circle" title="Xem"><Eye className="w-3.5 h-3.5" /></button>
                                                         <button className="btn btn-ghost btn-xs btn-circle" title="Sửa"><Edit3 className="w-3.5 h-3.5" /></button>
                                                         <button className="btn btn-ghost btn-xs btn-circle text-red-500" title="Xóa"><Trash2 className="w-3.5 h-3.5" /></button>
                                                     </div>
@@ -217,7 +219,7 @@ export default function AdminCourses() {
 }
 
 // ===== Course Card Component =====
-function CourseCard({ course, index }) {
+function CourseCard({ course, index, onView }) {
     const status = statusConfig[course.status];
 
     return (
@@ -271,7 +273,7 @@ function CourseCard({ course, index }) {
                         <Edit3 className="w-3.5 h-3.5" />
                         Sửa
                     </button>
-                    <button className="btn btn-sm flex-1 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white border-none rounded-xl font-bold gap-1">
+                    <button onClick={onView} className="btn btn-sm flex-1 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white border-none rounded-xl font-bold gap-1">
                         <Eye className="w-3.5 h-3.5" />
                         Xem
                     </button>
