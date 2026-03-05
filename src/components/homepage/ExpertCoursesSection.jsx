@@ -387,7 +387,12 @@ function CourseCard({ course, expert, index, variants }) {
 
 // ─── Main Component ────────────────────────────────────
 
-export default function ExpertCoursesSection() {
+export default function ExpertCoursesSection({
+    badge = 'Chuyên gia hàng đầu',
+    titleMain = 'Học tập cùng',
+    titleHighlight = 'Chuyên gia',
+    subtitle = 'Khám phá kho tàng kiến thức được xây dựng bởi các giảng viên, tiến sĩ và chuyên gia hàng đầu, kèm theo hệ thống Flashcard thông minh giúp bạn ghi nhớ lâu dài.'
+} = {}) {
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -463,15 +468,15 @@ export default function ExpertCoursesSection() {
                             <Award className="w-4 h-4 text-violet-500" />
                         </motion.div>
                         <span className="text-sm font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent uppercase tracking-wider">
-                            Chuyên gia hàng đầu
+                            {badge}
                         </span>
                     </motion.div>
 
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-base-content mb-6 tracking-tight leading-tight">
-                        Học tập cùng{' '}
+                        {titleMain}{' '}
                         <span className="relative inline-block">
                             <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-                                Chuyên gia
+                                {titleHighlight}
                             </span>
                             <motion.div
                                 className="absolute -bottom-2 left-0 right-0 h-3 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-blue-500/20 rounded-full blur-sm"
@@ -484,7 +489,7 @@ export default function ExpertCoursesSection() {
                     </h2>
 
                     <p className="text-lg md:text-xl text-base-content/60 max-w-3xl mx-auto font-medium leading-relaxed">
-                        Khám phá kho tàng kiến thức được xây dựng bởi các giảng viên, tiến sĩ và chuyên gia hàng đầu, kèm theo hệ thống Flashcard thông minh giúp bạn ghi nhớ lâu dài.
+                        {subtitle}
                     </p>
                 </motion.div>
 

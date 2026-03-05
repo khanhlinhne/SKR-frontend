@@ -2,7 +2,12 @@ import { useState } from 'react';
 import * as motion from 'motion/react-client';
 import { Brain, BookOpen, Zap, Share2, LineChart, Globe, ArrowRight, Sparkles, CheckCircle2, Play } from 'lucide-react';
 
-export default function FeaturesSection() {
+export default function FeaturesSection({
+    badge = 'Tính năng nổi bật',
+    titleMain = 'Tất cả những gì bạn cần',
+    titleHighlight = 'để thành công',
+    subtitle = 'Smart Knowledge Revise mang đến trải nghiệm học tập hiện đại, thông minh và hiệu quả với công nghệ AI tiên tiến nhất.'
+} = {}) {
     const [activeFeature, setActiveFeature] = useState(0);
 
     const mainFeatures = [
@@ -111,15 +116,15 @@ export default function FeaturesSection() {
                     >
                         <Sparkles className="w-4 h-4 text-blue-500" />
                         <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-                            Tính năng nổi bật
+                            {badge}
                         </span>
                     </motion.div>
 
                     <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-base-content mb-6 tracking-tight">
-                        Tất cả những gì bạn cần{' '}
+                        {titleMain}{' '}
                         <span className="relative inline-block">
                             <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent">
-                                để thành công
+                                {titleHighlight}
                             </span>
                             <motion.svg
                                 className="absolute -bottom-2 left-0 w-full"
@@ -148,7 +153,7 @@ export default function FeaturesSection() {
                     </h2>
 
                     <p className="text-lg md:text-xl text-base-content/60 max-w-3xl mx-auto font-medium leading-relaxed">
-                        Smart Knowledge Revise mang đến trải nghiệm học tập hiện đại, thông minh và hiệu quả với công nghệ AI tiên tiến nhất.
+                        {subtitle}
                     </p>
                 </motion.div>
 
@@ -225,8 +230,8 @@ function MainFeatureCard({ feature, index, isActive, onClick }) {
             whileHover={{ y: -8, transition: { duration: 0.3 } }}
             onClick={onClick}
             className={`group relative bg-base-100 rounded-[2rem] p-8 overflow-hidden cursor-pointer transition-all duration-500 ${isActive
-                    ? 'border-2 border-blue-500/30 shadow-2xl shadow-blue-500/10'
-                    : 'border-2 border-base-200 hover:border-base-300 shadow-lg hover:shadow-xl'
+                ? 'border-2 border-blue-500/30 shadow-2xl shadow-blue-500/10'
+                : 'border-2 border-base-200 hover:border-base-300 shadow-lg hover:shadow-xl'
                 }`}
         >
             {/* Background gradient on hover/active */}

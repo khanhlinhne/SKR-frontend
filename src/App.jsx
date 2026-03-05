@@ -19,7 +19,7 @@ import { QuizTaking, QuizResults } from './components/tests';
 import GoogleCallback from './pages/GoogleCallback';
 import VerifyEmail from './pages/VerifyEmail';
 import ResetPassword from './pages/ResetPassword';
-import { AdminDashboard, AdminUsers, AdminCourses, AdminCourseDetail, AdminOrders } from './pages/admin';
+import { AdminDashboard, AdminUsers, AdminCourses, AdminCourseDetail, AdminOrders, AdminSettings } from './pages/admin';
 import './App.css';
 
 function App() {
@@ -58,6 +58,7 @@ function App() {
       <Route path="/admin/courses" element={<AdminCourses />} />
       <Route path="/admin/courses/:id" element={<AdminCourseDetail />} />
       <Route path="/admin/orders" element={<AdminOrders />} />
+      <Route path="/admin/settings" element={<AdminSettings />} />
     </Routes>
   );
 }

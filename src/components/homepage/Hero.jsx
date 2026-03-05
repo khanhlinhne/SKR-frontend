@@ -2,7 +2,15 @@ import * as motion from 'motion/react-client';
 import { ArrowRight, Sparkles, Brain, Rocket, CheckCircle, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export default function Hero() {
+export default function Hero({
+    badge = 'AI-Powered Learning Revolution',
+    titleMain = 'Smart Knowledge',
+    titleHighlight = 'Revise System',
+    subtitle = 'Hệ thống học tập thông minh tích hợp AI giúp cá nhân hóa lộ trình ôn thi,\ntự động tạo nội dung và phân tích điểm yếu để tối ưu kết quả học tập của bạn.',
+    ctaPrimaryText = 'Bắt đầu miễn phí',
+    ctaSecondaryText = 'Khám phá tính năng AI',
+    heroImage = 'https://i.pinimg.com/736x/05/d7/84/05d784805e083785e14d8555d9428c1b.jpg'
+} = {}) {
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -97,7 +105,7 @@ export default function Hero() {
                             <Sparkles className="w-4 h-4 text-blue-500" />
                         </motion.div>
                         <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            AI-Powered Learning Revolution
+                            {badge}
                         </span>
                     </motion.div>
                 </motion.div>
@@ -109,13 +117,13 @@ export default function Hero() {
                         {/* Main Heading */}
                         <div className="space-y-4">
                             <h1 className="text-5xl md:text-6xl lg:text-6xl font-black leading-[1.15] tracking-tight text-base-content">
-                                Smart Knowledge <br />
+                                {titleMain} <br />
                                 <motion.span
                                     className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent italic"
                                     animate={{ backgroundPosition: ['0%', '100%', '0%'] }}
                                     transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
                                 >
-                                    Revise System
+                                    {titleHighlight}
                                 </motion.span>
                             </h1>
                         </div>
@@ -125,8 +133,7 @@ export default function Hero() {
                             variants={itemVariants}
                             className="text-lg md:text-lg text-base-content/70 leading-relaxed font-medium max-w-xl"
                         >
-                            Hệ thống học tập thông minh tích hợp AI giúp cá nhân hóa lộ trình ôn thi,
-                            tự động tạo nội dung và phân tích điểm yếu để tối ưu kết quả học tập của bạn.
+                            {subtitle}
                         </motion.p>
 
                         {/* CTA Buttons */}
@@ -141,7 +148,7 @@ export default function Hero() {
                                     whileTap={{ scale: 0.93 }}
                                 >
                                     <Rocket className="w-5 h-5" />
-                                    Bắt đầu miễn phí
+                                    {ctaPrimaryText}
                                     <motion.div
                                         animate={{ x: [0, 4, 0] }}
                                         transition={{ duration: 1.5, repeat: Infinity }}
@@ -156,7 +163,7 @@ export default function Hero() {
                                 whileTap={{ scale: 0.93 }}
                             >
                                 <Brain className="w-5 h-5" />
-                                Khám phá tính năng AI
+                                {ctaSecondaryText}
                             </motion.button>
                         </motion.div>
 
@@ -223,7 +230,7 @@ export default function Hero() {
                                 {/* Main image container */}
                                 <div className="relative rounded-2xl overflow-hidden bg-base-200/30 backdrop-blur-sm border border-base-300/30 shadow-xl hover:shadow-2xl transition-all duration-500">
                                     <img
-                                        src="https://i.pinimg.com/736x/05/d7/84/05d784805e083785e14d8555d9428c1b.jpg"
+                                        src={heroImage}
                                         alt="SKR Dashboard"
                                         className="w-full h-auto object-cover opacity-95 group-hover:opacity-100 transition-opacity duration-500"
                                     />
