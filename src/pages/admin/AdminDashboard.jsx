@@ -235,34 +235,42 @@ function RevenueChart({ data }) {
             </div>
 
             {/* Bar Chart */}
-            <div className="flex items-end justify-between gap-2 h-48 relative px-1">
-                {data.map((item, i) => {
-                    const height = (item.revenue / (maxRevenue * 1.15)) * 100;
-                    const isHighlighted = i === data.length - 1;
+            <div className="relative px-1">
+                <div className="flex items-end gap-2" style={{ height: '192px' }}>
+                    {data.map((item, i) => {
+                        const heightPx = Math.round((item.revenue / (maxRevenue * 1.15)) * 180);
+                        const isHighlighted = i === data.length - 1;
 
-                    return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-2 min-w-0 group relative">
-                            {/* Tooltip on hover */}
-                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-base-content text-base-100 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                                ₫{item.revenue}M
-                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-base-content rotate-45" />
+                        return (
+                            <div key={i} className="flex-1 flex items-end justify-center min-w-0 group relative h-full">
+                                {/* Tooltip on hover */}
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-base-content text-base-100 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                    ₫{item.revenue}M
+                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-base-content rotate-45" />
+                                </div>
+                                <motion.div
+                                    initial={{ height: 0 }}
+                                    animate={{ height: heightPx }}
+                                    transition={{ delay: 0.4 + i * 0.05, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                                    className={`w-full rounded-t-lg transition-colors ${isHighlighted
+                                        ? 'bg-gradient-to-t from-emerald-600 to-cyan-500 shadow-lg'
+                                        : 'bg-emerald-500/30 group-hover:bg-emerald-500/60'
+                                        }`}
+                                    style={{ minHeight: heightPx > 0 ? '4px' : '0' }}
+                                />
                             </div>
-                            <motion.div
-                                initial={{ height: 0 }}
-                                animate={{ height: `${height}%` }}
-                                transition={{ delay: 0.4 + i * 0.05, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-                                className={`w-full rounded-t-lg transition-colors ${isHighlighted
-                                    ? 'bg-gradient-to-t from-emerald-600 to-cyan-500 shadow-lg'
-                                    : 'bg-emerald-500/30 group-hover:bg-emerald-500/60'
-                                    }`}
-                                style={{ minHeight: height > 0 ? '4px' : '0' }}
-                            />
+                        );
+                    })}
+                </div>
+                <div className="flex gap-2 mt-2">
+                    {data.map((item, i) => (
+                        <div key={i} className="flex-1 text-center">
                             <span className="text-[10px] text-base-content/50 font-bold">
                                 {item.month}
                             </span>
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
             </div>
         </motion.div>
     );
