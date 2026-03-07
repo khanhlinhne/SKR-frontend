@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import * as motion from 'motion/react-client';
 import { Link } from 'react-router-dom';
 import {
@@ -9,339 +9,60 @@ import {
     Frown,
     GraduationCap,
     ArrowRight,
-    Sparkles
+    Loader2
 } from 'lucide-react';
 
 import { DashboardSidebar } from '../components/learner';
 import { CoursesToolbar, CourseCard, CourseListItem } from '../components/courses';
+import { subjectApi } from '../api';
 
-// ─── Mock Data (maps to mst_users → experts) ───────────
+// ─── Map API data to component format ──────────────────────
 
-const experts = [
-    {
-        id: 1,
-        name: 'TS. Nguyễn Văn Minh',
-        title: 'Tiến sĩ Toán học - ĐH Bách Khoa',
-        avatar: 'https://i.pravatar.cc/150?img=11',
-        rating: 4.9,
-        students: 12500,
-        courses: 8,
-        verified: true,
-        speciality: 'Toán học',
-    },
-    {
-        id: 2,
-        name: 'ThS. Trần Thu Hà',
-        title: 'Thạc sĩ Ngôn ngữ Anh - ĐH Ngoại Ngữ',
-        avatar: 'https://i.pravatar.cc/150?img=5',
-        rating: 4.8,
-        students: 9800,
-        courses: 12,
-        verified: true,
-        speciality: 'Ngôn ngữ',
-    },
-    {
-        id: 3,
-        name: 'TS. Đoàn Thế Anh',
-        title: 'Tiến sĩ CNTT - ĐH Công Nghệ',
-        avatar: 'https://i.pravatar.cc/150?img=12',
-        rating: 4.9,
-        students: 15200,
-        courses: 10,
-        verified: true,
-        speciality: 'Lập trình',
-    },
-    {
-        id: 4,
-        name: 'PGS. Phạm Thanh Tùng',
-        title: 'Phó Giáo sư Vật lý - ĐH KHTN',
-        avatar: 'https://i.pravatar.cc/150?img=53',
-        rating: 4.7,
-        students: 7600,
-        courses: 6,
-        verified: true,
-        speciality: 'Khoa học',
-    },
-    {
-        id: 5,
-        name: 'ThS. Lê Hoàng Nam',
-        title: 'Thạc sĩ Kinh tế - ĐH Kinh tế TP.HCM',
-        avatar: 'https://i.pravatar.cc/150?img=60',
-        rating: 4.6,
-        students: 5400,
-        courses: 4,
-        verified: true,
-        speciality: 'Kinh tế',
-    },
-];
+const mapApiToCourse = (subject) => ({
+    id: subject.subjectId,
+    subjectId: subject.subjectId,
+    title: subject.subjectName,
+    subjectName: subject.subjectName,
+    description: subject.subjectDescription,
+    category: subject.subjectName?.split(' ')[0] || 'Khác',
+    isFree: subject.isFree,
+    priceAmount: subject.priceAmount,
+    originalPrice: subject.originalPrice,
+    discountPercent: subject.discountPercent,
+    ratingAverage: subject.ratingAverage,
+    ratingCount: subject.ratingCount,
+    purchaseCount: subject.purchaseCount,
+    totalChapters: subject.totalChapters,
+    totalLessons: subject.totalLessons,
+    totalVideos: subject.totalVideos,
+    totalDocuments: subject.totalDocuments,
+    totalQuestions: subject.totalQuestions,
+    estimatedDurationHours: subject.estimatedDurationHours,
+    level: 'Cơ bản',
+    gradient: 'from-blue-500 to-cyan-500',
+    bgGradient: 'from-blue-500/10 to-cyan-500/10',
+    icon: '📚',
+    tags: [],
+    bannerUrl: subject.subjectBannerUrl || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
+    visibility: subject.status === 'published' ? 'public' : 'draft',
+    isPurchased: false,
+    publishedAt: subject.publishedAt,
+});
 
-// ─── Mock Courses (maps to mst_subjects) ────────────────
+const mapApiToExpert = (creator) => {
+    if (!creator) return null;
+    return {
+        id: creator.userId,
+        userId: creator.userId,
+        name: creator.displayName || creator.fullName || 'Chuyên gia',
+        displayName: creator.displayName,
+        fullName: creator.fullName,
+        avatar: creator.avatarUrl || 'https://i.pravatar.cc/150?img=11',
+        verified: true,
+    };
+};
 
-const allCourses = [
-    {
-        id: 1,
-        title: 'Toán Cao Cấp - Giải Tích & Đại Số',
-        expertId: 1,
-        category: 'Toán học',
-        isFree: false,
-        priceAmount: 299000,
-        originalPrice: 499000,
-        discountPercent: 40,
-        ratingAverage: 4.9,
-        ratingCount: 328,
-        purchaseCount: 4520,
-        totalChapters: 12,
-        totalLessons: 48,
-        totalVideos: 36,
-        totalDocuments: 15,
-        totalQuestions: 200,
-        estimatedDurationHours: 32,
-        level: 'Nâng cao',
-        gradient: 'from-blue-500 to-cyan-500',
-        bgGradient: 'from-blue-500/10 to-cyan-500/10',
-        icon: '📐',
-        tags: ['Đạo hàm', 'Tích phân', 'Ma trận'],
-        flashcards: 450,
-        bannerUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: false,
-        publishedAt: '2025-12-01',
-    },
-    {
-        id: 2,
-        title: 'IELTS Academic - Lộ Trình 7.0+',
-        expertId: 2,
-        category: 'Ngôn ngữ',
-        isFree: false,
-        priceAmount: 599000,
-        originalPrice: 899000,
-        discountPercent: 33,
-        ratingAverage: 4.8,
-        ratingCount: 512,
-        purchaseCount: 3890,
-        totalChapters: 16,
-        totalLessons: 64,
-        totalVideos: 52,
-        totalDocuments: 24,
-        totalQuestions: 500,
-        estimatedDurationHours: 45,
-        level: 'Trung bình',
-        gradient: 'from-emerald-500 to-teal-500',
-        bgGradient: 'from-emerald-500/10 to-teal-500/10',
-        icon: '🇬🇧',
-        tags: ['Reading', 'Writing', 'Speaking'],
-        flashcards: 1200,
-        bannerUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: true,
-        publishedAt: '2025-11-15',
-    },
-    {
-        id: 3,
-        title: 'Python & AI - Từ Cơ Bản Đến Ứng Dụng',
-        expertId: 3,
-        category: 'Lập trình',
-        isFree: false,
-        priceAmount: 399000,
-        originalPrice: 699000,
-        discountPercent: 43,
-        ratingAverage: 4.9,
-        ratingCount: 687,
-        purchaseCount: 6200,
-        totalChapters: 14,
-        totalLessons: 56,
-        totalVideos: 48,
-        totalDocuments: 18,
-        totalQuestions: 300,
-        estimatedDurationHours: 40,
-        level: 'Cơ bản',
-        gradient: 'from-violet-500 to-purple-500',
-        bgGradient: 'from-violet-500/10 to-purple-500/10',
-        icon: '🐍',
-        tags: ['Python', 'Machine Learning', 'Deep Learning'],
-        flashcards: 680,
-        bannerUrl: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: false,
-        publishedAt: '2026-01-10',
-    },
-    {
-        id: 4,
-        title: 'Nhập Môn Cơ Sở Dữ Liệu',
-        expertId: 3,
-        category: 'Lập trình',
-        isFree: true,
-        priceAmount: 0,
-        originalPrice: 0,
-        discountPercent: 0,
-        ratingAverage: 4.7,
-        ratingCount: 245,
-        purchaseCount: 8900,
-        totalChapters: 8,
-        totalLessons: 32,
-        totalVideos: 24,
-        totalDocuments: 10,
-        totalQuestions: 150,
-        estimatedDurationHours: 20,
-        level: 'Cơ bản',
-        gradient: 'from-amber-500 to-orange-500',
-        bgGradient: 'from-amber-500/10 to-orange-500/10',
-        icon: '💾',
-        tags: ['SQL', 'ERD', 'Normalization'],
-        flashcards: 320,
-        bannerUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: false,
-        publishedAt: '2026-01-20',
-    },
-    {
-        id: 5,
-        title: 'Vật Lý Đại Cương - Cơ Học & Nhiệt',
-        expertId: 4,
-        category: 'Khoa học',
-        isFree: false,
-        priceAmount: 249000,
-        originalPrice: 349000,
-        discountPercent: 29,
-        ratingAverage: 4.6,
-        ratingCount: 178,
-        purchaseCount: 2100,
-        totalChapters: 10,
-        totalLessons: 40,
-        totalVideos: 30,
-        totalDocuments: 12,
-        totalQuestions: 180,
-        estimatedDurationHours: 28,
-        level: 'Trung bình',
-        gradient: 'from-rose-500 to-pink-500',
-        bgGradient: 'from-rose-500/10 to-pink-500/10',
-        icon: '⚛️',
-        tags: ['Newton', 'Nhiệt động', 'Sóng'],
-        flashcards: 280,
-        bannerUrl: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: false,
-        publishedAt: '2025-10-05',
-    },
-    {
-        id: 6,
-        title: 'Kinh Tế Vĩ Mô Nâng Cao',
-        expertId: 5,
-        category: 'Kinh tế',
-        isFree: false,
-        priceAmount: 449000,
-        originalPrice: 649000,
-        discountPercent: 31,
-        ratingAverage: 4.5,
-        ratingCount: 134,
-        purchaseCount: 1800,
-        totalChapters: 11,
-        totalLessons: 44,
-        totalVideos: 33,
-        totalDocuments: 16,
-        totalQuestions: 220,
-        estimatedDurationHours: 35,
-        level: 'Nâng cao',
-        gradient: 'from-indigo-500 to-sky-500',
-        bgGradient: 'from-indigo-500/10 to-sky-500/10',
-        icon: '📊',
-        tags: ['GDP', 'Lạm phát', 'Chính sách'],
-        flashcards: 360,
-        bannerUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: false,
-        publishedAt: '2025-09-15',
-    },
-    {
-        id: 7,
-        title: 'React & Next.js - Fullstack Web Development',
-        expertId: 3,
-        category: 'Lập trình',
-        isFree: false,
-        priceAmount: 699000,
-        originalPrice: 999000,
-        discountPercent: 30,
-        ratingAverage: 4.9,
-        ratingCount: 432,
-        purchaseCount: 5100,
-        totalChapters: 18,
-        totalLessons: 72,
-        totalVideos: 60,
-        totalDocuments: 22,
-        totalQuestions: 350,
-        estimatedDurationHours: 55,
-        level: 'Nâng cao',
-        gradient: 'from-cyan-500 to-blue-500',
-        bgGradient: 'from-cyan-500/10 to-blue-500/10',
-        icon: '⚛️',
-        tags: ['React', 'Next.js', 'TypeScript', 'Tailwind'],
-        flashcards: 520,
-        bannerUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop',
-        visibility: 'premium_only',
-        isPurchased: false,
-        publishedAt: '2026-02-01',
-    },
-    {
-        id: 8,
-        title: 'Luyện Thi TOEIC 800+ - Chiến Lược Toàn Diện',
-        expertId: 2,
-        category: 'Ngôn ngữ',
-        isFree: false,
-        priceAmount: 349000,
-        originalPrice: 499000,
-        discountPercent: 30,
-        ratingAverage: 4.7,
-        ratingCount: 289,
-        purchaseCount: 3200,
-        totalChapters: 12,
-        totalLessons: 48,
-        totalVideos: 40,
-        totalDocuments: 20,
-        totalQuestions: 400,
-        estimatedDurationHours: 38,
-        level: 'Trung bình',
-        gradient: 'from-teal-500 to-emerald-500',
-        bgGradient: 'from-teal-500/10 to-emerald-500/10',
-        icon: '📝',
-        tags: ['Listening', 'Reading', 'Grammar'],
-        flashcards: 900,
-        bannerUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: true,
-        publishedAt: '2025-12-20',
-    },
-    {
-        id: 9,
-        title: 'Xác Suất Thống Kê Ứng Dụng',
-        expertId: 1,
-        category: 'Toán học',
-        isFree: true,
-        priceAmount: 0,
-        originalPrice: 0,
-        discountPercent: 0,
-        ratingAverage: 4.5,
-        ratingCount: 156,
-        purchaseCount: 6700,
-        totalChapters: 6,
-        totalLessons: 24,
-        totalVideos: 18,
-        totalDocuments: 8,
-        totalQuestions: 120,
-        estimatedDurationHours: 16,
-        level: 'Cơ bản',
-        gradient: 'from-fuchsia-500 to-pink-500',
-        bgGradient: 'from-fuchsia-500/10 to-pink-500/10',
-        icon: '🎲',
-        tags: ['Xác suất', 'Phân phối', 'Kiểm định'],
-        flashcards: 200,
-        bannerUrl: 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=600&h=400&fit=crop',
-        visibility: 'public',
-        isPurchased: false,
-        publishedAt: '2026-01-28',
-    },
-];
-
-// ─── Categories & Levels ────────────────────────────────
+// ─── Categories & Levels (static for now) ────────────────
 
 const categories = [
     { value: 'Toán học', label: 'Toán học', icon: '📐' },
@@ -371,11 +92,8 @@ function filterCourses(courses, filters, searchQuery) {
         // Search
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            const expert = experts.find(e => e.id === course.expertId);
             const searchable = [
                 course.title, course.category, course.level,
-                ...course.tags,
-                expert?.name || '', expert?.speciality || '',
             ].join(' ').toLowerCase();
             if (!searchable.includes(q)) return false;
         }
@@ -418,6 +136,28 @@ export default function Courses() {
     const [filters, setFilters] = useState(defaultFilters);
     const [sortBy, setSortBy] = useState('popular');
     const [viewMode, setViewMode] = useState('grid');
+    const [subjects, setSubjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch subjects from API
+    useEffect(() => {
+        const fetchSubjects = async () => {
+            try {
+                setLoading(true);
+                const response = await subjectApi.getAll({ limit: 100 });
+                const items = response.data?.items || response.data || [];
+                setSubjects(items.map(mapApiToCourse));
+            } catch (err) {
+                console.error('Error fetching subjects:', err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSubjects();
+    }, []);
 
     // Count active filters
     const activeFilterCount = useMemo(() => {
@@ -431,8 +171,8 @@ export default function Courses() {
 
     // Filter + sort
     const filteredCourses = useMemo(() => {
-        return sortCourses(filterCourses(allCourses, filters, searchQuery), sortBy);
-    }, [filters, searchQuery, sortBy]);
+        return sortCourses(filterCourses(subjects, filters, searchQuery), sortBy);
+    }, [subjects, filters, searchQuery, sortBy]);
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -511,8 +251,41 @@ export default function Courses() {
                         />
                     </motion.div>
 
+                    {/* Loading State */}
+                    {loading && (
+                        <motion.div
+                            variants={cardVariants}
+                            className="flex flex-col items-center justify-center py-16"
+                        >
+                            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+                            <p className="text-sm text-base-content/50 font-medium">Đang tải dữ liệu...</p>
+                        </motion.div>
+                    )}
+
+                    {/* Error State */}
+                    {!loading && error && (
+                        <motion.div
+                            variants={cardVariants}
+                            className="flex flex-col items-center justify-center py-16 text-center"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-5">
+                                <Frown className="w-8 h-8 text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-black text-base-content mb-2">Lỗi tải dữ liệu</h3>
+                            <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
+                                {error}
+                            </p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
+                            >
+                                Thử lại
+                            </button>
+                        </motion.div>
+                    )}
+
                     {/* Course Grid / List */}
-                    {filteredCourses.length > 0 ? (
+                    {!loading && !error && filteredCourses.length > 0 ? (
                         <motion.div
                             key={viewMode + sortBy + JSON.stringify(filters) + searchQuery}
                             variants={containerVariants}
@@ -525,7 +298,7 @@ export default function Courses() {
                             }
                         >
                             {filteredCourses.map((course) => {
-                                const expert = experts.find(e => e.id === course.expertId);
+                                const expert = mapApiToExpert(course.creator);
                                 return viewMode === 'grid' ? (
                                     <CourseCard
                                         key={course.id}
@@ -545,28 +318,30 @@ export default function Courses() {
                         </motion.div>
                     ) : (
                         /* Empty state */
-                        <motion.div
-                            variants={cardVariants}
-                            className="flex flex-col items-center justify-center py-16 text-center"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center mb-5">
-                                <Frown className="w-8 h-8 text-base-content/30" />
-                            </div>
-                            <h3 className="text-lg font-black text-base-content mb-2">Không tìm thấy môn học</h3>
-                            <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
-                                Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm kết quả.
-                            </p>
-                            <button
-                                onClick={handleResetFilters}
-                                className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
+                        !loading && !error && (
+                            <motion.div
+                                variants={cardVariants}
+                                className="flex flex-col items-center justify-center py-16 text-center"
                             >
-                                Xóa bộ lọc
-                            </button>
-                        </motion.div>
+                                <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center mb-5">
+                                    <Frown className="w-8 h-8 text-base-content/30" />
+                                </div>
+                                <h3 className="text-lg font-black text-base-content mb-2">Không tìm thấy môn học</h3>
+                                <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
+                                    Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm kết quả.
+                                </p>
+                                <button
+                                    onClick={handleResetFilters}
+                                    className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
+                                >
+                                    Xóa bộ lọc
+                                </button>
+                            </motion.div>
+                        )
                     )}
 
                     {/* CTA: Become Expert */}
-                    {filteredCourses.length > 0 && (
+                    {!loading && !error && filteredCourses.length > 0 && (
                         <motion.div
                             variants={cardVariants}
                             className="mt-10"

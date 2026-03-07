@@ -1,6 +1,7 @@
 export { default as axiosClient } from "./axiosClient";
 export { default as authApi } from "./authApi";
 export { default as courseApi } from "./courseApi";
+export { default as subjectApi } from "./subjectApi";
 export { default as testApi } from "./testApi";
 export { default as orderApi } from "./orderApi";
 export { default as adminApi } from "./adminApi";

@@ -23,6 +23,10 @@ import {
 export default function CourseCard({ course, expert, variants }) {
     const hasDiscount = course.discountPercent > 0 && course.originalPrice > course.priceAmount;
 
+    const handleImageError = (e) => {
+        e.target.src = 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop';
+    };
+
     return (
         <motion.div
             variants={variants}
@@ -31,17 +35,18 @@ export default function CourseCard({ course, expert, variants }) {
         >
             {/* Glow */}
             <div
-                className={`absolute -inset-[1px] bg-gradient-to-r ${course.gradient} rounded-2xl blur-lg opacity-0 group-hover:opacity-15 transition-opacity duration-500`}
+                className={`absolute -inset-[1px] bg-gradient-to-r ${course.gradient || 'from-blue-500 to-cyan-500'} rounded-2xl blur-lg opacity-0 group-hover:opacity-15 transition-opacity duration-500`}
             />
 
             <div className="relative h-full bg-base-100 rounded-2xl border border-base-300 hover:border-base-content/10 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col">
                 {/* Banner */}
                 <div className="relative h-36 overflow-hidden">
                     <img
-                        src={course.bannerUrl}
+                        src={course.bannerUrl || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop'}
                         alt={course.title}
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={handleImageError}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent opacity-70" />
 
@@ -56,8 +61,8 @@ export default function CourseCard({ course, expert, variants }) {
 
                     {/* Category */}
                     <div className="absolute top-2.5 left-2.5 z-10">
-                        <span className={`px-2.5 py-1 rounded-lg bg-gradient-to-r ${course.gradient} text-white text-[11px] font-bold shadow-md`}>
-                            {course.icon} {course.category}
+                        <span className={`px-2.5 py-1 rounded-lg bg-gradient-to-r ${course.gradient || 'from-blue-500 to-cyan-500'} text-white text-[11px] font-bold shadow-md`}>
+                            {course.icon || '📚'} {course.category || 'Khác'}
                         </span>
                     </div>
 
@@ -84,7 +89,7 @@ export default function CourseCard({ course, expert, variants }) {
                     <h3 className="text-sm font-black text-base-content tracking-tight leading-snug mb-1 line-clamp-2">
                         {course.title}
                     </h3>
-                    <p className="text-[11px] text-base-content/50 font-medium mb-2">{course.level}</p>
+                    <p className="text-[11px] text-base-content/50 font-medium mb-2">{course.level || 'Cơ bản'}</p>
 
                     {/* Tags */}
                     {course.tags?.length > 0 && (
@@ -101,19 +106,19 @@ export default function CourseCard({ course, expert, variants }) {
                     <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 mb-3 text-[11px] text-base-content/50">
                         <span className="flex items-center gap-0.5 font-bold text-orange-500">
                             <Star className="w-3 h-3 fill-orange-500" />
-                            {course.ratingAverage}
+                            {course.ratingAverage || 0}
                         </span>
                         <span className="flex items-center gap-0.5">
                             <Users className="w-3 h-3" />
-                            {course.purchaseCount?.toLocaleString()}
+                            {course.purchaseCount?.toLocaleString() || 0}
                         </span>
                         <span className="flex items-center gap-0.5">
                             <BookOpen className="w-3 h-3" />
-                            {course.totalChapters} ch
+                            {course.totalChapters || 0} ch
                         </span>
                         <span className="flex items-center gap-0.5">
                             <Clock className="w-3 h-3" />
-                            {course.estimatedDurationHours}h
+                            {course.estimatedDurationHours || 0}h
                         </span>
                     </div>
 
@@ -129,13 +134,13 @@ export default function CourseCard({ course, expert, variants }) {
                                 </span>
                             )}
                         </div>
-                        <Link to={course.isPurchased ? `/courses/${course.id}/learn` : `/courses/${course.id}`}>
+                        <Link to={course.isPurchased ? `/courses/${course.id}/learn` : `/courses/${course.subjectId || course.id}`}>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className={`btn btn-xs border-none rounded-lg font-bold shadow ${course.isPurchased
                                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
-                                    : `bg-gradient-to-r ${course.gradient} text-white`
+                                    : `bg-gradient-to-r ${course.gradient || 'from-blue-500 to-cyan-500'} text-white`
                                     }`}
                             >
                                 {course.isPurchased ? (
@@ -156,10 +161,11 @@ export default function CourseCard({ course, expert, variants }) {
                     {expert && (
                         <div className="flex items-center gap-2 mt-3 pt-2 border-t border-base-200/50">
                             <img
-                                src={expert.avatar}
+                                src={expert.avatar || 'https://i.pravatar.cc/150?img=11'}
                                 alt={expert.name}
                                 loading="lazy"
                                 className="w-5 h-5 rounded-full object-cover ring-1 ring-base-200"
+                                onError={(e) => { e.target.src = 'https://i.pravatar.cc/150?img=11'; }}
                             />
                             <p className="text-[11px] font-bold text-base-content/70 truncate">{expert.name}</p>
                             {expert.verified && (
@@ -174,7 +180,7 @@ export default function CourseCard({ course, expert, variants }) {
 }
 
 function formatPrice(amount) {
-    if (amount === 0) return 'Miễn phí';
+    if (amount === 0 || !amount) return 'Miễn phí';
     if (amount >= 1_000_000) {
         return (amount / 1_000_000).toFixed(1).replace('.0', '') + 'M';
     }
