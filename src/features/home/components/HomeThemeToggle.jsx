@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { MoonStar, SunMedium } from 'lucide-react';
 
 const STORAGE_KEY = 'theme';
@@ -8,7 +9,7 @@ function applyTheme(nextTheme) {
     document.documentElement.setAttribute('data-theme', nextTheme);
 }
 
-export default function ThemeController({ className = '' }) {
+export default function HomeThemeToggle() {
     const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEY) || 'light');
 
     useEffect(() => {
@@ -18,14 +19,16 @@ export default function ThemeController({ className = '' }) {
     const isDark = theme === 'dark';
 
     return (
-        <button
+        <motion.button
             type="button"
+            whileHover={{ y: -1, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             aria-label={isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
             title={isDark ? 'Giao diện sáng' : 'Giao diện tối'}
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-base-300 bg-base-100/80 text-base-content transition-colors hover:bg-base-200 ${className}`.trim()}
+            className="apple-theme-toggle apple-transition inline-flex h-11 w-11 items-center justify-center rounded-full"
         >
             {isDark ? <SunMedium className="h-5 w-5" /> : <MoonStar className="h-5 w-5" />}
-        </button>
+        </motion.button>
     );
 }

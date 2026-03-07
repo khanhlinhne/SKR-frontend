@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 import { CreditCard, FileText, Play, Sparkles } from 'lucide-react';
 import { SUBJECT_COLOR_STYLES } from '@/features/dashboard/constants';
 
@@ -6,50 +6,52 @@ export default function DashboardSubjectsPanel({ subjects, activeTab, onTabChang
     const filteredSubjects = subjects.filter((subject) => activeTab === 'all' || subject.status === activeTab);
 
     return (
-        <motion.div variants={variants} className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300">
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-black text-base-content">Mon Hoc Cua Toi</h3>
+        <motion.div variants={variants} className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-black text-base-content">Môn học của tôi</h3>
                 <div className="flex gap-2">
-                    <FilterButton label="Tat ca" isActive={activeTab === 'all'} onClick={() => onTabChange('all')} />
-                    <FilterButton label="Dang hoc" isActive={activeTab === 'active'} onClick={() => onTabChange('active')} />
-                    <FilterButton label="Hoan thanh" isActive={activeTab === 'completed'} onClick={() => onTabChange('completed')} />
+                    <FilterButton label="Tất cả" isActive={activeTab === 'all'} onClick={() => onTabChange('all')} />
+                    <FilterButton label="Đang học" isActive={activeTab === 'active'} onClick={() => onTabChange('active')} />
+                    <FilterButton label="Hoàn thành" isActive={activeTab === 'completed'} onClick={() => onTabChange('completed')} />
                 </div>
             </div>
 
             <div className="space-y-3">
                 {filteredSubjects.map((subject, index) => {
                     const style = SUBJECT_COLOR_STYLES[subject.color] || SUBJECT_COLOR_STYLES.blue;
+                    const SubjectIcon = subject.icon;
+
                     return (
                         <motion.div
                             key={subject.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="p-4 rounded-xl bg-base-200 hover:bg-base-300 transition-all group cursor-pointer border border-transparent hover:border-blue-500/20"
+                            className="group cursor-pointer rounded-xl border border-transparent bg-base-200 p-4 transition-all hover:border-blue-500/20 hover:bg-base-300"
                         >
-                            <div className="flex items-center gap-4 mb-3">
-                                <div className="w-12 h-12 rounded-xl bg-base-100 flex items-center justify-center text-2xl shadow-sm">
-                                    {subject.icon}
+                            <div className="mb-3 flex items-center gap-4">
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-base-100 shadow-sm ${style.text}`}>
+                                    <SubjectIcon className="h-6 w-6" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-sm text-base-content truncate">{subject.name}</h4>
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <p className="text-xs text-base-content/60 flex items-center gap-1">
-                                            <CreditCard className="w-3 h-3" />
-                                            {subject.flashcards} the
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="truncate text-sm font-bold text-base-content">{subject.name}</h4>
+                                    <div className="mt-1 flex items-center gap-3">
+                                        <p className="flex items-center gap-1 text-xs text-base-content/60">
+                                            <CreditCard className="h-3 w-3" />
+                                            {subject.flashcards} thẻ
                                         </p>
-                                        <p className="text-xs text-base-content/60 flex items-center gap-1">
-                                            <FileText className="w-3 h-3" />
-                                            {subject.tests} bai thi
+                                        <p className="flex items-center gap-1 text-xs text-base-content/60">
+                                            <FileText className="h-3 w-3" />
+                                            {subject.tests} bài thi
                                         </p>
                                     </div>
                                 </div>
-                                <button className="btn btn-sm btn-circle btn-ghost opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Play className="w-4 h-4" />
+                                <button className="btn btn-circle btn-ghost btn-sm opacity-0 transition-opacity group-hover:opacity-100">
+                                    <Play className="h-4 w-4" />
                                 </button>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-base-300 rounded-full h-1.5">
+                                <div className="h-1.5 flex-1 rounded-full bg-base-300">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         whileInView={{ width: `${subject.progress}%` }}
@@ -58,7 +60,7 @@ export default function DashboardSubjectsPanel({ subjects, activeTab, onTabChang
                                         className={`${style.bar} h-1.5 rounded-full`}
                                     />
                                 </div>
-                                <span className="text-xs font-bold text-base-content/60 min-w-[3ch]">{subject.progress}%</span>
+                                <span className="min-w-[3ch] text-xs font-bold text-base-content/60">{subject.progress}%</span>
                             </div>
                         </motion.div>
                     );
@@ -69,10 +71,10 @@ export default function DashboardSubjectsPanel({ subjects, activeTab, onTabChang
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="w-full mt-4 btn btn-outline btn-primary rounded-xl font-bold"
+                className="btn btn-outline btn-primary mt-4 w-full rounded-xl font-bold"
             >
-                <Sparkles className="w-4 h-4" />
-                Them Mon Hoc Moi
+                <Sparkles className="h-4 w-4" />
+                Thêm môn học mới
             </motion.button>
         </motion.div>
     );
@@ -80,10 +82,7 @@ export default function DashboardSubjectsPanel({ subjects, activeTab, onTabChang
 
 function FilterButton({ label, isActive, onClick }) {
     return (
-        <button
-            onClick={onClick}
-            className={`btn btn-xs font-bold ${isActive ? 'btn-primary' : 'btn-ghost'}`}
-        >
+        <button onClick={onClick} className={`btn btn-xs font-bold ${isActive ? 'btn-primary' : 'btn-ghost'}`}>
             {label}
         </button>
     );

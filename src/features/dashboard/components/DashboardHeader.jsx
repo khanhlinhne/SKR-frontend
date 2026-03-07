@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 import { Search, Bell, Star } from 'lucide-react';
 
 export default function DashboardHeader() {
@@ -7,41 +7,41 @@ export default function DashboardHeader() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-8 py-4"
         >
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black text-base-content">Xin chao, Anh!</h2>
-                    <p className="text-sm text-base-content/60 font-medium">Hom nay ban muon hoc gi?</p>
+                    <h2 className="text-2xl font-black text-base-content">Xin chào, Anh!</h2>
+                    <p className="text-sm font-medium text-base-content/60">Hôm nay bạn muốn học gì?</p>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <div className="relative">
                         <input
                             type="text"
-                            placeholder="Tim mon hoc, flashcard, bai thi..."
-                            className="input input-bordered w-96 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
+                            placeholder="Tìm môn học, flashcard, bài thi..."
+                            className="input input-bordered w-96 rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500"
                         />
-                        <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+                        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-base-content/40" />
                     </div>
 
                     <div className="indicator">
-                        <span className="indicator-item badge badge-sm badge-primary">3</span>
+                        <span className="indicator-item badge badge-primary badge-sm">3</span>
                         <button className="btn btn-circle btn-ghost">
-                            <Bell className="w-5 h-5" />
+                            <Bell className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 pl-4 border-l border-base-300">
+                    <div className="flex items-center gap-3 border-l border-base-300 pl-4">
                         <div className="text-right">
-                            <p className="font-bold text-sm text-base-content">Doan The Anh</p>
+                            <p className="text-sm font-bold text-base-content">Đoàn Thế Anh</p>
                             <div className="flex items-center justify-end gap-1">
-                                <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
-                                <p className="text-xs text-orange-500 font-bold">Premium User</p>
+                                <Star className="h-3 w-3 fill-orange-500 text-orange-500" />
+                                <p className="text-xs font-bold text-orange-500">Premium User</p>
                             </div>
                         </div>
                         <div className="avatar">
-                            <div className="w-10 h-10 rounded-full ring ring-blue-500 ring-offset-2 ring-offset-base-100">
+                            <div className="ring ring-blue-500 ring-offset-2 ring-offset-base-100 w-10 rounded-full">
                                 <img src="https://i.pravatar.cc/150?img=33" alt="User" />
                             </div>
                         </div>

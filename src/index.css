@@ -1,15 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @plugin "daisyui" {
-  themes: light --default, synthwave;
+  themes: light --default, dark;
 }
 
 @theme {
   --color-primary: 37 99 235;
-  /* #2563eb */
   --color-secondary: 124 58 237;
-  /* #7c3aed */
   --font-inter: 'Inter', sans-serif;
   --font-lexend: 'Lexend', sans-serif;
 }
@@ -37,7 +35,6 @@ h6 {
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -55,7 +52,6 @@ h6 {
   background: linear-gradient(180deg, rgb(29, 78, 216), rgb(109, 40, 217));
 }
 
-/* Flashcard Animation Utilities */
 .perspective-1000 {
   perspective: 1000px;
 }
@@ -66,4 +62,312 @@ h6 {
 
 .preserve-3d {
   transform-style: preserve-3d;
+}
+
+.apple-home {
+  --apple-page-bg: #f5f5f7;
+  --apple-text: #1d1d1f;
+  --apple-text-secondary: rgba(29, 29, 31, 0.66);
+  --apple-text-muted: rgba(29, 29, 31, 0.45);
+  --apple-highlight-text: rgba(29, 29, 31, 0.42);
+  --apple-border: rgba(17, 17, 17, 0.08);
+  --apple-border-strong: rgba(17, 17, 17, 0.14);
+  --apple-panel: rgba(255, 255, 255, 0.74);
+  --apple-panel-strong: rgba(255, 255, 255, 0.86);
+  --apple-panel-soft: #f7f7f9;
+  --apple-panel-muted: #f2f2f5;
+  --apple-footer: #f0f0f2;
+  --apple-solid: #111111;
+  --apple-solid-inverse: #ffffff;
+  --apple-dark-card: #0f172a;
+  --apple-image-overlay: rgba(15, 23, 42, 0.68);
+  --apple-glass-overlay: rgba(255, 255, 255, 0.16);
+  --apple-glass-border: rgba(255, 255, 255, 0.16);
+  --apple-accent: #0a84ff;
+  --apple-accent-soft: rgba(10, 132, 255, 0.12);
+  --apple-button-secondary-bg: rgba(255, 255, 255, 0.74);
+  --apple-button-secondary-hover: rgba(255, 255, 255, 0.94);
+  --apple-chip-bg: rgba(255, 255, 255, 0.82);
+  --apple-chip-border: rgba(17, 17, 17, 0.08);
+  --apple-chip-text: rgba(29, 29, 31, 0.66);
+  --apple-shadow-soft: 0 16px 32px rgba(15, 23, 42, 0.06);
+  --apple-shadow-medium: 0 20px 44px rgba(15, 23, 42, 0.08);
+  --apple-shadow-large: 0 40px 80px rgba(15, 23, 42, 0.12);
+  --apple-hero-radial: radial-gradient(circle at top, rgba(0, 122, 255, 0.18), transparent 48%);
+  --apple-cta-radial: radial-gradient(circle, rgba(10, 132, 255, 0.18), transparent 68%);
+  --apple-chart-bar: rgba(17, 17, 17, 0.14);
+  --apple-chart-bar-active: #111111;
+  --apple-emphasis-bg: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+  --apple-emphasis-border: #b9d3ff;
+  --apple-emphasis-badge-border: #c9ddff;
+  --apple-emphasis-badge-text: #0066cc;
+  --apple-tone-slate: #f7f7f9;
+  --apple-tone-slate-border: rgba(17, 17, 17, 0.08);
+  --apple-tone-blue: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%);
+  --apple-tone-blue-border: #cfe0ff;
+  --apple-tone-zinc: linear-gradient(180deg, #ffffff 0%, #f4f4f5 100%);
+  --apple-tone-zinc-border: rgba(17, 17, 17, 0.08);
+  --apple-tone-green: linear-gradient(180deg, #f5fbf8 0%, #eef8f2 100%);
+  --apple-tone-green-border: #d7eadf;
+  --apple-tone-indigo: linear-gradient(180deg, #f3f5ff 0%, #edf0ff 100%);
+  --apple-tone-indigo-border: #d5dbff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-color: var(--apple-page-bg);
+  color: var(--apple-text);
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+:root[data-theme="dark"] .apple-home {
+  --apple-page-bg: #0b0c0f;
+  --apple-text: #f5f5f7;
+  --apple-text-secondary: rgba(245, 245, 247, 0.72);
+  --apple-text-muted: rgba(245, 245, 247, 0.46);
+  --apple-highlight-text: rgba(245, 245, 247, 0.42);
+  --apple-border: rgba(255, 255, 255, 0.10);
+  --apple-border-strong: rgba(255, 255, 255, 0.16);
+  --apple-panel: rgba(26, 27, 31, 0.78);
+  --apple-panel-strong: rgba(32, 34, 39, 0.90);
+  --apple-panel-soft: #17181d;
+  --apple-panel-muted: #202228;
+  --apple-footer: #111216;
+  --apple-solid: #f5f5f7;
+  --apple-solid-inverse: #111111;
+  --apple-dark-card: #101318;
+  --apple-image-overlay: rgba(4, 6, 10, 0.76);
+  --apple-glass-overlay: rgba(255, 255, 255, 0.10);
+  --apple-glass-border: rgba(255, 255, 255, 0.14);
+  --apple-accent: #4aa3ff;
+  --apple-accent-soft: rgba(74, 163, 255, 0.14);
+  --apple-button-secondary-bg: rgba(26, 27, 31, 0.88);
+  --apple-button-secondary-hover: rgba(34, 36, 42, 0.98);
+  --apple-chip-bg: rgba(30, 31, 36, 0.92);
+  --apple-chip-border: rgba(255, 255, 255, 0.10);
+  --apple-chip-text: rgba(245, 245, 247, 0.72);
+  --apple-shadow-soft: 0 16px 32px rgba(0, 0, 0, 0.22);
+  --apple-shadow-medium: 0 20px 44px rgba(0, 0, 0, 0.28);
+  --apple-shadow-large: 0 40px 80px rgba(0, 0, 0, 0.38);
+  --apple-hero-radial: radial-gradient(circle at top, rgba(74, 163, 255, 0.20), transparent 48%);
+  --apple-cta-radial: radial-gradient(circle, rgba(74, 163, 255, 0.18), transparent 68%);
+  --apple-chart-bar: rgba(255, 255, 255, 0.16);
+  --apple-chart-bar-active: #f5f5f7;
+  --apple-emphasis-bg: linear-gradient(180deg, rgba(20, 27, 39, 0.98) 0%, rgba(15, 20, 30, 0.98) 100%);
+  --apple-emphasis-border: rgba(94, 156, 255, 0.26);
+  --apple-emphasis-badge-border: rgba(94, 156, 255, 0.26);
+  --apple-emphasis-badge-text: #8bc1ff;
+  --apple-tone-slate: #17181d;
+  --apple-tone-slate-border: rgba(255, 255, 255, 0.10);
+  --apple-tone-blue: linear-gradient(180deg, rgba(19, 34, 56, 0.96) 0%, rgba(15, 27, 45, 0.96) 100%);
+  --apple-tone-blue-border: rgba(86, 153, 255, 0.22);
+  --apple-tone-zinc: linear-gradient(180deg, rgba(30, 31, 36, 0.96) 0%, rgba(22, 23, 27, 0.96) 100%);
+  --apple-tone-zinc-border: rgba(255, 255, 255, 0.10);
+  --apple-tone-green: linear-gradient(180deg, rgba(18, 36, 28, 0.96) 0%, rgba(14, 27, 22, 0.96) 100%);
+  --apple-tone-green-border: rgba(87, 170, 120, 0.24);
+  --apple-tone-indigo: linear-gradient(180deg, rgba(28, 31, 56, 0.96) 0%, rgba(22, 24, 46, 0.96) 100%);
+  --apple-tone-indigo-border: rgba(127, 143, 255, 0.24);
+}
+
+.apple-home h1,
+.apple-home h2,
+.apple-home h3,
+.apple-home h4,
+.apple-home h5,
+.apple-home h6 {
+  font-family: inherit;
+}
+
+.apple-home .apple-main-text {
+  color: var(--apple-text);
+}
+
+.apple-home .apple-secondary-text {
+  color: var(--apple-text-secondary);
+}
+
+.apple-home .apple-muted-text {
+  color: var(--apple-text-muted);
+}
+
+.apple-home .apple-highlight-text {
+  color: var(--apple-highlight-text);
+}
+
+.apple-home .apple-border {
+  border-color: var(--apple-border);
+}
+
+.apple-home .apple-border-strong {
+  border-color: var(--apple-border-strong);
+}
+
+.apple-home .apple-glass-border {
+  border-color: var(--apple-glass-border);
+}
+
+.apple-home .apple-panel {
+  background-color: var(--apple-panel);
+  border-color: var(--apple-border);
+}
+
+.apple-home .apple-panel-strong {
+  background-color: var(--apple-panel-strong);
+  border-color: var(--apple-border);
+}
+
+.apple-home .apple-soft-panel {
+  background-color: var(--apple-panel-soft);
+}
+
+.apple-home .apple-muted-panel {
+  background-color: var(--apple-panel-muted);
+}
+
+.apple-home .apple-footer-surface {
+  background-color: var(--apple-footer);
+}
+
+.apple-home .apple-solid-surface {
+  background-color: var(--apple-solid);
+  color: var(--apple-solid-inverse);
+}
+
+.apple-home .apple-dark-surface {
+  background-color: var(--apple-dark-card);
+  border-color: var(--apple-border);
+  color: var(--apple-solid-inverse);
+}
+
+.apple-home .apple-theme-toggle {
+  background-color: var(--apple-panel-strong);
+  border: 1px solid var(--apple-border);
+  color: var(--apple-text);
+}
+
+.apple-home .apple-badge {
+  background-color: var(--apple-panel);
+  border: 1px solid var(--apple-border);
+  color: var(--apple-text-secondary);
+}
+
+.apple-home .apple-glass-overlay {
+  background-color: var(--apple-glass-overlay);
+  border-color: var(--apple-glass-border);
+}
+
+.apple-home .apple-img-overlay {
+  background: linear-gradient(to top, var(--apple-image-overlay), transparent 55%);
+}
+
+.apple-home .apple-tone-slate {
+  background: var(--apple-tone-slate);
+  border-color: var(--apple-tone-slate-border);
+}
+
+.apple-home .apple-tone-blue {
+  background: var(--apple-tone-blue);
+  border-color: var(--apple-tone-blue-border);
+}
+
+.apple-home .apple-tone-zinc {
+  background: var(--apple-tone-zinc);
+  border-color: var(--apple-tone-zinc-border);
+}
+
+.apple-home .apple-tone-green {
+  background: var(--apple-tone-green);
+  border-color: var(--apple-tone-green-border);
+}
+
+.apple-home .apple-tone-indigo {
+  background: var(--apple-tone-indigo);
+  border-color: var(--apple-tone-indigo-border);
+}
+
+.apple-home .apple-chip {
+  background-color: var(--apple-chip-bg);
+  border: 1px solid var(--apple-chip-border);
+  color: var(--apple-chip-text);
+}
+
+.apple-home .apple-card-shadow {
+  box-shadow: var(--apple-shadow-soft);
+}
+
+.apple-home .apple-card-shadow-md {
+  box-shadow: var(--apple-shadow-medium);
+}
+
+.apple-home .apple-card-shadow-lg {
+  box-shadow: var(--apple-shadow-large);
+}
+
+.apple-home .apple-primary-button {
+  background-color: var(--apple-solid);
+  color: var(--apple-solid-inverse);
+  box-shadow: var(--apple-shadow-medium);
+}
+
+.apple-home .apple-secondary-button {
+  background-color: var(--apple-button-secondary-bg);
+  border: 1px solid var(--apple-border-strong);
+  color: var(--apple-text);
+}
+
+.apple-home .apple-secondary-button:hover {
+  background-color: var(--apple-button-secondary-hover);
+}
+
+.apple-home .apple-subtle-hover:hover {
+  background-color: var(--apple-accent-soft);
+}
+
+.apple-home .apple-accent-text {
+  color: var(--apple-accent);
+}
+
+.apple-home .apple-hero-glow {
+  background: var(--apple-hero-radial);
+}
+
+.apple-home .apple-cta-glow {
+  background: var(--apple-cta-radial);
+}
+
+.apple-home .apple-chart-bar {
+  background-color: var(--apple-chart-bar);
+}
+
+.apple-home .apple-chart-bar-active {
+  background-color: var(--apple-chart-bar-active);
+}
+
+.apple-home .apple-emphasis-card {
+  background: var(--apple-emphasis-bg);
+  border-color: var(--apple-emphasis-border);
+}
+
+.apple-home .apple-emphasis-badge {
+  background-color: var(--apple-panel-strong);
+  border: 1px solid var(--apple-emphasis-badge-border);
+  color: var(--apple-emphasis-badge-text);
+}
+
+.apple-home .apple-transition {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, transform 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

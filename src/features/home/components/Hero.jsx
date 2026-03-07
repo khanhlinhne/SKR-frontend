@@ -1,247 +1,267 @@
-import { motion } from 'motion/react';
-import { ArrowRight, Sparkles, Brain, Rocket, CheckCircle, Zap } from 'lucide-react';
+﻿import { motion } from 'motion/react';
+import { ArrowRight, BarChart3, BrainCircuit, Clock3, PlayCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import heroIllustration from '@/assets/hero-image.png';
+import { heroHighlights, heroMetrics } from '@/features/home/constants';
+
+const reviewStats = [
+    { label: 'Flashcards đã ôn', value: '36 / 40' },
+    { label: 'Tỷ lệ trả lời đúng', value: '91%' },
+    { label: 'Mức độ ghi nhớ', value: 'Cao' },
+];
+
+const weeklyHeights = [36, 52, 41, 68, 74, 58, 82];
+const weeklyLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const heroSummaryStats = [
+    { icon: Clock3, value: '48 phút', label: 'deep work hôm nay' },
+    { icon: BrainCircuit, value: '14', label: 'giải thích AI đã lưu' },
+    { icon: BarChart3, value: '+12%', label: 'tăng trưởng theo tuần' },
+];
 
 export default function Hero({
-    badge = 'AI-Powered Learning Revolution',
-    titleMain = 'Smart Knowledge',
-    titleHighlight = 'Revise System',
-    subtitle = 'Hệ thống học tập thông minh tích hợp AI giúp cá nhân hóa lộ trình ôn thi,\ntự động tạo nội dung và phân tích điểm yếu để tối ưu kết quả học tập của bạn.',
+    badge = 'Học tập được thiết kế lại để rõ ràng hơn',
+    titleMain = 'Học sâu hơn',
+    titleHighlight = 'với ít nhiễu hơn',
+    subtitle = 'SKR gom bài học, flashcards, quiz và AI vào một flow tối giản để bạn biết chính xác hôm nay cần học gì và tại sao.',
     ctaPrimaryText = 'Bắt đầu miễn phí',
-    ctaSecondaryText = 'Khám phá tính năng AI',
-    heroImage = 'https://i.pinimg.com/736x/05/d7/84/05d784805e083785e14d8555d9428c1b.jpg'
+    ctaSecondaryText = 'Xem môn học',
 } = {}) {
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.12,
-                delayChildren: 0.15
-            }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 25 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.7,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
-    const floatingVariants = {
-        animate: {
-            y: [0, -15, 0],
-            transition: {
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut"
-            }
-        }
-    };
-
-    const scaleInVariants = {
-        hidden: { scale: 0.95, opacity: 0 },
-        visible: {
-            scale: 1,
-            opacity: 1,
-            transition: {
-                duration: 0.8,
-                ease: [0.25, 0.46, 0.45, 0.94]
-            }
-        }
-    };
-
     return (
-        <div className="relative min-h-screen bg-base-100 overflow-hidden">
-            {/* Animated background gradients */}
+        <section className="relative overflow-hidden px-6 pb-20 pt-10 lg:px-8 lg:pb-28 lg:pt-14">
             <motion.div
-                className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/25 to-purple-500/25 rounded-full blur-[130px]"
-                animate={{
-                    scale: [1, 1.15, 1],
-                    opacity: [0.4, 0.6, 0.4],
-                }}
-                transition={{
-                    duration: 9,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
-            />
-            <motion.div
-                className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-br from-violet-500/25 to-pink-500/25 rounded-full blur-[130px]"
-                animate={{
-                    scale: [1.15, 1, 1.15],
-                    opacity: [0.4, 0.6, 0.4],
-                }}
-                transition={{
-                    duration: 9,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 1.5
-                }}
+                className="apple-hero-glow pointer-events-none absolute inset-x-0 top-[-6rem] h-[34rem]"
+                animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.04, 1] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             />
 
-            <motion.div
-                className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-16 lg:pt-32"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                {/* Badge at top center */}
+            <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
+                <div className="max-w-2xl pt-8 lg:pt-14">
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium backdrop-blur-xl"
+                    >
+                        {badge}
+                    </motion.div>
+
+                    <motion.h1
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+                        className="apple-main-text text-[3rem] font-semibold leading-[0.98] tracking-[-0.04em] sm:text-[4.25rem] lg:text-[5.5rem]"
+                    >
+                        {titleMain}
+                        <br />
+                        <span className="apple-highlight-text">{titleHighlight}</span>
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                        className="apple-secondary-text mt-6 max-w-xl text-lg leading-8 sm:text-xl"
+                    >
+                        {subtitle}
+                    </motion.p>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        className="mt-9 flex flex-col gap-3 sm:flex-row"
+                    >
+                        <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                            <Link
+                                to="/signup"
+                                className="apple-primary-button apple-transition inline-flex h-14 items-center justify-center rounded-full px-7 text-sm font-semibold"
+                            >
+                                {ctaPrimaryText}
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </motion.div>
+                        <motion.div whileHover={{ y: -2, scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                            <Link
+                                to="/courses"
+                                className="apple-secondary-button apple-transition inline-flex h-14 items-center justify-center rounded-full px-7 text-sm font-semibold backdrop-blur-xl"
+                            >
+                                <PlayCircle className="mr-2 h-4 w-4" />
+                                {ctaSecondaryText}
+                            </Link>
+                        </motion.div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        className="mt-12 grid gap-6 sm:grid-cols-3"
+                    >
+                        {heroMetrics.map((metric) => (
+                            <motion.div key={metric.label} whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+                                <div className="apple-main-text text-3xl font-semibold tracking-[-0.03em]">{metric.value}</div>
+                                <p className="apple-secondary-text mt-2 text-sm leading-6">{metric.label}</p>
+                            </motion.div>
+                        ))}
+                    </motion.div>
+                </div>
+
                 <motion.div
-                    variants={itemVariants}
-                    className="flex justify-center mb-12"
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.75, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative"
                 >
                     <motion.div
-                        className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-base-100/60 backdrop-blur-md border border-base-300/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:border-base-300"
-                        whileHover={{ scale: 1.02, y: -2 }}
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+                        className="relative"
                     >
-                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
-                            <Sparkles className="w-4 h-4 text-blue-500" />
-                        </motion.div>
-                        <span className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            {badge}
-                        </span>
-                    </motion.div>
-                </motion.div>
+                        <div className="absolute inset-x-12 top-8 h-40 rounded-full apple-cta-glow blur-3xl" />
 
-                {/* Main content: text left, image right */}
-                <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-center lg:items-start">
-                    {/* Left column: Text content */}
-                    <motion.div variants={itemVariants} className="flex-1 space-y-8">
-                        {/* Main Heading */}
-                        <div className="space-y-4">
-                            <h1 className="text-5xl md:text-6xl lg:text-6xl font-black leading-[1.15] tracking-tight text-base-content">
-                                {titleMain} <br />
-                                <motion.span
-                                    className="bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent italic"
-                                    animate={{ backgroundPosition: ['0%', '100%', '0%'] }}
-                                    transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-                                >
-                                    {titleHighlight}
-                                </motion.span>
-                            </h1>
-                        </div>
-
-                        {/* Subtitle */}
-                        <motion.p
-                            variants={itemVariants}
-                            className="text-lg md:text-lg text-base-content/70 leading-relaxed font-medium max-w-xl"
-                        >
-                            {subtitle}
-                        </motion.p>
-
-                        {/* CTA Buttons */}
-                        <motion.div
-                            variants={itemVariants}
-                            className="flex flex-col sm:flex-row gap-4 pt-4"
-                        >
-                            <Link to="/login">
-                                <motion.button
-                                    className="btn btn-lg h-14 px-9 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl shadow-lg shadow-blue-600/30 group text-base font-bold transition-all duration-300 w-full sm:w-auto"
-                                    whileHover={{ scale: 1.08, y: -3 }}
-                                    whileTap={{ scale: 0.93 }}
-                                >
-                                    <Rocket className="w-5 h-5" />
-                                    {ctaPrimaryText}
-                                    <motion.div
-                                        animate={{ x: [0, 4, 0] }}
-                                        transition={{ duration: 1.5, repeat: Infinity }}
-                                    >
-                                        <ArrowRight className="w-5 h-5" />
-                                    </motion.div>
-                                </motion.button>
-                            </Link>
-                            <motion.button
-                                className="btn btn-lg h-14 px-9 btn-ghost border-2 border-base-300 text-base-content rounded-xl hover:bg-base-200/50 text-base font-bold transition-all duration-300"
-                                whileHover={{ scale: 1.08, y: -3 }}
-                                whileTap={{ scale: 0.93 }}
-                            >
-                                <Brain className="w-5 h-5" />
-                                {ctaSecondaryText}
-                            </motion.button>
-                        </motion.div>
-
-                        {/* Feature highlights */}
-                        <motion.div
-                            className="flex flex-col gap-3 pt-6"
-                            variants={containerVariants}
-                        >
-                            {[
-                                { icon: Zap, text: 'Tạo nội dung tức thì' },
-                                { icon: CheckCircle, text: 'Phân tích chi tiết' },
-                                { icon: Brain, text: 'AI thông minh' }
-                            ].map((item, idx) => (
+                        <div className="apple-panel-strong apple-card-shadow-lg relative overflow-hidden rounded-[32px] border p-5 backdrop-blur-2xl sm:p-6">
+                            <div className="apple-border relative mb-5 overflow-hidden rounded-[28px] border">
+                                <motion.img
+                                    src={heroIllustration}
+                                    alt="Minh họa không gian học tập với AI"
+                                    className="h-64 w-full object-cover sm:h-72"
+                                    animate={{ scale: [1, 1.03, 1] }}
+                                    transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+                                />
+                                <div className="apple-img-overlay absolute inset-0" />
+                                <div className="apple-glass-overlay apple-glass-border absolute left-5 top-5 rounded-full border px-4 py-2 text-sm font-medium text-white backdrop-blur-xl">
+                                    AI study workspace
+                                </div>
                                 <motion.div
-                                    key={idx}
-                                    variants={itemVariants}
-                                    className="flex items-center gap-3 text-base font-medium text-base-content/80"
+                                    animate={{ y: [0, -6, 0] }}
+                                    transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="apple-glass-overlay apple-glass-border absolute right-5 top-5 rounded-2xl border px-4 py-3 text-right backdrop-blur-xl"
                                 >
-                                    <item.icon className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                                    {item.text}
+                                    <p className="text-xs font-medium text-white/72">Gợi ý ôn tập</p>
+                                    <p className="mt-1 text-sm font-semibold text-white">3 chủ đề cần ưu tiên</p>
                                 </motion.div>
-                            ))}
-                        </motion.div>
+                                <motion.div
+                                    animate={{ y: [0, 8, 0] }}
+                                    transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="apple-glass-overlay apple-glass-border absolute bottom-5 left-5 rounded-2xl border px-4 py-3 backdrop-blur-xl"
+                                >
+                                    <p className="text-xs font-medium text-white/72">Hôm nay</p>
+                                    <p className="mt-1 text-lg font-semibold text-white">12.400 người học đang hoạt động</p>
+                                </motion.div>
+                            </div>
 
-                        {/* Trust badges */}
-                        <motion.div variants={itemVariants} className="pt-8">
-                            <p className="text-sm text-base-content/60 font-bold uppercase tracking-widest mb-4">
-                                Tin dùng bởi 10,000+ sinh viên & giáo viên
-                            </p>
-                            <div className="flex gap-6">
-                                {[
-                                    { icon: '🎓', text: 'EDU-TECH' },
-                                    { icon: '⚡', text: 'FLASH-LEARN' },
-                                    { icon: '🤖', text: 'AI-STUDY' }
-                                ].map((item, idx) => (
+                            <div className="apple-border mb-5 flex items-center justify-between border-b pb-4">
+                                <div>
+                                    <p className="apple-muted-text text-xs font-semibold uppercase tracking-[0.18em]">Hôm nay</p>
+                                    <h2 className="apple-main-text mt-2 text-2xl font-semibold tracking-[-0.03em]">Tổng quan học tập</h2>
+                                </div>
+                                <div className="apple-muted-panel apple-secondary-text rounded-full px-4 py-2 text-sm font-medium">
+                                    Focus mode
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                                <div className="apple-soft-panel rounded-[28px] p-5">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="apple-secondary-text text-sm font-medium">Lượt ôn tập tiếp theo</p>
+                                            <h3 className="apple-main-text mt-1 text-2xl font-semibold tracking-[-0.03em]">Sinh học tế bào</h3>
+                                        </div>
+                                        <div className="apple-panel-strong apple-card-shadow rounded-2xl px-4 py-3 text-right">
+                                            <p className="apple-muted-text text-xs font-medium">Bắt đầu sau</p>
+                                            <p className="apple-main-text mt-1 text-lg font-semibold">12 phút</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-5 space-y-3">
+                                        {reviewStats.map((item) => (
+                                            <motion.div
+                                                key={item.label}
+                                                whileHover={{ x: 3 }}
+                                                className="apple-panel apple-transition flex items-center justify-between rounded-2xl border px-4 py-3"
+                                            >
+                                                <span className="apple-secondary-text text-sm">{item.label}</span>
+                                                <span className="apple-main-text text-sm font-semibold">{item.value}</span>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
                                     <motion.div
-                                        key={idx}
-                                        className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity duration-300 group cursor-pointer"
-                                        whileHover={{ scale: 1.1 }}
+                                        whileHover={{ y: -3 }}
+                                        className="apple-dark-surface apple-card-shadow-md rounded-[28px] border p-5"
                                     >
-                                        <span className="text-xl">{item.icon}</span>
-                                        <span className="text-xs font-semibold text-base-content/70 group-hover:text-base-content transition-colors">{item.text}</span>
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p className="text-sm text-white/62">Tóm tắt từ AI</p>
+                                                <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
+                                                    Nên ôn lại các điểm yếu trước
+                                                </h3>
+                                            </div>
+                                            <BrainCircuit className="h-5 w-5 text-white/72" />
+                                        </div>
+                                        <p className="mt-4 text-sm leading-6 text-white/72">
+                                            Phosphoryl hóa oxy hóa và tế bào chất là hai phần bạn đang chưa ổn định.
+                                        </p>
+                                    </motion.div>
+
+                                    <motion.div whileHover={{ y: -3 }} className="apple-soft-panel rounded-[28px] p-5">
+                                        <div className="mb-4 flex items-center justify-between">
+                                            <p className="apple-secondary-text text-sm font-medium">Nhịp học trong tuần</p>
+                                            <BarChart3 className="apple-muted-text h-4 w-4" />
+                                        </div>
+                                        <div className="flex h-28 items-end gap-2">
+                                            {weeklyHeights.map((height, index) => (
+                                                <motion.div key={weeklyLabels[index]} className="flex flex-1 flex-col items-center gap-2" whileHover={{ y: -2 }}>
+                                                    <div
+                                                        className={`w-full rounded-full ${index === 6 ? 'apple-chart-bar-active' : 'apple-chart-bar'}`}
+                                                        style={{ height: `${height}%` }}
+                                                    />
+                                                    <span className="apple-muted-text text-[11px] font-medium">{weeklyLabels[index]}</span>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            </div>
+
+                            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                                {heroSummaryStats.map((item) => (
+                                    <motion.div
+                                        key={item.label}
+                                        whileHover={{ y: -3 }}
+                                        className="apple-panel apple-transition rounded-[24px] border px-4 py-4"
+                                    >
+                                        <item.icon className="apple-muted-text h-4 w-4" />
+                                        <div className="apple-main-text mt-4 text-2xl font-semibold tracking-[-0.03em]">
+                                            {item.value}
+                                        </div>
+                                        <p className="apple-secondary-text mt-1 text-sm">{item.label}</p>
                                     </motion.div>
                                 ))}
                             </div>
-                        </motion.div>
+                        </div>
                     </motion.div>
 
-                    {/* Right column: Hero image */}
-                    <motion.div
-                        variants={scaleInVariants}
-                        className="flex-1 w-full"
-                    >
-                        <motion.div
-                            variants={floatingVariants}
-                            animate="animate"
-                            className="relative group"
-                        >
-                            {/* Notion-style frame wrapper */}
-                            <div className="relative rounded-2xl overflow-hidden">
-                                {/* Frame border effect */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-purple-500/20 rounded-2xl pointer-events-none z-[5]" />
-
-                                {/* Main image container */}
-                                <div className="relative rounded-2xl overflow-hidden bg-base-200/30 backdrop-blur-sm border border-base-300/30 shadow-xl hover:shadow-2xl transition-all duration-500">
-                                    <img
-                                        src={heroImage}
-                                        alt="SKR Dashboard"
-                                        className="w-full h-auto object-cover opacity-95 group-hover:opacity-100 transition-opacity duration-500"
-                                    />
-                                    {/* Subtle overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-base-900/30 via-transparent to-transparent pointer-events-none" />
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                </div>
-            </motion.div>
-        </div>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                        {heroHighlights.map((item, index) => (
+                            <motion.div
+                                key={item.title}
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.28 + index * 0.06 }}
+                                whileHover={{ y: -4 }}
+                                className="apple-panel apple-card-shadow apple-transition rounded-[24px] border p-5 backdrop-blur-xl"
+                            >
+                                <item.icon className="apple-muted-text h-5 w-5" />
+                                <h3 className="apple-main-text mt-4 text-base font-semibold tracking-[-0.02em]">{item.title}</h3>
+                                <p className="apple-secondary-text mt-2 text-sm leading-6">{item.description}</p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </motion.div>
+            </div>
+        </section>
     );
 }
