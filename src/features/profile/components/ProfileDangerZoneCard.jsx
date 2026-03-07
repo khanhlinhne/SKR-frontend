@@ -1,21 +1,18 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 
 export default function ProfileDangerZoneCard({ variants }) {
     return (
-        <motion.div
-            variants={variants}
-            className="bg-base-100 rounded-3xl p-6 shadow-lg border border-red-500/20"
-        >
-            <h2 className="text-xl font-black text-red-500 mb-4">Vung Nguy Hiem</h2>
-            <p className="text-sm text-base-content/70 mb-4">
-                Cac hanh dong nay khong the hoan tac. Vui long can nhac ky.
+        <motion.div variants={variants} className="rounded-3xl border border-red-500/20 bg-base-100 p-6 shadow-lg">
+            <h2 className="mb-4 text-xl font-black text-red-500">Vùng nguy hiểm</h2>
+            <p className="mb-4 text-sm text-base-content/70">
+                Những hành động này không thể hoàn tác. Vui lòng cân nhắc kỹ trước khi tiếp tục.
             </p>
             <div className="space-y-2">
-                <button className="btn btn-sm btn-outline btn-error w-full rounded-xl font-bold">
-                    Xoa tat ca du lieu
+                <button className="btn btn-outline btn-error btn-sm w-full rounded-xl font-bold">
+                    Xóa toàn bộ dữ liệu
                 </button>
-                <button className="btn btn-sm btn-error w-full rounded-xl font-bold">
-                    Xoa tai khoan
+                <button className="btn btn-error btn-sm w-full rounded-xl font-bold">
+                    Xóa tài khoản
                 </button>
             </div>
         </motion.div>

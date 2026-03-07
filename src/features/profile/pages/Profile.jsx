@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
 import { authApi } from '@/shared/api';
@@ -46,10 +46,15 @@ export default function Profile() {
                     name: user.fullName || user.displayName || user.username || prev.name,
                     email: user.email || prev.email,
                     phone: user.phoneNumber || prev.phone,
+                    location: user.location || prev.location,
                     bio: user.bio || prev.bio,
-                    joinDate: user.createdAt || user.createdAtUtc
-                        ? new Date(user.createdAt || user.createdAtUtc).toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })
-                        : prev.joinDate,
+                    joinDate:
+                        user.createdAt || user.createdAtUtc
+                            ? new Date(user.createdAt || user.createdAtUtc).toLocaleDateString('vi-VN', {
+                                  month: 'long',
+                                  year: 'numeric',
+                              })
+                            : prev.joinDate,
                     isPremium: user.isPremium || false,
                 }));
             } catch (error) {
@@ -85,7 +90,7 @@ export default function Profile() {
             setIsEditing(false);
         } catch (error) {
             console.error('Failed to update profile:', error);
-            alert(error.response?.data?.message || 'Cap nhat that bai');
+            alert(error.response?.data?.message || 'Cập nhật hồ sơ thất bại');
         } finally {
             setSaving(false);
         }
@@ -96,12 +101,12 @@ export default function Profile() {
         setPasswordSuccess('');
 
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            setPasswordError('Mat khau moi khong khop');
+            setPasswordError('Mật khẩu mới không khớp.');
             return;
         }
 
         if (passwordData.newPassword.length < 6) {
-            setPasswordError('Mat khau moi phai co it nhat 6 ky tu');
+            setPasswordError('Mật khẩu mới phải có ít nhất 6 ký tự.');
             return;
         }
 
@@ -111,29 +116,24 @@ export default function Profile() {
                 currentPassword: passwordData.currentPassword,
                 newPassword: passwordData.newPassword,
             });
-            setPasswordSuccess('Doi mat khau thanh cong');
+            setPasswordSuccess('Đổi mật khẩu thành công.');
             setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (error) {
             console.error('Failed to change password:', error);
-            setPasswordError(error.response?.data?.message || 'Doi mat khau that bai');
+            setPasswordError(error.response?.data?.message || 'Đổi mật khẩu thất bại.');
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <div className="flex h-screen bg-base-200 overflow-hidden">
+        <div className="flex h-screen overflow-hidden bg-base-200">
             <DashboardSidebar />
 
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex flex-1 flex-col overflow-hidden">
                 <ProfileHeader />
 
-                <motion.main
-                    className="flex-1 overflow-y-auto"
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                >
+                <motion.main className="flex-1 overflow-y-auto" variants={containerVariants} initial="hidden" animate="visible">
                     <ProfileHero
                         userData={userData}
                         rank={USER_STATS.rank}
@@ -144,9 +144,9 @@ export default function Profile() {
 
                     <ProfileStatsGrid userStats={USER_STATS} variants={cardVariants} />
 
-                    <div className="max-w-7xl mx-auto px-8 pb-8">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2 space-y-6">
+                    <div className="mx-auto max-w-7xl px-8 pb-8">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                            <div className="space-y-6 lg:col-span-2">
                                 <ProfilePersonalInfoCard
                                     userData={userData}
                                     isEditing={isEditing}

@@ -1,4 +1,4 @@
-import { Award, CreditCard, FileText, Flame, Target, Trophy } from 'lucide-react';
+﻿import { Award, CreditCard, FileText, Flame, Target, Trophy } from 'lucide-react';
 
 export const PROFILE_STAT_STYLES = {
     orange: { softBg: 'bg-orange-500/10', text: 'text-orange-500', overlay: 'bg-gradient-to-br from-orange-500/5 to-orange-500/10' },
@@ -30,12 +30,12 @@ export const cardVariants = {
 };
 
 export const DEFAULT_USER_DATA = {
-    name: 'Doan The Anh',
+    name: 'Đoàn Thế Anh',
     email: 'anh.nguyen@skr.edu.vn',
     phone: '+84 912 345 678',
-    location: 'Ha Noi, Viet Nam',
-    bio: 'Sinh vien nam 3 nganh Cong nghe thong tin. Dam me hoc AI va Machine Learning.',
-    joinDate: 'Thang 1, 2024',
+    location: 'Hà Nội, Việt Nam',
+    bio: 'Sinh viên năm 3 ngành Công nghệ thông tin. Đam mê học AI và Machine Learning.',
+    joinDate: 'tháng 1 năm 2024',
     isPremium: true,
 };
 
@@ -58,28 +58,28 @@ export const DEFAULT_NOTIFICATIONS = {
 };
 
 export const NOTIFICATION_OPTIONS = [
-    { key: 'emailNotifications', label: 'Email thong bao', desc: 'Nhan email ve hoat dong' },
-    { key: 'pushNotifications', label: 'Push notifications', desc: 'Thong bao tren trinh duyet' },
-    { key: 'studyReminders', label: 'Nhac nho hoc tap', desc: 'Nhac nho on tap hang ngay' },
-    { key: 'weeklyReport', label: 'Bao cao tuan', desc: 'Tong ket tien do hang tuan' },
-    { key: 'achievements', label: 'Thanh tich moi', desc: 'Thong bao khi dat thanh tich' },
-    { key: 'communityUpdates', label: 'Cap nhat cong dong', desc: 'Tin tuc tu cong dong SKR' },
+    { key: 'emailNotifications', label: 'Email thông báo', desc: 'Nhận email về hoạt động và cập nhật quan trọng.' },
+    { key: 'pushNotifications', label: 'Thông báo đẩy', desc: 'Nhận nhắc nhở trực tiếp trên trình duyệt.' },
+    { key: 'studyReminders', label: 'Nhắc nhở học tập', desc: 'Ôn tập hằng ngày theo lịch đã đặt.' },
+    { key: 'weeklyReport', label: 'Báo cáo tuần', desc: 'Tổng kết tiến độ và nhịp học mỗi tuần.' },
+    { key: 'achievements', label: 'Thành tích mới', desc: 'Thông báo khi bạn mở khóa mốc tiến bộ mới.' },
+    { key: 'communityUpdates', label: 'Cập nhật cộng đồng', desc: 'Tin tức, bài viết và hoạt động từ cộng đồng SKR.' },
 ];
 
 export const PREMIUM_FEATURES = [
-    'AI Assistant khong gioi han',
-    'Spaced Repetition thong minh',
-    'Download offline',
-    'Thach dau nang cao',
+    'AI Assistant không giới hạn',
+    'Spaced repetition thông minh',
+    'Tải nội dung để học offline',
+    'Báo cáo phân tích chuyên sâu',
 ];
 
 export function getProfileStats(userStats) {
     return [
-        { icon: Flame, label: 'Study Streak', value: `${userStats.studyStreak} ngay`, color: 'orange' },
+        { icon: Flame, label: 'Chuỗi học', value: `${userStats.studyStreak} ngày`, color: 'orange' },
         { icon: CreditCard, label: 'Flashcards', value: userStats.totalFlashcards, color: 'blue' },
-        { icon: FileText, label: 'Tests', value: userStats.testsCompleted, color: 'green' },
-        { icon: Target, label: 'Study Hours', value: `${userStats.hoursStudied}h`, color: 'purple' },
-        { icon: Trophy, label: 'Achievements', value: userStats.achievements, color: 'yellow' },
-        { icon: Award, label: 'Rank', value: '#156', color: 'pink' },
+        { icon: FileText, label: 'Bài test', value: userStats.testsCompleted, color: 'green' },
+        { icon: Target, label: 'Giờ học', value: `${userStats.hoursStudied}h`, color: 'purple' },
+        { icon: Trophy, label: 'Thành tích', value: userStats.achievements, color: 'yellow' },
+        { icon: Award, label: 'Xếp hạng', value: '#156', color: 'pink' },
     ];
 }

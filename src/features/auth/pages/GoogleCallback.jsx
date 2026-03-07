@@ -1,11 +1,9 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
+import { motion } from 'motion/react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AuthCard, AuthShell } from '@/features/auth/components';
 
-/**
- * Component xu ly Google OAuth callback.
- * Backend redirect ve: /auth/callback?accessToken=xxx&refreshToken=xxx
- * Component nay se lay token tu URL, luu vao localStorage, roi chuyen ve dashboard.
- */
 export default function GoogleCallback() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -16,28 +14,64 @@ export default function GoogleCallback() {
         const error = searchParams.get('error') || searchParams.get('message');
 
         if (accessToken) {
-            // Luu token vao localStorage
             localStorage.setItem('accessToken', accessToken);
             if (refreshToken) {
                 localStorage.setItem('refreshToken', refreshToken);
             }
-            // Chuyen ve dashboard
             navigate('/dashboard', { replace: true });
-        } else if (error) {
-            // Co loi tu Google OAuth -> chuyen ve login voi thong bao loi
-            navigate('/login?error=google_failed', { replace: true });
-        } else {
-            // Khong co token cung khong co error -> ve login
-            navigate('/login', { replace: true });
+            return;
         }
-    }, [searchParams, navigate]);
+
+        if (error) {
+            navigate('/login?error=google_failed', { replace: true });
+            return;
+        }
+
+        navigate('/login', { replace: true });
+    }, [navigate, searchParams]);
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-base-100">
-            <div className="text-center space-y-4">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p className="text-base-content/60 font-medium">Đang xử lý đăng nhập Google...</p>
-            </div>
-        </div>
+        <AuthShell
+            badge="Google OAuth"
+            title="Đang xử lý đăng nhập"
+            highlight="và đồng bộ phiên làm việc"
+            description="Hệ thống đang xác minh phản hồi từ Google để đưa bạn trở lại dashboard an toàn."
+            features={[]}
+            summaryTitle="Phiên xác thực"
+            summaryItems={[
+                { label: 'Nguồn đăng nhập', value: 'Google OAuth' },
+                { label: 'Bước hiện tại', value: 'Đồng bộ token' },
+                { label: 'Điểm đến', value: 'Dashboard' },
+            ]}
+            contentWidthClassName="max-w-md"
+        >
+            <AuthCard
+                eyebrow="Google"
+                title="Đang đăng nhập"
+                subtitle="Vui lòng đợi trong giây lát. Bạn sẽ được chuyển hướng tự động khi xác thực hoàn tất."
+            >
+                <div className="flex flex-col items-center justify-center gap-5 py-4 text-center">
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1.1, repeat: Infinity, ease: 'linear' }}
+                        className="apple-chip flex h-16 w-16 items-center justify-center rounded-full"
+                    >
+                        <Loader2 className="apple-accent-text h-7 w-7" />
+                    </motion.div>
+                    <div>
+                        <p className="apple-main-text text-base font-semibold">Đang xử lý đăng nhập Google</p>
+                        <p className="apple-secondary-text mt-2 text-sm leading-6">
+                            Chúng tôi đang xác minh tài khoản và khởi tạo phiên bảo mật cho bạn.
+                        </p>
+                    </div>
+                    <div className="apple-auth-panel rounded-2xl px-4 py-3 text-sm backdrop-blur-xl">
+                        <div className="flex items-center gap-2 apple-secondary-text">
+                            <ShieldCheck className="apple-accent-text h-4 w-4" />
+                            Phiên xác thực đang được bảo vệ.
+                        </div>
+                    </div>
+                </div>
+            </AuthCard>
+        </AuthShell>
     );
 }

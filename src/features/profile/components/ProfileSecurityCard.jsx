@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 import { Shield, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function ProfileSecurityCard({
@@ -17,13 +17,10 @@ export default function ProfileSecurityCard({
     variants,
 }) {
     return (
-        <motion.div
-            variants={variants}
-            className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300"
-        >
-            <h2 className="text-xl font-black text-base-content flex items-center gap-2 mb-6">
-                <Shield className="w-5 h-5" />
-                Bao Mat
+        <motion.div variants={variants} className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg">
+            <h2 className="mb-6 flex items-center gap-2 text-xl font-black text-base-content">
+                <Shield className="h-5 w-5" />
+                Bảo mật
             </h2>
 
             <div className="space-y-4">
@@ -39,21 +36,21 @@ export default function ProfileSecurityCard({
                 )}
 
                 <PasswordField
-                    label="Mat khau hien tai"
+                    label="Mật khẩu hiện tại"
                     value={passwordData.currentPassword}
                     visible={showPassword}
                     onToggle={onTogglePassword}
                     onChange={(value) => onPasswordFieldChange('currentPassword', value)}
                 />
                 <PasswordField
-                    label="Mat khau moi"
+                    label="Mật khẩu mới"
                     value={passwordData.newPassword}
                     visible={showNewPassword}
                     onToggle={onToggleNewPassword}
                     onChange={(value) => onPasswordFieldChange('newPassword', value)}
                 />
                 <PasswordField
-                    label="Xac nhan mat khau moi"
+                    label="Xác nhận mật khẩu mới"
                     value={passwordData.confirmPassword}
                     visible={showConfirmPassword}
                     onToggle={onToggleConfirmPassword}
@@ -63,12 +60,12 @@ export default function ProfileSecurityCard({
                 <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="btn btn-outline btn-primary rounded-xl font-bold w-full"
+                    className="btn btn-outline btn-primary w-full rounded-xl font-bold"
                     onClick={onSubmit}
                     disabled={saving}
                 >
-                    <Lock className="w-4 h-4" />
-                    {saving ? 'Dang xu ly...' : 'Doi mat khau'}
+                    <Lock className="h-4 w-4" />
+                    {saving ? 'Đang xử lý...' : 'Đổi mật khẩu'}
                 </motion.button>
             </div>
         </motion.div>
@@ -84,16 +81,16 @@ function PasswordField({ label, value, visible, onToggle, onChange }) {
             <div className="relative">
                 <input
                     type={visible ? 'text' : 'password'}
-                    placeholder="��������"
-                    className="input input-bordered w-full rounded-xl font-medium pr-12"
+                    placeholder="••••••••"
+                    className="input input-bordered w-full rounded-xl pr-12 font-medium"
                     value={value}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(event) => onChange(event.target.value)}
                 />
                 <button
                     onClick={onToggle}
-                    className="btn btn-ghost btn-sm btn-circle absolute right-2 top-1/2 -translate-y-1/2"
+                    className="btn btn-circle btn-ghost btn-sm absolute right-2 top-1/2 -translate-y-1/2"
                 >
-                    {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
             </div>
         </div>

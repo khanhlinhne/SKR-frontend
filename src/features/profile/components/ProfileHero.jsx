@@ -1,93 +1,97 @@
-import { motion } from 'motion/react';
+﻿import { motion } from 'motion/react';
 import { Camera, Mail, Calendar as CalendarIcon, Star, Edit2, Settings } from 'lucide-react';
 
 export default function ProfileHero({ userData, rank, isEditing, onToggleEditing, variants }) {
     return (
-        <motion.div
-            variants={variants}
-            className="relative h-64 bg-gradient-to-br from-blue-600 via-violet-600 to-purple-600 overflow-hidden"
-        >
-            <motion.div
-                animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-                className="absolute -top-32 -right-32 w-96 h-96 bg-white/10 rounded-full blur-3xl"
-            />
-            <motion.div
-                animate={{ scale: [1.2, 1, 1.2], rotate: [90, 0, 90] }}
-                transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-                className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl"
-            />
-
-            <div className="absolute bottom-0 left-0 right-0 p-8">
-                <div className="max-w-7xl mx-auto flex items-end gap-6">
+        <motion.section variants={variants} className="border-b border-base-300 bg-base-100">
+            <div className="mx-auto max-w-7xl px-8 pt-8 pb-6">
+                <div className="relative overflow-hidden rounded-[32px] border border-base-300 bg-base-100 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(251,146,60,0.12),transparent_28%)]" />
                     <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: 'spring', duration: 0.8 }}
-                        className="relative group"
-                    >
-                        <div className="w-32 h-32 rounded-2xl overflow-hidden ring-4 ring-white shadow-2xl bg-base-100">
-                            <img
-                                src="https://i.pravatar.cc/200?img=33"
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="absolute bottom-2 right-2 btn btn-circle btn-sm bg-white text-blue-600 border-none shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <Camera className="w-4 h-4" />
-                        </motion.button>
-                    </motion.div>
+                        animate={{ scale: [1, 1.12, 1], x: [0, 18, 0], y: [0, -12, 0] }}
+                        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute -top-16 left-10 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl"
+                    />
+                    <motion.div
+                        animate={{ scale: [1.08, 1, 1.08], x: [0, -20, 0], y: [0, 10, 0] }}
+                        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+                        className="absolute bottom-0 right-10 h-44 w-44 rounded-full bg-orange-400/10 blur-3xl"
+                    />
 
-                    <div className="flex-1 pb-4">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-3xl font-black text-white">{userData.name}</h1>
-                            {userData.isPremium && (
-                                <div className="badge bg-orange-500 border-none text-white font-bold gap-1 px-3 py-3">
-                                    <Star className="w-3 h-3 fill-white" />
-                                    Premium
+                    <div className="relative p-8">
+                        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                            <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
+                                <motion.div
+                                    initial={{ scale: 0.94, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="group relative"
+                                >
+                                    <div className="h-32 w-32 overflow-hidden rounded-[28px] border-4 border-white/70 bg-base-100 shadow-xl">
+                                        <img
+                                            src="https://i.pravatar.cc/200?img=33"
+                                            alt="Ảnh đại diện"
+                                            className="h-full w-full object-cover"
+                                        />
+                                    </div>
+                                    <motion.button
+                                        whileHover={{ scale: 1.08 }}
+                                        whileTap={{ scale: 0.96 }}
+                                        className="btn btn-circle btn-sm absolute bottom-2 right-2 border-none bg-base-100 text-base-content shadow-lg opacity-0 transition-opacity group-hover:opacity-100"
+                                    >
+                                        <Camera className="h-4 w-4" />
+                                    </motion.button>
+                                </motion.div>
+
+                                <div className="pb-1">
+                                    <div className="mb-3 flex flex-wrap items-center gap-3">
+                                        <h1 className="text-4xl font-black tracking-tight text-base-content">{userData.name}</h1>
+                                        {userData.isPremium && (
+                                            <div className="badge border-none bg-amber-500/15 px-3 py-3 font-bold text-amber-700">
+                                                <Star className="mr-1 h-3 w-3 fill-current" />
+                                                Premium
+                                            </div>
+                                        )}
+                                        <div className="badge border-none bg-violet-500/12 px-3 py-3 font-bold text-violet-700">
+                                            {rank}
+                                        </div>
+                                    </div>
+                                    <p className="max-w-3xl text-sm leading-7 text-base-content/70">{userData.bio}</p>
+                                    <div className="mt-4 flex flex-wrap items-center gap-5 text-sm text-base-content/60">
+                                        <span className="flex items-center gap-2">
+                                            <Mail className="h-4 w-4" />
+                                            {userData.email}
+                                        </span>
+                                        <span className="flex items-center gap-2">
+                                            <CalendarIcon className="h-4 w-4" />
+                                            Tham gia {userData.joinDate}
+                                        </span>
+                                    </div>
                                 </div>
-                            )}
-                            <div className="badge bg-purple-500 border-none text-white font-bold px-3 py-3">
-                                {rank}
+                            </div>
+
+                            <div className="flex gap-3 lg:pb-1">
+                                <motion.button
+                                    whileHover={{ y: -1, scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    onClick={onToggleEditing}
+                                    className="btn rounded-2xl border-none bg-base-content px-5 font-bold text-base-100 shadow-lg"
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                    {isEditing ? 'Hủy' : 'Chỉnh sửa'}
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ y: -1, scale: 1.01 }}
+                                    whileTap={{ scale: 0.99 }}
+                                    className="btn rounded-2xl border border-base-300 bg-base-100 px-4 font-bold text-base-content shadow-sm hover:bg-base-200"
+                                >
+                                    <Settings className="h-4 w-4" />
+                                </motion.button>
                             </div>
                         </div>
-                        <p className="text-white/90 text-sm mb-3 max-w-2xl">{userData.bio}</p>
-                        <div className="flex items-center gap-4 text-white/80 text-sm">
-                            <span className="flex items-center gap-1">
-                                <Mail className="w-4 h-4" />
-                                {userData.email}
-                            </span>
-                            <span className="flex items-center gap-1">
-                                <CalendarIcon className="w-4 h-4" />
-                                Tham gia {userData.joinDate}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-2 pb-4">
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={onToggleEditing}
-                            className="btn bg-white text-blue-600 border-none font-bold rounded-xl hover:shadow-lg"
-                        >
-                            <Edit2 className="w-4 h-4" />
-                            {isEditing ? 'Huy' : 'Chinh sua'}
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="btn btn-ghost text-white border-white/30 hover:bg-white/10 font-bold rounded-xl"
-                        >
-                            <Settings className="w-4 h-4" />
-                        </motion.button>
                     </div>
                 </div>
             </div>
-        </motion.div>
+        </motion.section>
     );
 }

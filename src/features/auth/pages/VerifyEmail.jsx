@@ -1,208 +1,152 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import {
-    Mail,
-    ShieldCheck,
-    ArrowRight,
-    AlertCircle,
-    CheckCircle2,
-    Loader2,
-    RefreshCw,
-    GraduationCap,
-    ArrowLeft,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, MailCheck, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/shared/api';
-
-/* ================== Constants ================== */
+import {
+    AuthCard,
+    AuthOtpInputRow,
+    AuthShell,
+    AuthStatusBanner,
+} from '@/features/auth/components';
 
 const OTP_LENGTH = 6;
-const RESEND_COOLDOWN = 60; // giay
+const RESEND_COOLDOWN = 60;
 
-/* ================== Sub-components ================== */
+const verifyFeatures = [
+    {
+        icon: MailCheck,
+        title: 'Xác minh nhanh trong vài giây',
+        description: 'Chỉ cần nhập mã OTP 6 số để kích hoạt tài khoản và mở toàn bộ trải nghiệm học tập.',
+    },
+    {
+        icon: ShieldCheck,
+        title: 'Bảo vệ email đăng ký',
+        description: 'Bước xác minh giúp bảo đảm tài khoản và các dữ liệu học tập của bạn luôn thuộc quyền kiểm soát.',
+    },
+    {
+        icon: RefreshCw,
+        title: 'Gửi lại mã khi cần',
+        description: 'Nếu chưa nhận được OTP, bạn có thể yêu cầu gửi lại sau khoảng chờ ngắn.',
+    },
+];
 
-/**
- * Single OTP digit input box.
- * Handles focus management, paste, and backspace navigation.
- */
-const OtpDigitInput = ({ index, value, onChange, onKeyDown, onPaste, inputRef, disabled }) => {
-    const [isFocused, setIsFocused] = useState(false);
-    const hasValue = value !== '';
+const verifySummary = [
+    { label: 'Mã xác minh', value: 'OTP 6 số' },
+    { label: 'Trạng thái sau khi xong', value: 'Kích hoạt tài khoản' },
+    { label: 'Điểm đến tiếp theo', value: 'Trang đăng nhập' },
+];
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.05 * index }}
-            className="relative"
-        >
-            {/* Gradient glow khi focus */}
-            <motion.div
-                animate={isFocused ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-                className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-violet-600 rounded-2xl blur opacity-40"
-            />
+function maskEmail(email) {
+    if (!email) {
+        return '';
+    }
 
-            <input
-                ref={inputRef}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={value}
-                disabled={disabled}
-                onChange={(e) => onChange(index, e.target.value)}
-                onKeyDown={(e) => onKeyDown(index, e)}
-                onPaste={onPaste}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                aria-label={`Digit ${index + 1}`}
-                className={`
-                    relative w-14 h-16 sm:w-16 sm:h-[4.5rem] text-center text-2xl font-black
-                    rounded-2xl border-2 outline-none transition-all duration-300
-                    bg-base-100 caret-transparent select-none
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                    ${isFocused
-                        ? 'border-blue-500 shadow-lg shadow-blue-500/20'
-                        : hasValue
-                            ? 'border-blue-400/60 shadow-md shadow-blue-400/10'
-                            : 'border-base-300 hover:border-base-content/20'
-                    }
-                    ${hasValue ? 'text-blue-600' : 'text-base-content'}
-                `}
-            />
+    return email.replace(/(.{2})(.*)(@.*)/, (_, start, middle, end) => start + '•'.repeat(Math.min(middle.length, 6)) + end);
+}
 
-            {/* Bottom dot indicator */}
-            <motion.div
-                animate={hasValue ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-                className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-600 to-violet-600"
-            />
-        </motion.div>
-    );
-};
-
-/**
- * Countdown timer for OTP resend cooldown.
- */
-const ResendTimer = ({ seconds }) => {
+function ResendTimer({ seconds }) {
     const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
     const secs = String(seconds % 60).padStart(2, '0');
 
-    return (
-        <span className="font-mono font-bold text-blue-600 tabular-nums">
-            {mins}:{secs}
-        </span>
-    );
-};
-
-/* ================== Main Component ================== */
+    return <span className="apple-auth-accent-link font-semibold tabular-nums">{mins}:{secs}</span>;
+}
 
 export default function VerifyEmail() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const email = searchParams.get('email') || '';
 
-    // OTP state
     const [digits, setDigits] = useState(Array(OTP_LENGTH).fill(''));
-    const inputRefs = useRef([]);
-
-    // UI state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN);
     const [resendLoading, setResendLoading] = useState(false);
+    const inputRefs = useRef([]);
 
-    /* ---------- Redirect if no email ---------- */
     useEffect(() => {
         if (!email) {
             navigate('/signup', { replace: true });
         }
     }, [email, navigate]);
 
-    /* ---------- Resend cooldown timer ---------- */
     useEffect(() => {
-        if (resendCooldown <= 0) return;
+        if (resendCooldown <= 0) {
+            return undefined;
+        }
 
         const timer = setInterval(() => {
-            setResendCooldown((prev) => prev - 1);
+            setResendCooldown((current) => current - 1);
         }, 1000);
 
         return () => clearInterval(timer);
     }, [resendCooldown]);
 
-    /* ---------- OTP input handlers ---------- */
-
     const focusInput = useCallback((index) => {
         inputRefs.current[index]?.focus();
     }, []);
 
-    const handleChange = useCallback((index, value) => {
-        // Chi chap nhan so
+    const handleOtpChange = useCallback((index, value) => {
         const digit = value.replace(/\D/g, '').slice(-1);
-        setDigits((prev) => {
-            const next = [...prev];
+        setDigits((current) => {
+            const next = [...current];
             next[index] = digit;
             return next;
         });
         setError('');
 
-        // Auto-focus next input
         if (digit && index < OTP_LENGTH - 1) {
             focusInput(index + 1);
         }
     }, [focusInput]);
 
-    const handleKeyDown = useCallback((index, e) => {
-        if (e.key === 'Backspace') {
-            if (!digits[index] && index > 0) {
-                // Xoa va quay ve o truoc
-                setDigits((prev) => {
-                    const next = [...prev];
+    const handleOtpKeyDown = useCallback((index, event) => {
+        if (event.key === 'Backspace') {
+            event.preventDefault();
+            setDigits((current) => {
+                const next = [...current];
+                if (!next[index] && index > 0) {
                     next[index - 1] = '';
-                    return next;
-                });
-                focusInput(index - 1);
-            } else {
-                setDigits((prev) => {
-                    const next = [...prev];
+                    focusInput(index - 1);
+                } else {
                     next[index] = '';
-                    return next;
-                });
-            }
-            e.preventDefault();
-        } else if (e.key === 'ArrowLeft' && index > 0) {
+                }
+                return next;
+            });
+        }
+
+        if (event.key === 'ArrowLeft' && index > 0) {
             focusInput(index - 1);
-        } else if (e.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+        }
+
+        if (event.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
             focusInput(index + 1);
         }
-    }, [digits, focusInput]);
-
-    const handlePaste = useCallback((e) => {
-        e.preventDefault();
-        const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
-        if (!pasted) return;
-
-        const newDigits = Array(OTP_LENGTH).fill('');
-        for (let i = 0; i < pasted.length; i++) {
-            newDigits[i] = pasted[i];
-        }
-        setDigits(newDigits);
-        setError('');
-
-        // Focus last filled input hoac input ke tiep
-        const focusIdx = Math.min(pasted.length, OTP_LENGTH - 1);
-        focusInput(focusIdx);
     }, [focusInput]);
 
-    /* ---------- Submit OTP ---------- */
-    const otpString = digits.join('');
-    const isComplete = otpString.length === OTP_LENGTH;
+    const handleOtpPaste = useCallback((event) => {
+        event.preventDefault();
+        const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+        if (!pasted) {
+            return;
+        }
 
-    const handleSubmit = async (e) => {
-        e?.preventDefault();
+        const next = Array(OTP_LENGTH).fill('');
+        for (let index = 0; index < pasted.length; index += 1) {
+            next[index] = pasted[index];
+        }
 
-        if (!isComplete) {
-            setError('Vui lòng nhập đầy đủ mã OTP 6 chữ số.');
+        setDigits(next);
+        setError('');
+        focusInput(Math.min(pasted.length, OTP_LENGTH - 1));
+    }, [focusInput]);
+
+    const otpValue = digits.join('');
+    const isComplete = otpValue.length === OTP_LENGTH;
+
+    const handleSubmit = useCallback(async () => {
+        if (!isComplete || loading || success) {
             return;
         }
 
@@ -211,35 +155,30 @@ export default function VerifyEmail() {
         setSuccess('');
 
         try {
-            const data = await authApi.verifyEmail({ email, otp: otpString });
-            setSuccess(data.message || 'Xác minh email thành công!');
-
-            // Chuyen ve login sau 2 giay
+            const data = await authApi.verifyEmail({ email, otp: otpValue });
+            setSuccess(data.message || 'Xác minh email thành công. Đang chuyển sang đăng nhập...');
             setTimeout(() => {
                 navigate('/login', { replace: true });
-            }, 2000);
+            }, 1600);
         } catch (err) {
-            const msg = err.response?.data?.message || 'Mã OTP không hợp lệ. Vui lòng thử lại!';
-            setError(msg);
-            // Reset digits khi sai
+            setError(err.response?.data?.message || 'Mã OTP không hợp lệ. Vui lòng thử lại.');
             setDigits(Array(OTP_LENGTH).fill(''));
             focusInput(0);
         } finally {
             setLoading(false);
         }
-    };
+    }, [email, focusInput, isComplete, loading, navigate, otpValue, success]);
 
-    // Auto-submit khi nhap du 6 so
     useEffect(() => {
         if (isComplete && !loading && !success) {
             handleSubmit();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isComplete]);
+    }, [handleSubmit, isComplete, loading, success]);
 
-    /* ---------- Resend OTP ---------- */
     const handleResend = async () => {
-        if (resendCooldown > 0 || resendLoading) return;
+        if (resendCooldown > 0 || resendLoading) {
+            return;
+        }
 
         setResendLoading(true);
         setError('');
@@ -247,244 +186,86 @@ export default function VerifyEmail() {
 
         try {
             const data = await authApi.resendOtp({ email });
-            setSuccess(data.message || 'Đã gửi lại mã OTP!');
+            setSuccess(data.message || 'Đã gửi lại mã OTP mới.');
             setResendCooldown(RESEND_COOLDOWN);
             setDigits(Array(OTP_LENGTH).fill(''));
             focusInput(0);
         } catch (err) {
-            const msg = err.response?.data?.message || 'Không thể gửi lại OTP. Vui lòng thử lại!';
-            setError(msg);
+            setError(err.response?.data?.message || 'Không thể gửi lại OTP. Vui lòng thử lại.');
         } finally {
             setResendLoading(false);
         }
     };
 
-    /* ---------- Masked email ---------- */
-    const maskedEmail = email
-        ? email.replace(/(.{2})(.*)(@.*)/, (_, a, b, c) => a + '•'.repeat(Math.min(b.length, 6)) + c)
-        : '';
-
-    /* ---------- Animation variants ---------- */
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.08, delayChildren: 0.15 },
-        },
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-        },
-    };
-
-    /* ---------- Render ---------- */
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-base-100 font-sans selection:bg-blue-500/30 overflow-hidden relative px-4">
-
-            {/* ---- Animated Background Orbs ---- */}
-            <motion.div
-                animate={{
-                    scale: [1, 1.2, 1],
-                    x: [0, 30, 0],
-                    y: [0, -20, 0],
-                }}
-                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none"
-            />
-            <motion.div
-                animate={{
-                    scale: [1.2, 1, 1.2],
-                    x: [0, -30, 0],
-                    y: [0, 20, 0],
-                }}
-                transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[120px] pointer-events-none"
-            />
-            <motion.div
-                animate={{
-                    scale: [1, 1.15, 1],
-                    x: [0, -15, 0],
-                    y: [0, 15, 0],
-                }}
-                transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-                className="absolute top-[30%] left-[20%] w-[300px] h-[300px] bg-purple-500/8 rounded-full blur-[100px] pointer-events-none"
-            />
-
-            {/* ---- Main Card ---- */}
-            <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="w-full max-w-lg bg-base-100/70 backdrop-blur-xl rounded-[2.5rem] shadow-2xl p-10 sm:p-12 border border-base-200 relative overflow-hidden z-10"
-            >
-                {/* Accent bar */}
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600" />
-
-                {/* Back link */}
-                <motion.div variants={itemVariants}>
-                    <Link
-                        to="/signup"
-                        className="inline-flex items-center gap-2 text-sm font-bold text-base-content/50 hover:text-blue-600 transition-colors mb-8 group"
-                    >
-                        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+        <AuthShell
+            badge="Kích hoạt tài khoản để bắt đầu học"
+            title="Xác minh email"
+            highlight="và mở toàn bộ trải nghiệm"
+            description="Chúng tôi đã gửi mã OTP đến email đăng ký của bạn. Chỉ cần xác minh là bạn có thể đăng nhập và bắt đầu sử dụng SKR."
+            features={verifyFeatures}
+            summaryTitle="Kích hoạt tài khoản"
+            summaryItems={verifySummary}
+        >
+            <AuthCard
+                eyebrow="Bước 1"
+                title="Nhập mã xác minh"
+                subtitle={`Mã OTP đã được gửi đến ${maskEmail(email)}. Hệ thống sẽ tự xác minh ngay khi bạn nhập đủ 6 số.`}
+                footer={
+                    <Link to="/signup" className="apple-auth-muted-link apple-transition inline-flex items-center gap-2 text-sm font-medium">
+                        <ArrowLeft className="h-4 w-4" />
                         Quay lại đăng ký
                     </Link>
-                </motion.div>
+                }
+            >
+                <div className="space-y-5">
+                    <AuthStatusBanner variant="error" message={error} />
+                    <AuthStatusBanner variant="success" message={success} />
 
-                {/* Header */}
-                <motion.div variants={itemVariants} className="text-center mb-8">
-                    {/* Icon */}
-                    <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-                        className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500/10 to-violet-500/10 rounded-3xl flex items-center justify-center mb-6 border border-blue-500/20"
-                    >
-                        <motion.div
-                            animate={{ rotate: [0, 5, -5, 0] }}
-                            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                        >
-                            <Mail className="w-10 h-10 text-blue-600" strokeWidth={1.5} />
-                        </motion.div>
-                    </motion.div>
-
-                    <h1 className="text-3xl font-black text-base-content mb-3 tracking-tight">
-                        Xác minh Email
-                    </h1>
-                    <p className="text-base-content/60 font-medium text-sm leading-relaxed max-w-sm mx-auto">
-                        Chúng tôi đã gửi mã xác minh 6 chữ số đến{' '}
-                        <span className="text-blue-600 font-bold">{maskedEmail}</span>
-                    </p>
-                </motion.div>
-
-                {/* Status messages */}
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium mb-6"
-                    >
-                        <AlertCircle className="w-5 h-5 shrink-0" />
-                        {error}
-                    </motion.div>
-                )}
-
-                {success && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-600 text-sm font-medium mb-6"
-                    >
-                        <CheckCircle2 className="w-5 h-5 shrink-0" />
-                        {success}
-                    </motion.div>
-                )}
-
-                {/* OTP Input */}
-                <form onSubmit={handleSubmit}>
-                    <motion.div variants={itemVariants} className="mb-8">
-                        <div className="flex items-center justify-center gap-2 sm:gap-3">
-                            {digits.map((digit, i) => (
-                                <OtpDigitInput
-                                    key={i}
-                                    index={i}
-                                    value={digit}
-                                    onChange={handleChange}
-                                    onKeyDown={handleKeyDown}
-                                    onPaste={handlePaste}
-                                    inputRef={(el) => (inputRefs.current[i] = el)}
-                                    disabled={loading || !!success}
-                                />
-                            ))}
-                        </div>
-                    </motion.div>
-
-                    {/* Submit button */}
-                    <motion.div variants={itemVariants}>
-                        <motion.button
-                            type="submit"
-                            disabled={!isComplete || loading || !!success}
-                            whileHover={isComplete && !loading ? { scale: 1.02, y: -2 } : {}}
-                            whileTap={isComplete && !loading ? { scale: 0.98 } : {}}
-                            className={`
-                                btn w-full rounded-xl shadow-xl border-none text-base h-12 font-bold
-                                group transition-all duration-300
-                                ${isComplete && !success
-                                    ? 'bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white shadow-blue-600/20'
-                                    : success
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-base-300 text-base-content/40 cursor-not-allowed'
-                                }
-                            `}
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    Đang xác minh...
-                                </>
-                            ) : success ? (
-                                <>
-                                    <CheckCircle2 className="w-5 h-5" />
-                                    Đã xác minh thành công!
-                                </>
-                            ) : (
-                                <>
-                                    <ShieldCheck className="w-5 h-5" />
-                                    Xác minh
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </>
-                            )}
-                        </motion.button>
-                    </motion.div>
-                </form>
-
-                {/* Resend section */}
-                <motion.div variants={itemVariants} className="mt-8 text-center">
-                    <div className="flex items-center justify-center gap-2 text-sm text-base-content/60 font-medium">
-                        {resendCooldown > 0 ? (
-                            <p>
-                                Gửi lại mã sau <ResendTimer seconds={resendCooldown} />
-                            </p>
-                        ) : (
-                            <p>Chưa nhận được mã?</p>
-                        )}
+                    <div className="space-y-2">
+                        <label className="apple-muted-text block text-xs font-semibold uppercase tracking-[0.18em]">
+                            Mã OTP
+                        </label>
+                        <AuthOtpInputRow
+                            digits={digits}
+                            onChange={handleOtpChange}
+                            onKeyDown={handleOtpKeyDown}
+                            onPaste={handleOtpPaste}
+                            inputRefs={inputRefs}
+                            disabled={loading}
+                        />
                     </div>
 
-                    {resendCooldown <= 0 && (
-                        <motion.button
-                            initial={{ opacity: 0, y: 5 }}
-                            animate={{ opacity: 1, y: 0 }}
+                    <motion.button
+                        whileHover={isComplete && !loading ? { y: -2, scale: 1.01 } : {}}
+                        whileTap={isComplete && !loading ? { scale: 0.99 } : {}}
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={!isComplete || loading}
+                        className="apple-primary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-2xl text-sm font-semibold disabled:opacity-50"
+                    >
+                        {loading ? 'Đang xác minh...' : 'Xác minh email'}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </motion.button>
+                </div>
+
+                <div className="mt-6 text-center text-sm apple-secondary-text">
+                    {resendCooldown > 0 ? (
+                        <p>
+                            Gửi lại mã sau <ResendTimer seconds={resendCooldown} />
+                        </p>
+                    ) : (
+                        <button
+                            type="button"
                             onClick={handleResend}
-                            disabled={resendLoading || !!success}
-                            className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={resendLoading}
+                            className="apple-auth-accent-link font-semibold disabled:opacity-50"
                         >
-                            {resendLoading ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <RefreshCw className="w-4 h-4" />
-                            )}
-                            Gửi lại mã OTP
-                        </motion.button>
+                            {resendLoading ? 'Đang gửi lại OTP...' : 'Gửi lại mã OTP'}
+                        </button>
                     )}
-                </motion.div>
-
-                {/* Footer */}
-                <motion.div variants={itemVariants} className="mt-10 pt-6 border-t border-base-200">
-                    <div className="flex items-center justify-center gap-3 text-base-content/40">
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center">
-                            <GraduationCap className="w-4 h-4 text-white" strokeWidth={2.5} />
-                        </div>
-                        <span className="text-sm font-bold tracking-tight">
-                            SKR<span className="text-blue-600">.</span>
-                        </span>
-                    </div>
-                </motion.div>
-            </motion.div>
-        </div>
+                </div>
+            </AuthCard>
+        </AuthShell>
     );
 }
