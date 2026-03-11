@@ -1,7 +1,59 @@
-﻿import { motion } from 'motion/react';
-import { Camera, Mail, Calendar as CalendarIcon, Star, Edit2, Settings } from 'lucide-react';
+﻿import { useId } from 'react';
+import { motion } from 'motion/react';
+import {
+    AlertCircle,
+    Calendar as CalendarIcon,
+    Camera,
+    CheckCircle2,
+    Edit2,
+    LoaderCircle,
+    Mail,
+    Settings,
+    Star,
+} from 'lucide-react';
 
-export default function ProfileHero({ userData, rank, isEditing, onToggleEditing, variants }) {
+const feedbackStyles = {
+    success: {
+        icon: CheckCircle2,
+        className: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700',
+    },
+    error: {
+        icon: AlertCircle,
+        className: 'border-red-500/20 bg-red-500/10 text-red-700',
+    },
+};
+
+function getInitials(name) {
+    return name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() || '')
+        .join('');
+}
+
+export default function ProfileHero({
+    userData,
+    rank,
+    isEditing,
+    avatarUploading,
+    avatarFeedback,
+    onAvatarSelect,
+    onToggleEditing,
+    variants,
+}) {
+    const fileInputId = useId();
+    const feedbackConfig = avatarFeedback ? feedbackStyles[avatarFeedback.type] : null;
+    const FeedbackIcon = feedbackConfig?.icon;
+
+    const handleAvatarChange = (event) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            onAvatarSelect(file);
+        }
+        event.target.value = '';
+    };
+
     return (
         <motion.section variants={variants} className="border-b border-base-300 bg-base-100">
             <div className="mx-auto max-w-7xl px-8 pt-8 pb-6">
@@ -21,27 +73,65 @@ export default function ProfileHero({ userData, rank, isEditing, onToggleEditing
                     <div className="relative p-8">
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                             <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
-                                <motion.div
-                                    initial={{ scale: 0.94, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="group relative"
-                                >
-                                    <div className="h-32 w-32 overflow-hidden rounded-[28px] border-4 border-white/70 bg-base-100 shadow-xl">
-                                        <img
-                                            src="https://i.pravatar.cc/200?img=33"
-                                            alt="Ảnh đại diện"
-                                            className="h-full w-full object-cover"
-                                        />
-                                    </div>
-                                    <motion.button
-                                        whileHover={{ scale: 1.08 }}
-                                        whileTap={{ scale: 0.96 }}
-                                        className="btn btn-circle btn-sm absolute bottom-2 right-2 border-none bg-base-100 text-base-content shadow-lg opacity-0 transition-opacity group-hover:opacity-100"
+                                <div className="flex flex-col items-start gap-3">
+                                    <motion.div
+                                        initial={{ scale: 0.94, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        transition={{ duration: 0.5 }}
+                                        className="group relative"
                                     >
-                                        <Camera className="h-4 w-4" />
-                                    </motion.button>
-                                </motion.div>
+                                        <div className="h-32 w-32 overflow-hidden rounded-[28px] border-4 border-white/70 bg-base-100 shadow-xl">
+                                            {userData.avatarUrl ? (
+                                                <img src={userData.avatarUrl} alt="Ảnh đại diện" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-base-200 via-base-100 to-base-200 text-3xl font-black tracking-tight text-base-content">
+                                                    {getInitials(userData.name)}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {avatarUploading && (
+                                            <div className="absolute inset-0 flex items-center justify-center rounded-[28px] bg-base-content/18 backdrop-blur-sm">
+                                                <LoaderCircle className="h-6 w-6 animate-spin text-base-100" />
+                                            </div>
+                                        )}
+                                    </motion.div>
+
+                                    <div className="space-y-2">
+                                        <label
+                                            htmlFor={fileInputId}
+                                            className={`btn rounded-2xl border border-base-300 bg-base-100 px-4 font-bold text-base-content shadow-sm hover:bg-base-200 ${
+                                                avatarUploading ? 'pointer-events-none opacity-70' : ''
+                                            }`}
+                                        >
+                                            {avatarUploading ? (
+                                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Camera className="h-4 w-4" />
+                                            )}
+                                            {avatarUploading ? 'Đang tải ảnh...' : 'Đổi ảnh đại diện'}
+                                        </label>
+                                        <input
+                                            id={fileInputId}
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/webp,image/gif"
+                                            className="hidden"
+                                            onChange={handleAvatarChange}
+                                            disabled={avatarUploading}
+                                        />
+
+                                        {avatarFeedback ? (
+                                            <div
+                                                className={`inline-flex min-h-10 items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-medium ${feedbackConfig?.className || ''}`}
+                                            >
+                                                {FeedbackIcon ? <FeedbackIcon className="h-4 w-4 shrink-0" /> : null}
+                                                <span>{avatarFeedback.message}</span>
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs font-medium text-base-content/55">PNG, JPG, WEBP hoặc GIF. Tối đa 5MB.</p>
+                                        )}
+                                    </div>
+                                </div>
 
                                 <div className="pb-1">
                                     <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -52,9 +142,7 @@ export default function ProfileHero({ userData, rank, isEditing, onToggleEditing
                                                 Premium
                                             </div>
                                         )}
-                                        <div className="badge border-none bg-violet-500/12 px-3 py-3 font-bold text-violet-700">
-                                            {rank}
-                                        </div>
+                                        <div className="badge border-none bg-violet-500/12 px-3 py-3 font-bold text-violet-700">{rank}</div>
                                     </div>
                                     <p className="max-w-3xl text-sm leading-7 text-base-content/70">{userData.bio}</p>
                                     <div className="mt-4 flex flex-wrap items-center gap-5 text-sm text-base-content/60">

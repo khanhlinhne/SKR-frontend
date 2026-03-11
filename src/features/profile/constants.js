@@ -35,6 +35,7 @@ export const DEFAULT_USER_DATA = {
     phone: '+84 912 345 678',
     location: 'Hà Nội, Việt Nam',
     bio: 'Sinh viên năm 3 ngành Công nghệ thông tin. Đam mê học AI và Machine Learning.',
+    avatarUrl: '',
     joinDate: 'tháng 1 năm 2024',
     isPremium: true,
 };
