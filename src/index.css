@@ -56,6 +56,10 @@ h6 {
   perspective: 1000px;
 }
 
+.perspective-1500 {
+  perspective: 1500px;
+}
+
 .backface-hidden {
   backface-visibility: hidden;
 }

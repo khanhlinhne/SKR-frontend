@@ -9,45 +9,49 @@ import {
     Frown,
     GraduationCap,
     ArrowRight,
-    Loader2
 } from 'lucide-react';
 
 import { DashboardSidebar } from '@/features/learner/components';
 import { CoursesToolbar, CourseCard, CourseListItem } from '@/features/courses/components';
 import { subjectApi } from '@/shared/api';
+import { OwlLoader } from '@/shared/ui/common';
 
 // ─── Map API data to component format ──────────────────────
 
-const mapApiToCourse = (subject) => ({
-    id: subject.subjectId,
-    subjectId: subject.subjectId,
-    title: subject.subjectName,
-    subjectName: subject.subjectName,
-    description: subject.subjectDescription,
-    category: subject.subjectName?.split(' ')[0] || 'Khác',
-    isFree: subject.isFree,
-    priceAmount: subject.priceAmount,
-    originalPrice: subject.originalPrice,
-    discountPercent: subject.discountPercent,
-    ratingAverage: subject.ratingAverage,
-    ratingCount: subject.ratingCount,
-    purchaseCount: subject.purchaseCount,
-    totalChapters: subject.totalChapters,
-    totalLessons: subject.totalLessons,
-    totalVideos: subject.totalVideos,
-    totalDocuments: subject.totalDocuments,
-    totalQuestions: subject.totalQuestions,
-    estimatedDurationHours: subject.estimatedDurationHours,
-    level: 'Cơ bản',
-    gradient: 'from-blue-500 to-cyan-500',
-    bgGradient: 'from-blue-500/10 to-cyan-500/10',
-    icon: '📚',
-    tags: [],
-    bannerUrl: subject.subjectBannerUrl || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
-    visibility: subject.status === 'published' ? 'public' : 'draft',
-    isPurchased: false,
-    publishedAt: subject.publishedAt,
-});
+const mapApiToCourse = (subject) => {
+    const priceAmount = Number(subject.priceAmount) || 0;
+    const isFree = subject.isFree || priceAmount === 0;
+    return ({
+        id: subject.subjectId,
+        subjectId: subject.subjectId,
+        title: subject.subjectName,
+        subjectName: subject.subjectName,
+        description: subject.subjectDescription,
+        category: subject.subjectName?.split(' ')[0] || 'Khác',
+        isFree,
+        priceAmount,
+        originalPrice: Number(subject.originalPrice) || 0,
+        discountPercent: subject.discountPercent,
+        ratingAverage: subject.ratingAverage,
+        ratingCount: subject.ratingCount,
+        purchaseCount: subject.purchaseCount,
+        totalChapters: subject.totalChapters,
+        totalLessons: subject.totalLessons,
+        totalVideos: subject.totalVideos,
+        totalDocuments: subject.totalDocuments,
+        totalQuestions: subject.totalQuestions,
+        estimatedDurationHours: subject.estimatedDurationHours,
+        level: 'Cơ bản',
+        gradient: 'from-blue-500 to-cyan-500',
+        bgGradient: 'from-blue-500/10 to-cyan-500/10',
+        icon: '📚',
+        tags: [],
+        bannerUrl: subject.subjectBannerUrl || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
+        visibility: subject.status === 'published' ? 'public' : 'draft',
+        isPurchased: false,
+        publishedAt: subject.publishedAt,
+    });
+};
 
 const mapApiToExpert = (creator) => {
     if (!creator) return null;
@@ -60,6 +64,46 @@ const mapApiToExpert = (creator) => {
         avatar: creator.avatarUrl || 'https://i.pravatar.cc/150?img=11',
         verified: true,
     };
+};
+
+// ─── Mock Course (Demo) ──────────────────────────────────
+// Khóa học demo để hiển thị trang học — ID=1 khớp với mock data trong Learn.jsx
+
+const MOCK_DEMO_COURSE = {
+    id: 1,
+    subjectId: 1,
+    title: 'Toán Cao Cấp - Giải Tích & Đại Số',
+    subjectName: 'Toán Cao Cấp - Giải Tích & Đại Số',
+    description: 'Khóa học toán cao cấp toàn diện dành cho sinh viên đại học. Bao gồm giới hạn, đạo hàm, tích phân, ma trận và các ứng dụng thực tế.',
+    category: 'Toán học',
+    isFree: true,        // Miễn phí → hiển thị "Học miễn phí", không có giá
+    priceAmount: 0,
+    originalPrice: 0,
+    discountPercent: 0,
+    ratingAverage: 4.9,
+    ratingCount: 1248,
+    purchaseCount: 3420,
+    totalChapters: 12,
+    totalLessons: 48,
+    totalVideos: 36,
+    totalDocuments: 8,
+    totalQuestions: 120,
+    estimatedDurationHours: 24,
+    level: 'Cơ bản → Nâng cao',
+    gradient: 'from-blue-500 to-cyan-500',
+    bgGradient: 'from-blue-500/10 to-cyan-500/10',
+    icon: '📐',
+    tags: ['Đạo hàm', 'Tích phân', 'Ma trận', 'Giới hạn'],
+    bannerUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
+    visibility: 'public',
+    isPurchased: false,
+    publishedAt: '2024-01-15T00:00:00Z',
+    creator: {
+        userId: 'expert-1',
+        displayName: 'TS. Nguyễn Văn Minh',
+        fullName: 'TS. Nguyễn Văn Minh',
+        avatarUrl: 'https://i.pravatar.cc/150?img=11',
+    },
 };
 
 // ─── Categories & Levels (static for now) ────────────────
@@ -147,10 +191,14 @@ export default function Courses() {
                 setLoading(true);
                 const response = await subjectApi.getAll({ limit: 100 });
                 const items = response.data?.items || response.data || [];
-                setSubjects(items.map(mapApiToCourse));
+                const apiCourses = items.map(mapApiToCourse);
+                // Luôn thêm mock demo course vào đầu danh sách để demo trang học
+                setSubjects([MOCK_DEMO_COURSE, ...apiCourses]);
             } catch (err) {
                 console.error('Error fetching subjects:', err);
                 setError(err.message);
+                // Khi lỗi API vẫn hiển thị mock course
+                setSubjects([MOCK_DEMO_COURSE]);
             } finally {
                 setLoading(false);
             }
@@ -252,15 +300,8 @@ export default function Courses() {
                     </motion.div>
 
                     {/* Loading State */}
-                    {loading && (
-                        <motion.div
-                            variants={cardVariants}
-                            className="flex flex-col items-center justify-center py-16"
-                        >
-                            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-                            <p className="text-sm text-base-content/50 font-medium">Đang tải dữ liệu...</p>
-                        </motion.div>
-                    )}
+                    {loading && <OwlLoader message="Đang tải môn học..." />}
+
 
                     {/* Error State */}
                     {!loading && error && (

@@ -333,44 +333,7 @@ export default function QuizTaking() {
     const [timeLeft, setTimeLeft] = useState((test?.timeLimitMinutes || 30) * 60);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
 
-    // Timer
-    useEffect(() => {
-        if (timeLeft <= 0) {
-            handleSubmit();
-            return;
-        }
-        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-        return () => clearInterval(timer);
-    }, [handleSubmit, timeLeft]);
-
-    // Keyboard navigation
-    const handleKeyPress = useCallback((e) => {
-        if (e.key === 'ArrowLeft' && currentIndex > 0) {
-            e.preventDefault();
-            setCurrentIndex(prev => prev - 1);
-        } else if (e.key === 'ArrowRight' && currentIndex < questions.length - 1) {
-            e.preventDefault();
-            setCurrentIndex(prev => prev + 1);
-        }
-    }, [currentIndex, questions.length]);
-
-    useEffect(() => {
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [handleKeyPress]);
-
-    const handleAnswer = (value) => {
-        setAnswers(prev => ({ ...prev, [currentIndex]: value }));
-    };
-
-    const handleToggleFlag = () => {
-        setFlaggedQuestions(prev =>
-            prev.includes(currentIndex)
-                ? prev.filter(i => i !== currentIndex)
-                : [...prev, currentIndex]
-        );
-    };
-
+    // Định nghĩa handleSubmit TRƯỚC useEffect để tránh lỗi used-before-defined
     const handleSubmit = useCallback(() => {
         let correctCount = 0;
         let totalPoints = 0;
@@ -412,6 +375,44 @@ export default function QuizTaking() {
             }
         });
     }, [answers, flaggedQuestions, id, navigate, questions, test, timeLeft]);
+
+    // Timer
+    useEffect(() => {
+        if (timeLeft <= 0) {
+            handleSubmit();
+            return;
+        }
+        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        return () => clearInterval(timer);
+    }, [handleSubmit, timeLeft]);
+
+    // Keyboard navigation
+    const handleKeyPress = useCallback((e) => {
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            e.preventDefault();
+            setCurrentIndex(prev => prev - 1);
+        } else if (e.key === 'ArrowRight' && currentIndex < questions.length - 1) {
+            e.preventDefault();
+            setCurrentIndex(prev => prev + 1);
+        }
+    }, [currentIndex, questions.length]);
+
+    useEffect(() => {
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [handleKeyPress]);
+
+    const handleAnswer = (value) => {
+        setAnswers(prev => ({ ...prev, [currentIndex]: value }));
+    };
+
+    const handleToggleFlag = () => {
+        setFlaggedQuestions(prev =>
+            prev.includes(currentIndex)
+                ? prev.filter(i => i !== currentIndex)
+                : [...prev, currentIndex]
+        );
+    };
 
     if (!test) {
         return (

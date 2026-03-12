@@ -172,9 +172,10 @@ export default function CourseListItem({ course, expert, variants }) {
 }
 
 function formatPrice(amount) {
-    if (amount === 0) return 'Miễn phí';
-    if (amount >= 1_000_000) {
-        return (amount / 1_000_000).toFixed(1).replace('.0', '') + 'M';
+    const num = Number(amount);
+    if (isNaN(num) || num === 0) return 'Miễn phí';
+    if (num >= 1_000_000) {
+        return (num / 1_000_000).toFixed(1).replace('.0', '') + 'M';
     }
-    return amount.toLocaleString('vi-VN') + '₫';
+    return num.toLocaleString('vi-VN') + '₫';
 }

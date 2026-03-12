@@ -10,7 +10,6 @@ import {
     Users,
     CheckCircle2,
     Frown,
-    Loader2
 } from 'lucide-react';
 
 import { DashboardSidebar } from '@/features/learner/components';
@@ -20,40 +19,45 @@ import {
     CourseDetailSidebar
 } from '@/features/courses/components';
 import { subjectApi } from '@/shared/api';
+import { OwlLoader } from '@/shared/ui/common';
 
 // ─── Map API data to component format ──────────────────────
 
-const mapApiToCourse = (subject) => ({
-    id: subject.subjectId,
-    subjectId: subject.subjectId,
-    title: subject.subjectName,
-    subjectName: subject.subjectName,
-    description: subject.subjectDescription,
-    category: subject.subjectName?.split(' ')[0] || 'Khác',
-    isFree: subject.isFree,
-    priceAmount: subject.priceAmount,
-    originalPrice: subject.originalPrice,
-    discountPercent: subject.discountPercent,
-    ratingAverage: subject.ratingAverage,
-    ratingCount: subject.ratingCount,
-    purchaseCount: subject.purchaseCount,
-    totalChapters: subject.totalChapters,
-    totalLessons: subject.totalLessons,
-    totalVideos: subject.totalVideos,
-    totalDocuments: subject.totalDocuments,
-    totalQuestions: subject.totalQuestions,
-    estimatedDurationHours: subject.estimatedDurationHours,
-    level: 'Cơ bản',
-    gradient: 'from-blue-500 to-cyan-500',
-    bgGradient: 'from-blue-500/10 to-cyan-500/10',
-    icon: '📚',
-    tags: [],
-    bannerUrl: subject.subjectBannerUrl || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&h=500&fit=crop',
-    visibility: subject.status === 'published' ? 'public' : 'draft',
-    isPurchased: false,
-    publishedAt: subject.publishedAt,
-    chapters: subject.chapters || [],
-});
+const mapApiToCourse = (subject) => {
+    const priceAmount = Number(subject.priceAmount) || 0;
+    const isFree = subject.isFree || priceAmount === 0;
+    return ({
+        id: subject.subjectId,
+        subjectId: subject.subjectId,
+        title: subject.subjectName,
+        subjectName: subject.subjectName,
+        description: subject.subjectDescription,
+        category: subject.subjectName?.split(' ')[0] || 'Khác',
+        isFree,
+        priceAmount,
+        originalPrice: Number(subject.originalPrice) || 0,
+        discountPercent: subject.discountPercent,
+        ratingAverage: subject.ratingAverage,
+        ratingCount: subject.ratingCount,
+        purchaseCount: subject.purchaseCount,
+        totalChapters: subject.totalChapters,
+        totalLessons: subject.totalLessons,
+        totalVideos: subject.totalVideos,
+        totalDocuments: subject.totalDocuments,
+        totalQuestions: subject.totalQuestions,
+        estimatedDurationHours: subject.estimatedDurationHours,
+        level: 'Cơ bản',
+        gradient: 'from-blue-500 to-cyan-500',
+        bgGradient: 'from-blue-500/10 to-cyan-500/10',
+        icon: '📚',
+        tags: [],
+        bannerUrl: subject.subjectBannerUrl || 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&h=500&fit=crop',
+        visibility: subject.status === 'published' ? 'public' : 'draft',
+        isPurchased: false,
+        publishedAt: subject.publishedAt,
+        chapters: subject.chapters || [],
+    });
+};
 
 const mapApiToExpert = (creator) => {
     if (!creator) return null;
@@ -66,6 +70,79 @@ const mapApiToExpert = (creator) => {
         avatar: creator.avatarUrl || 'https://i.pravatar.cc/150?img=11',
         verified: true,
     };
+};
+
+// ─── Mock Detail Course (Demo) ────────────────────────────────
+// Dùng khi API không có dữ liệu thực, ID=1 khớp với Learn.jsx mock data
+
+const MOCK_DETAIL_COURSE = {
+    subjectId: 1,
+    subjectName: 'Toán Cao Cấp - Giải Tích & Đại Số',
+    subjectDescription: 'Khóa học toán cao cấp toàn diện dành cho sinh viên đại học. Bao gồm giới hạn, đạo hàm, tích phân, ma trận và các ứng dụng thực tế.',
+    isFree: true,       // Miễn phí → hiển thị "Học miễn phí"
+    priceAmount: 0,
+    originalPrice: 0,
+    discountPercent: 0,
+    ratingAverage: 4.9,
+    ratingCount: 1248,
+    purchaseCount: 3420,
+    totalChapters: 4,
+    totalLessons: 16,
+    totalVideos: 12,
+    totalDocuments: 3,
+    totalQuestions: 4,
+    estimatedDurationHours: 24,
+    status: 'published',
+    publishedAt: '2024-01-15T00:00:00Z',
+    subjectBannerUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&h=500&fit=crop',
+    creator: {
+        userId: 'expert-1',
+        displayName: 'TS. Nguyễn Văn Minh',
+        fullName: 'TS. Nguyễn Văn Minh',
+        avatarUrl: 'https://i.pravatar.cc/150?img=11',
+    },
+    chapters: [
+        {
+            chapterNumber: 1,
+            chapterName: 'Giới hạn và Liên tục',
+            lessons: [
+                { lessonNumber: 1, lessonName: 'Khái niệm giới hạn hàm số', estimatedDurationMinutes: 25, displayOrder: 1 },
+                { lessonNumber: 2, lessonName: 'Các quy tắc tính giới hạn', estimatedDurationMinutes: 30, displayOrder: 2 },
+                { lessonNumber: 3, lessonName: 'Tài liệu: Bảng công thức giới hạn', estimatedDurationMinutes: 10, displayOrder: 3 },
+                { lessonNumber: 4, lessonName: 'Bài tập giới hạn', estimatedDurationMinutes: 20, displayOrder: 4 },
+            ],
+        },
+        {
+            chapterNumber: 2,
+            chapterName: 'Đạo hàm',
+            lessons: [
+                { lessonNumber: 1, lessonName: 'Định nghĩa và ý nghĩa đạo hàm', estimatedDurationMinutes: 35, displayOrder: 1 },
+                { lessonNumber: 2, lessonName: 'Quy tắc đạo hàm cơ bản', estimatedDurationMinutes: 28, displayOrder: 2 },
+                { lessonNumber: 3, lessonName: 'Đạo hàm hàm hợp', estimatedDurationMinutes: 22, displayOrder: 3 },
+                { lessonNumber: 4, lessonName: 'Flashcard: Bảng đạo hàm', estimatedDurationMinutes: 15, displayOrder: 4 },
+            ],
+        },
+        {
+            chapterNumber: 3,
+            chapterName: 'Tích phân',
+            lessons: [
+                { lessonNumber: 1, lessonName: 'Nguyên hàm và tích phân bất định', estimatedDurationMinutes: 32, displayOrder: 1 },
+                { lessonNumber: 2, lessonName: 'Phương pháp tích phân từng phần', estimatedDurationMinutes: 28, displayOrder: 2 },
+                { lessonNumber: 3, lessonName: 'Tích phân xác định và ứng dụng', estimatedDurationMinutes: 35, displayOrder: 3 },
+                { lessonNumber: 4, lessonName: 'Tài liệu: Bảng tích phân thường gặp', estimatedDurationMinutes: 10, displayOrder: 4 },
+            ],
+        },
+        {
+            chapterNumber: 4,
+            chapterName: 'Ma trận và Định thức',
+            lessons: [
+                { lessonNumber: 1, lessonName: 'Phép toán ma trận cơ bản', estimatedDurationMinutes: 30, displayOrder: 1 },
+                { lessonNumber: 2, lessonName: 'Tính định thức ma trận', estimatedDurationMinutes: 25, displayOrder: 2 },
+                { lessonNumber: 3, lessonName: 'Ma trận khả nghịch', estimatedDurationMinutes: 22, displayOrder: 3 },
+                { lessonNumber: 4, lessonName: 'Bài kiểm tra chương 4', estimatedDurationMinutes: 20, displayOrder: 4 },
+            ],
+        },
+    ],
 };
 
 // ─── Mock Reviews (static for now) ──────────────────────────
@@ -91,6 +168,20 @@ export default function CourseDetail() {
             try {
                 setLoading(true);
                 setError(null);
+
+                // Nếu id=1 (mock demo), dùng mock data luôn
+                if (id === '1' || id === 1) {
+                    const mockMapped = mapApiToCourse(MOCK_DETAIL_COURSE);
+                    mockMapped.gradient = 'from-blue-500 to-cyan-500';
+                    mockMapped.bgGradient = 'from-blue-500/10 to-cyan-500/10';
+                    mockMapped.icon = '📐';
+                    mockMapped.tags = ['Đạo hàm', 'Tích phân', 'Ma trận', 'Giới hạn', 'Chuỗi số'];
+                    mockMapped.level = 'Cơ bản → Nâng cao';
+                    mockMapped.creator = MOCK_DETAIL_COURSE.creator;
+                    setSubject(mockMapped);
+                    setLoading(false);
+                    return;
+                }
 
                 // Fetch current subject detail
                 const detailRes = await subjectApi.getById(id);
@@ -165,8 +256,7 @@ export default function CourseDetail() {
             <div className="flex h-screen bg-base-200 overflow-hidden">
                 <DashboardSidebar />
                 <div className="flex-1 flex flex-col items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-                    <p className="text-sm text-base-content/50 font-medium">Đang tải thông tin môn học...</p>
+                    <OwlLoader message="Đang tải thông tin môn học..." />
                 </div>
             </div>
         );
