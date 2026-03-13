@@ -1,11 +1,7 @@
 import { motion } from 'motion/react';
 
-/**
- * PriceBreakdown — shows original price, discount, coupon discount, and final total
- * Maps to payment_transactions.amount logic
- */
 export default function PriceBreakdown({ plan, coupon = null }) {
-    const originalPrice = plan.price;
+    const originalPrice = Number(plan.price) || 0;
     const planDiscount = plan.discountPercent ? originalPrice * (plan.discountPercent / 100) : 0;
     const afterPlanDiscount = originalPrice - planDiscount;
 
@@ -24,71 +20,72 @@ export default function PriceBreakdown({ plan, coupon = null }) {
     const totalDiscount = planDiscount + couponDiscount;
     const finalPrice = Math.max(0, originalPrice - totalDiscount);
 
-    const formatVND = (amount) => {
-        if (amount === 0) return 'Miễn phí';
-        return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + '₫';
-    };
-
-    const rows = [
-        { label: 'Giá gốc', value: formatVND(originalPrice), type: 'normal' },
-    ];
+    const rows = [{ label: 'Giá gốc', value: formatVnd(originalPrice), tone: 'normal' }];
 
     if (planDiscount > 0) {
         rows.push({
-            label: `Giảm giá gói (${plan.discountPercent}%)`,
-            value: `- ${formatVND(planDiscount)}`,
-            type: 'discount',
+            label: `Ưu đãi khóa học (${plan.discountPercent}%)`,
+            value: `- ${formatVnd(planDiscount)}`,
+            tone: 'discount',
         });
     }
 
     if (couponDiscount > 0) {
         rows.push({
             label: `Mã giảm giá (${coupon.code})`,
-            value: `- ${formatVND(couponDiscount)}`,
-            type: 'discount',
+            value: `- ${formatVnd(couponDiscount)}`,
+            tone: 'discount',
         });
     }
 
     return (
-        <div className="space-y-3">
-            {rows.map((row, i) => (
+        <div className="space-y-4">
+            {rows.map((row, index) => (
                 <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -10 }}
+                    key={row.label}
+                    initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex items-center justify-between text-sm"
+                    transition={{ delay: index * 0.06 }}
+                    className="flex items-center justify-between gap-4 text-sm"
                 >
-                    <span className="text-base-content/60 font-medium">{row.label}</span>
-                    <span className={`font-bold ${row.type === 'discount' ? 'text-emerald-600' : 'text-base-content'
-                        }`}>
+                    <span className="text-base-content/60">{row.label}</span>
+                    <span className={`font-semibold ${row.tone === 'discount' ? 'text-emerald-600' : 'text-base-content'}`}>
                         {row.value}
                     </span>
                 </motion.div>
             ))}
 
-            {/* Divider */}
-            <div className="border-t border-base-200 my-2" />
+            <div className="border-t apple-border" />
 
-            {/* Total */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center justify-between"
+                transition={{ delay: 0.2 }}
+                className="flex items-end justify-between gap-4"
             >
-                <span className="text-base font-black text-base-content">Tổng thanh toán</span>
+                <div>
+                    <p className="text-sm font-semibold text-base-content">Tổng thanh toán</p>
+                    <p className="mt-1 text-xs text-base-content/50">
+                        Quyền truy cập sẽ được kích hoạt trên tài khoản của bạn sau khi thanh toán.
+                    </p>
+                </div>
                 <div className="text-right">
-                    <span className="text-2xl font-black bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">
-                        {formatVND(finalPrice)}
-                    </span>
-                    {totalDiscount > 0 && (
-                        <p className="text-xs text-emerald-600 font-bold">
-                            Tiết kiệm {formatVND(totalDiscount)}
-                        </p>
-                    )}
+                    <p className="bg-gradient-to-r from-sky-600 to-fuchsia-500 bg-clip-text text-3xl font-semibold text-transparent">
+                        {formatVnd(finalPrice)}
+                    </p>
+                    {totalDiscount > 0 ? (
+                        <p className="text-xs font-semibold text-emerald-600">Tiết kiệm {formatVnd(totalDiscount)}</p>
+                    ) : null}
                 </div>
             </motion.div>
         </div>
     );
+}
+
+function formatVnd(amount) {
+    if (!amount) {
+        return 'Miễn phí';
+    }
+
+    return `${new Intl.NumberFormat('vi-VN').format(Math.round(amount))}đ`;
 }

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ArrowRight, BarChart3, BrainCircuit, Layers3, Lock, Mail } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/shared/api';
+import { hydrateProfileAfterAuth } from '@/shared/user';
 import {
     AuthCard,
     AuthField,
@@ -41,6 +42,8 @@ export default function Login() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const redirectTarget = searchParams.get('redirect');
+    const safeRedirectTarget = redirectTarget && redirectTarget.startsWith('/') ? redirectTarget : null;
 
     useEffect(() => {
         if (searchParams.get('error')) {
@@ -71,7 +74,11 @@ export default function Login() {
             }
 
             localStorage.setItem('accessToken', token);
-            navigate('/dashboard');
+            if (data.data?.tokens?.refreshToken) {
+                localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
+            }
+            await hydrateProfileAfterAuth(data.data?.user || data.user || null);
+            navigate(safeRedirectTarget || '/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
         } finally {
@@ -162,7 +169,12 @@ export default function Login() {
                     </div>
 
                     <AuthGoogleButton onClick={() => {
-                        window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+                        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+                        const googleAuthUrl = new URL('/auth/google', apiBaseUrl);
+                        if (safeRedirectTarget) {
+                            googleAuthUrl.searchParams.set('redirect', safeRedirectTarget);
+                        }
+                        window.location.href = googleAuthUrl.toString();
                     }} />
                 </form>
             </AuthCard>

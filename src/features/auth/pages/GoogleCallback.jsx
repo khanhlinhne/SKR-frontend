@@ -3,12 +3,16 @@ import { motion } from 'motion/react';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthCard, AuthShell } from '@/features/auth/components';
+import { hydrateProfileAfterAuth } from '@/shared/user';
 
 export default function GoogleCallback() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const redirectTarget = searchParams.get('redirect');
+    const safeRedirectTarget = redirectTarget && redirectTarget.startsWith('/') ? redirectTarget : null;
 
     useEffect(() => {
+        const handleCallback = async () => {
         const accessToken = searchParams.get('accessToken');
         const refreshToken = searchParams.get('refreshToken');
         const error = searchParams.get('error') || searchParams.get('message');
@@ -18,17 +22,24 @@ export default function GoogleCallback() {
             if (refreshToken) {
                 localStorage.setItem('refreshToken', refreshToken);
             }
-            navigate('/dashboard', { replace: true });
+            await hydrateProfileAfterAuth();
+            navigate(safeRedirectTarget || '/dashboard', { replace: true });
             return;
         }
 
         if (error) {
-            navigate('/login?error=google_failed', { replace: true });
+            const loginPath = safeRedirectTarget
+                ? `/login?error=google_failed&redirect=${encodeURIComponent(safeRedirectTarget)}`
+                : '/login?error=google_failed';
+            navigate(loginPath, { replace: true });
             return;
         }
 
         navigate('/login', { replace: true });
-    }, [navigate, searchParams]);
+        };
+
+        void handleCallback();
+    }, [navigate, safeRedirectTarget, searchParams]);
 
     return (
         <AuthShell

@@ -1,19 +1,148 @@
+import { motion } from 'motion/react';
+import {
+    AlertCircle,
+    AlertTriangle,
+    Archive,
+    ArrowLeft,
+    ArrowLeftRight,
+    ArrowRight,
+    Award,
+    BarChart3,
+    Bell,
+    BookOpen,
+    Brain,
+    Calendar,
+    Check,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Clock,
+    Copy,
+    Edit3,
+    Eye,
+    FileEdit,
+    FilePlus2,
+    FileText,
+    FileX,
+    Filter,
+    Flag,
+    Flame,
+    FolderOpen,
+    Globe,
+    Grid3X3,
+    HelpCircle,
+    History,
+    Inbox,
+    Layers3,
+    LayoutGrid,
+    Lightbulb,
+    List,
+    ListChecks,
+    Lock,
+    MessageSquare,
+    Minus,
+    MoreVertical,
+    Play,
+    PlayCircle,
+    Plus,
+    Rocket,
+    RotateCcw,
+    Search,
+    Send,
+    Settings,
+    Settings2,
+    Share2,
+    ShoppingBag,
+    Shuffle,
+    Signal,
+    SortAsc,
+    Sparkles,
+    Star,
+    Target,
+    TextCursorInput,
+    ToggleLeft,
+    Trash2,
+    TrendingUp,
+    Trophy,
+    Upload,
+    Wallet,
+    X,
+    XCircle,
+    Zap,
+} from 'lucide-react';
 
-import * as LucideIcons from 'lucide-react';
+const ICON_COMPONENTS = {
+    AlertCircle,
+    AlertTriangle,
+    Archive,
+    ArrowLeft,
+    ArrowLeftRight,
+    ArrowRight,
+    Award,
+    BarChart3,
+    Bell,
+    BookOpen,
+    Brain,
+    Calendar,
+    Check,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Clock,
+    Copy,
+    Edit3,
+    Eye,
+    FileEdit,
+    FilePlus2,
+    FileText,
+    FileX,
+    Filter,
+    Flag,
+    Flame,
+    FolderOpen,
+    Globe,
+    Grid3X3,
+    HelpCircle,
+    History,
+    Inbox,
+    Layers3,
+    LayoutGrid,
+    Lightbulb,
+    List,
+    ListChecks,
+    Lock,
+    MessageSquare,
+    Minus,
+    MoreVertical,
+    Play,
+    PlayCircle,
+    Plus,
+    Rocket,
+    RotateCcw,
+    Search,
+    Send,
+    Settings,
+    Settings2,
+    Share2,
+    ShoppingBag,
+    Shuffle,
+    Signal,
+    SortAsc,
+    Sparkles,
+    Star,
+    Target,
+    TextCursorInput,
+    ToggleLeft,
+    Trash2,
+    TrendingUp,
+    Trophy,
+    Upload,
+    Wallet,
+    X,
+    XCircle,
+    Zap,
+};
 
-/**
- * Icon Component - Reusable icon wrapper with animation support
- * 
- * @param {string} name - Tên icon từ lucide-react (VD: 'Search', 'Bell', 'Plus')
- * @param {string} size - Kích thước: 'xs', 'sm', 'md', 'lg', 'xl' hoặc số cụ thể
- * @param {string} color - Màu sắc (Tailwind class hoặc hex)
- * @param {string} className - Class CSS bổ sung
- * @param {boolean} animate - Có animation không
- * @param {string} animationType - Loại animation: 'pulse', 'bounce', 'spin', 'ping'
- * @param {object} wrapperProps - Props cho wrapper div
- */
-
-// Size mapping
 const sizeMap = {
     xs: 'w-3 h-3',
     sm: 'w-4 h-4',
@@ -21,28 +150,27 @@ const sizeMap = {
     lg: 'w-6 h-6',
     xl: 'w-8 h-8',
     '2xl': 'w-10 h-10',
-    '3xl': 'w-12 h-12'
+    '3xl': 'w-12 h-12',
 };
 
-// Animation variants
 const animationVariants = {
     pulse: {
         scale: [1, 1.1, 1],
-        transition: { duration: 1.5, repeat: Infinity }
+        transition: { duration: 1.5, repeat: Infinity },
     },
     bounce: {
         y: [0, -4, 0],
-        transition: { duration: 0.6, repeat: Infinity }
+        transition: { duration: 0.6, repeat: Infinity },
     },
     spin: {
         rotate: 360,
-        transition: { duration: 1, repeat: Infinity, ease: 'linear' }
+        transition: { duration: 1, repeat: Infinity, ease: 'linear' },
     },
     ping: {
         scale: [1, 1.2, 1],
         opacity: [1, 0.8, 1],
-        transition: { duration: 1, repeat: Infinity }
-    }
+        transition: { duration: 1, repeat: Infinity },
+    },
 };
 
 export default function Icon({
@@ -54,27 +182,19 @@ export default function Icon({
     animationType = 'pulse',
     ...props
 }) {
-    // Get the icon component from lucide-react
-    const IconComponent = LucideIcons[name];
+    const IconComponent = ICON_COMPONENTS[name];
 
     if (!IconComponent) {
-        console.warn(`Icon "${name}" not found in lucide-react`);
+        console.warn(`Icon "${name}" is not registered in Icon.jsx`);
         return null;
     }
 
-    // Determine size class
     const sizeClass = sizeMap[size] || `w-${size} h-${size}`;
-
-    // Build className
     const iconClassName = `${sizeClass} ${color || ''} ${className}`.trim();
 
-    // If animation is enabled, wrap with motion
     if (animate) {
         return (
-            <motion.span
-                animate={animationVariants[animationType]}
-                className="inline-flex"
-            >
+            <motion.span animate={animationVariants[animationType]} className="inline-flex">
                 <IconComponent className={iconClassName} {...props} />
             </motion.span>
         );
@@ -83,11 +203,10 @@ export default function Icon({
     return <IconComponent className={iconClassName} {...props} />;
 }
 
-// Preset Icon Components for common use cases
 export function IconButton({
     name,
     size = 'md',
-    variant = 'ghost', // 'ghost', 'primary', 'secondary', 'circle'
+    variant = 'ghost',
     onClick,
     className = '',
     disabled = false,
@@ -99,7 +218,7 @@ export function IconButton({
         primary: 'btn btn-primary',
         secondary: 'btn btn-secondary',
         circle: 'btn btn-circle btn-ghost',
-        'circle-primary': 'btn btn-circle btn-primary'
+        'circle-primary': 'btn btn-circle btn-primary',
     };
 
     return (
@@ -117,7 +236,6 @@ export function IconButton({
     );
 }
 
-// Icon with background container
 export function IconBox({
     name,
     size = 'md',
@@ -132,7 +250,7 @@ export function IconBox({
         sm: 'w-10 h-10',
         md: 'w-12 h-12',
         lg: 'w-14 h-14',
-        xl: 'w-16 h-16'
+        xl: 'w-16 h-16',
     };
 
     return (
@@ -142,13 +260,12 @@ export function IconBox({
     );
 }
 
-// Badge with icon
 export function IconBadge({
     name,
     label,
-    variant = 'default', // 'default', 'success', 'warning', 'error', 'info'
+    variant = 'default',
     size = 'sm',
-    className = ''
+    className = '',
 }) {
     const variantClasses = {
         default: 'badge-ghost',
@@ -156,7 +273,7 @@ export function IconBadge({
         warning: 'badge-warning',
         error: 'badge-error',
         info: 'badge-info',
-        primary: 'badge-primary'
+        primary: 'badge-primary',
     };
 
     return (
@@ -167,13 +284,12 @@ export function IconBadge({
     );
 }
 
-// Stat icon - icon with value display
 export function StatIcon({
     name,
     value,
     color = 'text-base-content',
     size = 'sm',
-    className = ''
+    className = '',
 }) {
     return (
         <span className={`flex items-center gap-1 ${color} font-bold ${className}`}>

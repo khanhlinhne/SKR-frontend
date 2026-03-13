@@ -75,36 +75,6 @@ export const featureCards = [
     },
 ];
 
-export const featuredCourses = [
-    {
-        title: 'Toán cao cấp',
-        subtitle: 'Giải tích và đại số được chia theo từng bước học, đi kèm flashcards và mini test.',
-        instructor: 'TS. Nguyễn Văn Minh',
-        stats: ['48 bài học', '200 câu hỏi', '32 giờ'],
-        price: '299.000đ',
-        accent: 'blue',
-        image: '/images/courses/math-banner.png',
-    },
-    {
-        title: 'IELTS Academic 7.0+',
-        subtitle: 'Lộ trình ôn tập cho Reading, Writing và Speaking trong một dashboard thống nhất.',
-        instructor: 'ThS. Trần Thu Hà',
-        stats: ['64 bài học', '500 câu hỏi', '45 giờ'],
-        price: '599.000đ',
-        accent: 'slate',
-        image: '/images/courses/ielts-banner.png',
-    },
-    {
-        title: 'Python cho AI',
-        subtitle: 'Thực hành, flashcards và mini tests để giữ nhịp học đều mỗi tuần.',
-        instructor: 'TS. Đoàn Thế Anh',
-        stats: ['56 bài học', '300 câu hỏi', '40 giờ'],
-        price: '399.000đ',
-        accent: 'indigo',
-        image: '/images/courses/python-ai-banner.png',
-    },
-];
-
 export const trustNotes = [
     {
         title: 'Giảng viên đang dùng thật',

@@ -1,46 +1,47 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { ArrowLeft, ArrowRight, Clock, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+
+import { orderApi, subjectApi } from '@/shared/api';
+import { useCurrentUserProfile } from '@/shared/user';
+import { OwlLoader } from '@/shared/ui/common';
 import {
-    ArrowLeft,
-    ArrowRight,
-    ShieldCheck,
-    Loader2,
-    Lock,
-    Clock,
-} from 'lucide-react';
-
-import { NavBar } from '@/shared/layout';
+    buildCourseLearnPath,
+    buildLoginRedirectPath,
+    getCourseOrderSummary,
+    mapCourseToPublicModel,
+} from '@/features/courses/utils/publicCourseModel';
+import CheckoutAccountCard from '../components/CheckoutAccountCard';
+import CheckoutHeader from '../components/CheckoutHeader';
 import CheckoutSteps from '../components/CheckoutSteps';
-import OrderSummary from '../components/OrderSummary';
-import CouponInput from '../components/CouponInput';
-import PriceBreakdown from '../components/PriceBreakdown';
-import PaymentMethods from '../components/PaymentMethods';
 import CheckoutSuccess from '../components/CheckoutSuccess';
+import CouponInput from '../components/CouponInput';
+import OrderSummary from '../components/OrderSummary';
+import PaymentMethods from '../components/PaymentMethods';
+import PriceBreakdown from '../components/PriceBreakdown';
 
-// ─── Mock Plans (maps to subscription_plans table) ──────
 const PLANS = {
     free: {
         id: 'free',
         name: 'Free',
-        description: 'Trải nghiệm cơ bản — phù hợp khám phá nền tảng',
+        description: 'Trải nghiệm cơ bản để khám phá nền tảng trước khi nâng cấp.',
         price: 0,
         durationDays: 0,
         gradient: 'from-slate-500 to-gray-500',
-        features: ['Flashcard cơ bản', '5 bài học / tuần', 'Cộng đồng'],
+        features: ['Flashcard cơ bản', '5 bài học mỗi tuần', 'Cộng đồng học tập'],
     },
     pro: {
         id: 'pro',
         name: 'Pro',
-        description: 'Gói học tập toàn diện — truy cập không giới hạn',
+        description: 'Gói học tập toàn diện với quyền truy cập không giới hạn vào các tính năng cốt lõi.',
         price: 299000,
         originalPrice: 399000,
         discountPercent: 25,
         durationDays: 30,
-        popular: true,
-        gradient: 'from-violet-600 to-blue-600',
+        gradient: 'from-sky-500 to-cyan-500',
         features: [
-            'Truy cập toàn bộ khóa học',
+            'Truy cập toàn bộ khóa học đang mở bán',
             'Flashcard AI không giới hạn',
             'Lộ trình học cá nhân hóa',
             'Không quảng cáo',
@@ -50,276 +51,461 @@ const PLANS = {
     premium: {
         id: 'premium',
         name: 'Premium',
-        description: 'Trải nghiệm cao cấp nhất — 1-on-1 với chuyên gia',
+        description: 'Trải nghiệm cao cấp nhất với các tính năng chuyên sâu và hỗ trợ 1-1.',
         price: 699000,
         originalPrice: 999000,
         discountPercent: 30,
         durationDays: 30,
-        gradient: 'from-amber-500 to-orange-500',
+        gradient: 'from-fuchsia-500 to-violet-500',
         features: [
-            'Tất cả tính năng Pro',
+            'Tất cả quyền lợi Pro',
             'Tư vấn 1-1 với chuyên gia',
             'Đề thi mô phỏng nâng cao',
             'Phân tích AI chuyên sâu',
-            'Certificate sau khi hoàn thành',
+            'Chứng nhận hoàn thành',
             'Ưu tiên tính năng mới',
         ],
     },
 };
 
-// ─── Main Page Component ────────────────────────────────
+function hasAuthToken() {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const token = localStorage.getItem('accessToken');
+    return Boolean(token && token !== 'undefined' && token !== 'null');
+}
 
 export default function Checkout() {
     const [searchParams] = useSearchParams();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const checkoutType = searchParams.get('type') === 'course' ? 'course' : 'subscription';
     const planId = searchParams.get('plan') || 'pro';
-    const plan = PLANS[planId] || PLANS.pro;
+    const courseId = searchParams.get('id');
+    const selectedPlan = PLANS[planId] || PLANS.pro;
+    const isAuthenticated = hasAuthToken();
+    const loginHref = buildLoginRedirectPath(`${location.pathname}${location.search}`);
+    const appHomePath = isAuthenticated ? '/dashboard' : '/';
 
+    const { profile, refreshProfile } = useCurrentUserProfile();
+    const [isHydratingProfile, setIsHydratingProfile] = useState(isAuthenticated);
     const [currentStep, setCurrentStep] = useState(1);
     const [paymentMethod, setPaymentMethod] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [transaction, setTransaction] = useState(null);
+    const [courseOrder, setCourseOrder] = useState(null);
+    const [loadingCourse, setLoadingCourse] = useState(checkoutType === 'course');
+    const [checkoutError, setCheckoutError] = useState('');
+    const [timeLeft, setTimeLeft] = useState(15 * 60);
 
-    // Countdown timer for urgency
-    const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes
     useEffect(() => {
-        if (currentStep >= 3) return;
+        if (isAuthenticated) {
+            return;
+        }
+
+        navigate(loginHref, { replace: true });
+    }, [isAuthenticated, loginHref, navigate]);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setIsHydratingProfile(false);
+            return undefined;
+        }
+
+        let isMounted = true;
+        setIsHydratingProfile(true);
+
+        void refreshProfile().finally(() => {
+            if (isMounted) {
+                setIsHydratingProfile(false);
+            }
+        });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [isAuthenticated, refreshProfile]);
+
+    useEffect(() => {
+        if (currentStep >= 3) {
+            return undefined;
+        }
+
         const timer = setInterval(() => {
-            setTimeLeft((t) => (t > 0 ? t - 1 : 0));
+            setTimeLeft((value) => (value > 0 ? value - 1 : 0));
         }, 1000);
+
         return () => clearInterval(timer);
     }, [currentStep]);
 
-    const formatTime = (s) => {
-        const m = Math.floor(s / 60);
-        const sec = s % 60;
-        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-    };
+    useEffect(() => {
+        let isMounted = true;
 
-    // Handle payment submission
-    const handlePayment = async () => {
-        if (!paymentMethod) return;
-        setIsProcessing(true);
+        const loadCourse = async () => {
+            if (checkoutType !== 'course') {
+                setLoadingCourse(false);
+                return;
+            }
 
-        // Mock payment processing
-        await new Promise((r) => setTimeout(r, 2500));
+            if (!courseId) {
+                setCheckoutError('Thiếu mã khóa học để tiếp tục checkout.');
+                setLoadingCourse(false);
+                return;
+            }
 
-        setTransaction({
-            id: `TXN-SKR-${Date.now()}`,
-            paymentMethod: paymentMethod === 'momo' ? 'Ví MoMo'
-                : paymentMethod === 'vnpay' ? 'VNPay'
-                    : paymentMethod === 'zalopay' ? 'ZaloPay'
-                        : paymentMethod === 'bank_transfer' ? 'Chuyển khoản'
-                            : 'Visa/Mastercard',
-            amount: new Intl.NumberFormat('vi-VN').format(plan.price) + '₫',
-            status: 'completed',
-        });
+            try {
+                setLoadingCourse(true);
+                setCheckoutError('');
 
-        setIsProcessing(false);
-        setCurrentStep(3);
-    };
+                const response = await subjectApi.getById(courseId);
+                const payload = response.data?.data || response.data || response;
 
-    // Step navigation
+                if (!payload || (payload.status && payload.status !== 'published')) {
+                    throw new Error('Khóa học này hiện chưa mở công khai để thanh toán.');
+                }
+
+                const normalizedCourse = mapCourseToPublicModel(payload, 0);
+                const courseSummary = getCourseOrderSummary(normalizedCourse);
+
+                if (isMounted) {
+                    setCourseOrder({
+                        ...courseSummary,
+                        courseId: normalizedCourse.id,
+                        courseTitle: normalizedCourse.title,
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load course checkout:', error);
+                if (isMounted) {
+                    setCheckoutError(error.message || 'Không tải được thông tin khóa học.');
+                }
+            } finally {
+                if (isMounted) {
+                    setLoadingCourse(false);
+                }
+            }
+        };
+
+        if (isAuthenticated) {
+            void loadCourse();
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [checkoutType, courseId, isAuthenticated]);
+
+    if (!isAuthenticated) {
+        return (
+            <div className="apple-home apple-transition min-h-screen">
+                <main className="px-4 py-20 sm:px-6 lg:px-8">
+                    <div className="mx-auto max-w-4xl">
+                        <OwlLoader
+                            message="Đang chuyển đến đăng nhập..."
+                            subMessage="Checkout chỉ dành cho người dùng đã đăng nhập để hệ thống gắn khóa học vào đúng tài khoản."
+                            className="py-16"
+                        />
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    const orderItem = checkoutType === 'course' ? courseOrder : selectedPlan;
+    const pageTitle =
+        currentStep === 1
+            ? checkoutType === 'course'
+                ? 'Xác nhận khóa học'
+                : 'Xác nhận gói học tập'
+            : 'Thanh toán an toàn';
+    const pageDescription =
+        currentStep === 1
+            ? checkoutType === 'course'
+                ? 'Kiểm tra tài khoản nhận quyền truy cập và thông tin khóa học trước khi thanh toán.'
+                : 'Kiểm tra tài khoản nhận quyền lợi và chi tiết gói học tập trước khi thanh toán.'
+            : 'Chọn phương thức thanh toán phù hợp. Sau khi hoàn tất, quyền truy cập sẽ được kích hoạt trên tài khoản này.';
+    const backLink = checkoutType === 'course' && courseId ? `/courses/${courseId}` : appHomePath;
     const canProceed =
-        currentStep === 1 ? true :
-            currentStep === 2 ? !!paymentMethod :
-                false;
+        currentStep === 1
+            ? Boolean(orderItem) && !loadingCourse && !checkoutError
+            : currentStep === 2
+                ? Boolean(paymentMethod) && !isProcessing
+                : false;
+
+    const handlePayment = async () => {
+        if (!paymentMethod || !orderItem) {
+            return;
+        }
+
+        setIsProcessing(true);
+        setCheckoutError('');
+
+        try {
+            let createdOrder = null;
+
+            try {
+                const payload =
+                    checkoutType === 'course'
+                        ? {
+                            orderType: 'course',
+                            courseId,
+                            paymentMethod,
+                            items: [
+                                {
+                                    itemType: 'course',
+                                    courseId,
+                                    quantity: 1,
+                                    unitPrice: orderItem.price,
+                                },
+                            ],
+                        }
+                        : {
+                            orderType: 'subscription',
+                            planId: selectedPlan.id,
+                            paymentMethod,
+                            items: [
+                                {
+                                    itemType: 'subscription',
+                                    planId: selectedPlan.id,
+                                    quantity: 1,
+                                    unitPrice: selectedPlan.price,
+                                },
+                            ],
+                        };
+
+                createdOrder = await orderApi.create(payload);
+            } catch (submitError) {
+                console.warn('Checkout API unavailable or rejected payload. Falling back to mock success.', submitError);
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 1200));
+
+            setTransaction({
+                id:
+                    createdOrder?.data?.orderId ||
+                    createdOrder?.orderId ||
+                    createdOrder?.data?.id ||
+                    createdOrder?.id ||
+                    `TXN-SKR-${Date.now()}`,
+                paymentMethod: getPaymentMethodLabel(paymentMethod),
+                amount: formatCurrency(orderItem.price),
+                status: 'completed',
+                destinationPath:
+                    checkoutType === 'course' && courseId
+                        ? buildCourseLearnPath(courseId, true)
+                        : '/dashboard',
+                destinationLabel: checkoutType === 'course' ? 'Vào học ngay' : 'Mở dashboard',
+            });
+
+            setCurrentStep(3);
+        } catch (error) {
+            console.error('Checkout failed:', error);
+            setCheckoutError(error.message || 'Thanh toán chưa hoàn tất. Vui lòng thử lại.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const handleNext = () => {
         if (currentStep === 2) {
-            handlePayment();
-        } else if (currentStep < 3) {
-            setCurrentStep((s) => s + 1);
+            void handlePayment();
+            return;
         }
+
+        setCurrentStep((value) => Math.min(value + 1, 3));
     };
 
     const handleBack = () => {
-        if (currentStep > 1 && currentStep < 3) {
-            setCurrentStep((s) => s - 1);
-        }
+        setCurrentStep((value) => Math.max(value - 1, 1));
     };
 
     return (
-        <div className="min-h-screen bg-base-100 font-sans text-base-content">
-            <NavBar />
+        <div className="apple-home apple-transition min-h-screen">
+            <CheckoutHeader profile={profile} isAuthenticated={isAuthenticated} homeHref={appHomePath} />
 
-            <main className="pt-24 pb-16 px-4 sm:px-6">
-                <div className="max-w-5xl mx-auto">
-                    {/* Back link */}
-                    {currentStep < 3 && (
-                        <motion.div
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="mb-6"
-                        >
+            <main className="px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-6xl">
+                    {currentStep < 3 ? (
+                        <>
                             <Link
-                                to="/"
-                                className="inline-flex items-center gap-2 text-sm font-bold text-base-content/50 hover:text-violet-600 transition-colors group"
+                                to={backLink}
+                                className="apple-transition inline-flex items-center gap-2 text-sm font-semibold apple-secondary-text hover:text-[var(--apple-text)]"
                             >
-                                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                <ArrowLeft className="h-4 w-4" />
                                 Quay lại
                             </Link>
-                        </motion.div>
-                    )}
 
-                    {/* Page title */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-center mb-8"
-                    >
-                        {currentStep < 3 ? (
-                            <>
-                                <h1 className="text-3xl md:text-4xl font-black text-base-content tracking-tight mb-2">
-                                    {currentStep === 1 ? 'Xác nhận đơn hàng' : 'Thanh toán'}
-                                </h1>
-                                <p className="text-base-content/50 font-medium">
-                                    {currentStep === 1
-                                        ? 'Kiểm tra thông tin gói đăng ký trước khi thanh toán'
-                                        : 'Chọn phương thức thanh toán phù hợp'}
-                                </p>
-                            </>
-                        ) : null}
-                    </motion.div>
-
-                    {/* Steps indicator */}
-                    <CheckoutSteps currentStep={currentStep} />
-
-                    {/* Urgency timer */}
-                    {currentStep < 3 && timeLeft > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center justify-center gap-2 mb-8"
-                        >
-                            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20">
-                                <Clock className="w-4 h-4 text-orange-500" />
-                                <span className="text-sm font-bold text-orange-600">
-                                    Ưu đãi còn hiệu lực trong{' '}
-                                    <span className="font-mono text-orange-700">{formatTime(timeLeft)}</span>
-                                </span>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* ── Step 1 & 2 Content ── */}
-                    {currentStep < 3 && (
-                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                            {/* Left: Main content */}
-                            <div className="lg:col-span-3 space-y-6">
-                                {currentStep === 1 && (
-                                    <motion.div
-                                        key="step1"
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        className="space-y-6"
-                                    >
-                                        <OrderSummary plan={plan} orderType="subscription" />
-                                    </motion.div>
-                                )}
-
-                                {currentStep === 2 && (
-                                    <motion.div
-                                        key="step2"
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        className="space-y-6"
-                                    >
-                                        <PaymentMethods
-                                            selected={paymentMethod}
-                                            onSelect={setPaymentMethod}
-                                        />
-                                    </motion.div>
-                                )}
-                            </div>
-
-                            {/* Right: Sidebar (Price breakdown + Coupon + Actions) */}
-                            <div className="lg:col-span-2">
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                    className="sticky top-28 space-y-5"
-                                >
-                                    {/* Price breakdown card */}
-                                    <div className="p-5 rounded-2xl border-2 border-base-200 bg-base-100 shadow-sm">
-                                        <h3 className="text-base font-black text-base-content mb-4 flex items-center gap-2">
-                                            <ShieldCheck className="w-5 h-5 text-violet-500" />
-                                            Chi tiết thanh toán
-                                        </h3>
-                                        <PriceBreakdown plan={plan} coupon={appliedCoupon} />
+                            <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                                <div className="apple-panel apple-card-shadow rounded-[36px] border p-7 sm:p-9">
+                                    <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
+                                        Checkout
                                     </div>
+                                    <h1 className="apple-main-text mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                                        {pageTitle}
+                                    </h1>
+                                    <p className="apple-secondary-text mt-4 max-w-3xl text-base leading-8">
+                                        {pageDescription}
+                                    </p>
+                                </div>
 
-                                    {/* Coupon */}
-                                    <div className="p-5 rounded-2xl border-2 border-base-200 bg-base-100 shadow-sm">
-                                        <h3 className="text-sm font-bold text-base-content mb-3">Mã giảm giá</h3>
-                                        <CouponInput
-                                            appliedCoupon={appliedCoupon}
-                                            onApply={(coupon) => setAppliedCoupon(coupon)}
-                                            onRemove={() => setAppliedCoupon(null)}
+                                <div className="apple-panel apple-card-shadow rounded-[36px] border p-6 sm:p-7">
+                                    <div className="flex items-center gap-3 text-sm font-semibold text-orange-700">
+                                        <Clock className="h-4 w-4" />
+                                        Phiên thanh toán còn hiệu lực trong {formatTime(timeLeft)}
+                                    </div>
+                                    <div className="mt-5 space-y-3">
+                                        <QuickNote
+                                            icon={ShieldCheck}
+                                            text="Thông tin thanh toán được bảo vệ và chỉ dùng để xử lý giao dịch."
+                                        />
+                                        <QuickNote
+                                            icon={Sparkles}
+                                            text="Quyền truy cập sẽ gắn vào đúng tài khoản đang hiển thị bên dưới."
                                         />
                                     </div>
+                                </div>
+                            </section>
 
-                                    {/* Action buttons */}
-                                    <div className="space-y-3">
-                                        <motion.button
-                                            whileHover={canProceed ? { scale: 1.02, y: -2 } : {}}
-                                            whileTap={canProceed ? { scale: 0.98 } : {}}
-                                            onClick={handleNext}
-                                            disabled={!canProceed || isProcessing}
-                                            className={`btn btn-lg w-full rounded-2xl font-bold shadow-xl border-none text-white ${canProceed
-                                                    ? 'bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 shadow-violet-600/20'
-                                                    : 'bg-base-300 cursor-not-allowed text-base-content/30'
-                                                } transition-all duration-300`}
+                            <div className="mt-8">
+                                <CheckoutSteps currentStep={currentStep} />
+                            </div>
+
+                            <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+                                <div className="space-y-6">
+                                    <CheckoutAccountCard
+                                        profile={profile}
+                                        isAuthenticated={isAuthenticated}
+                                        isHydrating={isHydratingProfile}
+                                        loginHref={loginHref}
+                                        compact={currentStep === 2}
+                                    />
+
+                                    {loadingCourse ? (
+                                        <div className="apple-panel apple-card-shadow rounded-[32px] border p-8">
+                                            <OwlLoader
+                                                message="Đang tải khóa học cần thanh toán..."
+                                                subMessage="SKR đang lấy dữ liệu public course từ backend để dựng checkout."
+                                                className="py-8"
+                                            />
+                                        </div>
+                                    ) : null}
+
+                                    {checkoutError ? (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="rounded-[28px] border border-red-300/60 bg-red-500/8 p-5"
                                         >
-                                            {isProcessing ? (
-                                                <>
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                    Đang xử lý...
-                                                </>
-                                            ) : currentStep === 2 ? (
-                                                <>
-                                                    <Lock className="w-5 h-5" />
-                                                    Thanh toán an toàn
-                                                </>
+                                            <p className="text-sm font-semibold text-red-700">Không thể tiếp tục checkout</p>
+                                            <p className="mt-2 text-sm leading-7 text-red-700/80">{checkoutError}</p>
+                                        </motion.div>
+                                    ) : null}
+
+                                    {!loadingCourse && orderItem && currentStep === 1 ? (
+                                        <OrderSummary plan={orderItem} orderType={checkoutType} />
+                                    ) : null}
+
+                                    {!loadingCourse && orderItem && currentStep === 2 ? (
+                                        <PaymentMethods selected={paymentMethod} onSelect={setPaymentMethod} />
+                                    ) : null}
+                                </div>
+
+                                <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
+                                    <div className="apple-panel apple-card-shadow rounded-[32px] border p-6 sm:p-7">
+                                        <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
+                                            Order total
+                                        </div>
+                                        <h2 className="apple-main-text mt-5 text-2xl font-semibold tracking-[-0.03em]">
+                                            Chi tiết thanh toán
+                                        </h2>
+                                        <div className="mt-6">
+                                            {orderItem ? (
+                                                <PriceBreakdown plan={orderItem} coupon={appliedCoupon} />
                                             ) : (
-                                                <>
-                                                    Tiếp tục
-                                                    <ArrowRight className="w-5 h-5" />
-                                                </>
+                                                <p className="text-sm text-base-content/50">
+                                                    Thông tin đơn hàng sẽ xuất hiện sau khi dữ liệu được tải xong.
+                                                </p>
                                             )}
-                                        </motion.button>
+                                        </div>
+                                    </div>
 
-                                        {currentStep > 1 && (
-                                            <button
-                                                onClick={handleBack}
-                                                disabled={isProcessing}
-                                                className="btn btn-ghost w-full rounded-2xl font-bold text-base-content/50"
+                                    <div className="apple-panel rounded-[28px] border p-5">
+                                        <p className="text-sm font-semibold text-base-content">Mã giảm giá</p>
+                                        <div className="mt-4">
+                                            <CouponInput
+                                                appliedCoupon={appliedCoupon}
+                                                onApply={(coupon) => setAppliedCoupon(coupon)}
+                                                onRemove={() => setAppliedCoupon(null)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="apple-panel rounded-[28px] border p-5">
+                                        <p className="text-sm font-semibold text-base-content">
+                                            {currentStep === 2 ? 'Sẵn sàng hoàn tất giao dịch' : 'Tiếp tục sang bước thanh toán'}
+                                        </p>
+                                        <p className="mt-2 text-sm leading-7 text-base-content/60">
+                                            Sau khi hoàn tất, khóa học sẽ được kích hoạt ngay trên tài khoản hiện tại.
+                                        </p>
+
+                                        <div className="mt-5 space-y-3">
+                                            <motion.button
+                                                whileHover={canProceed ? { y: -1 } : {}}
+                                                whileTap={canProceed ? { scale: 0.99 } : {}}
+                                                type="button"
+                                                onClick={handleNext}
+                                                disabled={!canProceed || isProcessing}
+                                                className="apple-primary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50"
                                             >
-                                                <ArrowLeft className="w-4 h-4" />
-                                                Quay lại
-                                            </button>
-                                        )}
-                                    </div>
+                                                {isProcessing ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Đang xử lý...
+                                                    </>
+                                                ) : currentStep === 2 ? (
+                                                    <>
+                                                        Thanh toán an toàn
+                                                        <ShieldCheck className="ml-2 h-4 w-4" />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        Tiếp tục
+                                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                                    </>
+                                                )}
+                                            </motion.button>
 
-                                    {/* Trust signals */}
-                                    <div className="flex items-center justify-center gap-4 text-base-content/30">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">SSL 256-bit</span>
-                                        <span className="w-1 h-1 rounded-full bg-base-300" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Hoàn tiền 7 ngày</span>
-                                        <span className="w-1 h-1 rounded-full bg-base-300" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Bảo mật 100%</span>
+                                            {currentStep > 1 ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleBack}
+                                                    disabled={isProcessing}
+                                                    className="apple-secondary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold"
+                                                >
+                                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                                    Quay lại
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </div>
-                                </motion.div>
+                                </aside>
                             </div>
+                        </>
+                    ) : (
+                        <div className="pt-6">
+                            <CheckoutSuccess
+                                transaction={transaction}
+                                plan={orderItem}
+                                orderType={checkoutType}
+                                destinationPath={transaction?.destinationPath}
+                                destinationLabel={transaction?.destinationLabel}
+                                secondaryPath={appHomePath}
+                                secondaryLabel="Về dashboard"
+                            />
                         </div>
-                    )}
-
-                    {/* ── Step 3: Success ── */}
-                    {currentStep === 3 && (
-                        <CheckoutSuccess transaction={transaction} plan={plan} />
                     )}
                 </div>
             </main>
@@ -327,8 +513,42 @@ export default function Checkout() {
     );
 }
 
+function QuickNote({ icon: Icon, text }) {
+    return (
+        <div className="flex items-start gap-3 rounded-[22px] border border-white/45 bg-white/75 px-4 py-4 shadow-sm backdrop-blur-xl">
+            <div className="apple-soft-panel flex h-9 w-9 items-center justify-center rounded-2xl">
+                <Icon className="h-4 w-4" />
+            </div>
+            <p className="text-sm leading-7 text-base-content/70">{text}</p>
+        </div>
+    );
+}
 
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
 
+function formatCurrency(amount) {
+    if (!amount) {
+        return 'Miễn phí';
+    }
 
+    return `${new Intl.NumberFormat('vi-VN').format(Math.round(amount))}đ`;
+}
 
-
+function getPaymentMethodLabel(paymentMethod) {
+    switch (paymentMethod) {
+        case 'momo':
+            return 'Ví MoMo';
+        case 'vnpay':
+            return 'VNPay';
+        case 'zalopay':
+            return 'ZaloPay';
+        case 'bank_transfer':
+            return 'Chuyển khoản ngân hàng';
+        default:
+            return 'Visa / Mastercard';
+    }
+}

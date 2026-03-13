@@ -1,7 +1,10 @@
-﻿import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { footerColumns } from '@/features/home/constants';
 
 export default function HomeFooter() {
+    const location = useLocation();
+    const resolveAnchorHref = (href) => (location.pathname === '/' ? href : `/${href}`);
+
     return (
         <footer className="apple-footer-surface apple-transition border-t apple-border">
             <div className="mx-auto grid max-w-7xl gap-12 px-6 py-16 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:px-8">
@@ -35,7 +38,7 @@ export default function HomeFooter() {
                                         </Link>
                                     ) : (
                                         <a
-                                            href={item.href}
+                                            href={item.href.startsWith('#') ? resolveAnchorHref(item.href) : item.href}
                                             className="apple-transition apple-secondary-text text-sm hover:text-[var(--apple-text)]"
                                         >
                                             {item.label}
@@ -52,10 +55,10 @@ export default function HomeFooter() {
                 <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-sm apple-secondary-text sm:flex-row sm:items-center sm:justify-between lg:px-8">
                     <p>Bản quyền 2026 SKR. Đã đăng ký mọi quyền.</p>
                     <div className="flex gap-5">
-                        <a href="#features" className="apple-transition hover:text-[var(--apple-text)]">
+                        <a href={resolveAnchorHref('#features')} className="apple-transition hover:text-[var(--apple-text)]">
                             Tính năng
                         </a>
-                        <a href="#pricing" className="apple-transition hover:text-[var(--apple-text)]">
+                        <a href={resolveAnchorHref('#pricing')} className="apple-transition hover:text-[var(--apple-text)]">
                             Bảng giá
                         </a>
                         <Link to="/login" className="apple-transition hover:text-[var(--apple-text)]">

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import HomeThemeToggle from './HomeThemeToggle';
 
 const navItems = [
@@ -11,8 +11,10 @@ const navItems = [
 ];
 
 export default function HomeNavBar() {
+    const location = useLocation();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const resolveAnchorHref = (href) => (location.pathname === '/' ? href : `/${href}`);
 
     useEffect(() => {
         const onScroll = () => setIsScrolled(window.scrollY > 16);
@@ -52,7 +54,7 @@ export default function HomeNavBar() {
                     {navItems.map((item, index) => (
                         <motion.a
                             key={item.label}
-                            href={item.href}
+                            href={resolveAnchorHref(item.href)}
                             initial={{ opacity: 0, y: -8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
@@ -109,7 +111,7 @@ export default function HomeNavBar() {
                     {navItems.map((item) => (
                         <a
                             key={item.label}
-                            href={item.href}
+                            href={resolveAnchorHref(item.href)}
                             onClick={() => setIsOpen(false)}
                             className="apple-transition apple-subtle-hover mx-5 rounded-2xl px-4 py-3 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
                         >

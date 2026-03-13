@@ -1,155 +1,109 @@
 import { motion } from 'motion/react';
 import {
-    CreditCard,
-    Smartphone,
-    Landmark,
-    Wallet,
-    Shield,
     CheckCircle2,
+    CreditCard,
+    Landmark,
+    Shield,
+    Smartphone,
+    Wallet,
 } from 'lucide-react';
 
-/**
- * PaymentMethods — maps to payment_transactions.payment_method
- * Supported: 'momo', 'vnpay', 'zalopay', 'bank_transfer', 'credit_card'
- */
 const methods = [
     {
         id: 'momo',
         name: 'Ví MoMo',
-        description: 'Thanh toán qua ví điện tử MoMo',
+        description: 'Thanh toán nhanh bằng ví điện tử MoMo.',
         icon: Smartphone,
-        color: 'from-pink-500 to-rose-500',
-        bgColor: 'bg-pink-50',
-        textColor: 'text-pink-600',
-        popular: true,
+        accent: 'from-pink-500 to-rose-500',
     },
     {
         id: 'vnpay',
         name: 'VNPay',
-        description: 'Thanh toán qua cổng VNPay',
+        description: 'Thanh toán qua cổng VNPay.',
         icon: Wallet,
-        color: 'from-blue-500 to-cyan-500',
-        bgColor: 'bg-blue-50',
-        textColor: 'text-blue-600',
-        popular: true,
+        accent: 'from-sky-500 to-cyan-500',
     },
     {
         id: 'zalopay',
         name: 'ZaloPay',
-        description: 'Thanh toán qua ví ZaloPay',
+        description: 'Thanh toán bằng ví ZaloPay.',
         icon: Smartphone,
-        color: 'from-blue-600 to-indigo-600',
-        bgColor: 'bg-indigo-50',
-        textColor: 'text-indigo-600',
-        popular: false,
+        accent: 'from-indigo-500 to-blue-600',
     },
     {
         id: 'bank_transfer',
         name: 'Chuyển khoản ngân hàng',
-        description: 'Chuyển khoản qua Internet Banking',
+        description: 'Nhận thông tin chuyển khoản để thanh toán thủ công.',
         icon: Landmark,
-        color: 'from-emerald-500 to-green-500',
-        bgColor: 'bg-emerald-50',
-        textColor: 'text-emerald-600',
-        popular: false,
+        accent: 'from-emerald-500 to-green-500',
     },
     {
         id: 'credit_card',
-        name: 'Thẻ Visa / Mastercard',
-        description: 'Thanh toán bằng thẻ quốc tế',
+        name: 'Visa / Mastercard',
+        description: 'Thanh toán bằng thẻ quốc tế.',
         icon: CreditCard,
-        color: 'from-violet-500 to-purple-500',
-        bgColor: 'bg-violet-50',
-        textColor: 'text-violet-600',
-        popular: false,
+        accent: 'from-fuchsia-500 to-violet-500',
     },
 ];
 
 export default function PaymentMethods({ selected, onSelect }) {
     return (
-        <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-                <CreditCard className="w-5 h-5 text-violet-500" />
-                <h3 className="text-base font-black text-base-content">Phương thức thanh toán</h3>
+        <section className="apple-panel apple-card-shadow rounded-[32px] border p-6 sm:p-7">
+            <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
+                Payment method
             </div>
+            <h2 className="apple-main-text mt-5 text-3xl font-semibold tracking-[-0.03em]">
+                Chọn phương thức thanh toán phù hợp
+            </h2>
+            <p className="apple-secondary-text mt-3 text-sm leading-7">
+                SKR giữ bước này thật ngắn để bạn hoàn tất nhanh, nhưng vẫn đủ rõ ràng về phương thức và độ an toàn.
+            </p>
 
-            <div className="grid gap-3">
-                {methods.map((method, i) => {
-                    const isSelected = selected === method.id;
+            <div className="mt-6 grid gap-3">
+                {methods.map((method, index) => {
                     const Icon = method.icon;
+                    const isSelected = selected === method.id;
 
                     return (
                         <motion.button
                             key={method.id}
+                            type="button"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.08 }}
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
+                            transition={{ delay: index * 0.05 }}
+                            whileHover={{ y: -2 }}
                             onClick={() => onSelect(method.id)}
-                            className={`relative flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all duration-300 ${isSelected
-                                    ? 'border-violet-500 bg-violet-500/5 shadow-lg shadow-violet-500/10'
-                                    : 'border-base-200 bg-base-100 hover:border-base-300 hover:bg-base-200/30'
-                                }`}
+                            className={`flex items-center gap-4 rounded-[24px] border px-4 py-4 text-left transition-all ${
+                                isSelected
+                                    ? 'border-sky-500/30 bg-sky-500/8 shadow-sm'
+                                    : 'border-white/45 bg-white/75 shadow-sm backdrop-blur-xl'
+                            }`}
                         >
-                            {/* Icon */}
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected
-                                    ? `bg-gradient-to-br ${method.color} text-white shadow-md`
-                                    : `${method.bgColor} ${method.textColor}`
-                                } transition-all duration-300`}>
-                                <Icon className="w-5 h-5" />
+                            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r ${method.accent} text-white shadow-sm`}>
+                                <Icon className="h-5 w-5" />
                             </div>
 
-                            {/* Info */}
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span className={`text-sm font-bold ${isSelected ? 'text-violet-700' : 'text-base-content'}`}>
-                                        {method.name}
-                                    </span>
-                                    {method.popular && (
-                                        <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-bold uppercase">
-                                            Phổ biến
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-base-content/50 font-medium mt-0.5">
-                                    {method.description}
-                                </p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-base-content">{method.name}</p>
+                                <p className="mt-1 text-sm text-base-content/55">{method.description}</p>
                             </div>
 
-                            {/* Radio indicator */}
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected
-                                    ? 'border-violet-500 bg-violet-500'
-                                    : 'border-base-300'
-                                }`}>
-                                {isSelected && (
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ type: 'spring', bounce: 0.5 }}
-                                    >
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                                    </motion.div>
-                                )}
+                            <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                                isSelected ? 'border-sky-500 bg-sky-500 text-white' : 'border-base-300 text-transparent'
+                            }`}>
+                                <CheckCircle2 className="h-4 w-4" />
                             </div>
                         </motion.button>
                     );
                 })}
             </div>
 
-            {/* Security badge */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 mt-2"
-            >
-                <Shield className="w-4 h-4 text-emerald-500" />
-                <span className="text-xs font-semibold text-emerald-700">
-                    Mọi giao dịch được mã hóa SSL 256-bit. Thông tin thanh toán của bạn luôn an toàn.
-                </span>
-            </motion.div>
-        </div>
+            <div className="mt-5 flex items-start gap-3 rounded-[24px] border border-emerald-500/15 bg-emerald-500/7 px-4 py-4">
+                <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
+                <p className="text-sm leading-7 text-emerald-800">
+                    Mọi giao dịch đều được mã hóa SSL 256-bit. Thông tin thanh toán của bạn không bị hiển thị công khai trong hệ thống học tập.
+                </p>
+            </div>
+        </section>
     );
 }
-
