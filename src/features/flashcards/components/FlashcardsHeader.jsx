@@ -9,7 +9,7 @@ export default function FlashcardsHeader({ onCreateNew, user }) {
         name: 'Đoàn Thế Anh',
         isPremium: true,
         avatar: 'https://i.pravatar.cc/150?img=33',
-        notifications: 3
+        notifications: 3,
     };
 
     const userData = user || defaultUser;
@@ -28,28 +28,34 @@ export default function FlashcardsHeader({ onCreateNew, user }) {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {/* Search */}
                     <div className="relative">
-                        <input type="text" placeholder="Tìm flashcard..."
-                            className="input input-bordered w-64 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500" />
+                        <input
+                            type="text"
+                            placeholder="Tìm flashcard..."
+                            className="input input-bordered w-64 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
+                        />
                         <Icon name="Search" size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
                     </div>
 
-                    {/* Create Button */}
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onCreateNew}
-                        className="btn bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg shadow-blue-600/20 gap-2">
-                        <Icon name="Plus" size="md" />Tạo Mới
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={onCreateNew}
+                        className="btn bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg shadow-blue-600/20 gap-2"
+                    >
+                        <Icon name="Plus" size="md" />
+                        Tạo mới
                     </motion.button>
 
-                    {/* Notifications */}
                     <div className="indicator">
                         {userData.notifications > 0 && (
                             <span className="indicator-item badge badge-sm badge-primary">{userData.notifications}</span>
                         )}
-                        <button className="btn btn-circle btn-ghost"><Icon name="Bell" size="md" /></button>
+                        <button className="btn btn-circle btn-ghost">
+                            <Icon name="Bell" size="md" />
+                        </button>
                     </div>
 
-                    {/* User Profile */}
                     <div className="flex items-center gap-3 pl-4 border-l border-base-300">
                         <div className="text-right">
                             <p className="font-bold text-sm text-base-content">{userData.name}</p>

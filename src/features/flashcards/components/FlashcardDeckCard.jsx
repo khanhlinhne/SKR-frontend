@@ -12,18 +12,6 @@ const DECK_COLOR_STYLES = {
     orange: { softBg: 'bg-orange-500/10', progressGradient: 'bg-gradient-to-r from-orange-500 to-orange-600' },
 };
 
-/**
- * FlashcardDeckCard - Card component for displaying a flashcard deck in grid view
- * 
- * @param {object} deck - Deck data object
- * @param {function} onStartStudy - Callback when start studying
- * @param {function} onEdit - Callback for edit action
- * @param {function} onCopy - Callback for copy action
- * @param {function} onShare - Callback for share action
- * @param {function} onDelete - Callback for delete action
- * @param {number} index - Index for animation delay
- * @param {object} variants - Animation variants
- */
 export default function FlashcardDeckCard({
     deck,
     onStartStudy,
@@ -32,9 +20,15 @@ export default function FlashcardDeckCard({
     onShare,
     onDelete,
     index = 0,
-    variants
+    variants,
 }) {
-    const progressPercent = Math.round((deck.mastered / deck.totalCards) * 100);
+    const progressPercent = deck.totalCards > 0 ? Math.round((deck.mastered / deck.totalCards) * 100) : 0;
+    const menuItems = [
+        onEdit ? { label: 'Chỉnh sửa', icon: 'Edit3', action: onEdit } : null,
+        onCopy ? { label: 'Sao chép', icon: 'Copy', action: onCopy } : null,
+        onShare ? { label: 'Chia sẻ', icon: 'Share2', action: onShare } : null,
+        onDelete ? { label: 'Xóa', icon: 'Trash2', action: onDelete, className: 'text-error' } : null,
+    ].filter(Boolean);
 
     return (
         <motion.div
@@ -42,7 +36,6 @@ export default function FlashcardDeckCard({
             whileHover={{ y: -5, transition: { duration: 0.2 } }}
             className="relative bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300 group cursor-pointer hover:border-blue-500/30 transition-all"
         >
-            {/* Streak Badge */}
             {deck.streak > 0 && (
                 <motion.div
                     initial={{ scale: 0 }}
@@ -57,73 +50,41 @@ export default function FlashcardDeckCard({
                 </motion.div>
             )}
 
-            {/* Header */}
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className={`w-14 h-14 rounded-2xl ${(DECK_COLOR_STYLES[deck.color] || DECK_COLOR_STYLES.blue).softBg} flex items-center justify-center text-3xl shadow-sm`}>
                         {deck.icon}
                     </div>
                     <div>
-                        <h3 className="font-bold text-base-content text-lg leading-tight">
-                            {deck.name}
-                        </h3>
+                        <h3 className="font-bold text-base-content text-lg leading-tight">{deck.name}</h3>
                         <p className="text-sm text-base-content/60">{deck.subject}</p>
                     </div>
                 </div>
 
-                {/* Dropdown Menu */}
-                <div className="dropdown dropdown-end">
-                    <button className="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Icon name="MoreVertical" size="sm" />
-                    </button>
-                    <ul className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-xl w-48 border border-base-300">
-                        <li>
-                            <a onClick={onEdit}>
-                                <Icon name="Edit3" size="sm" /> Chỉnh sửa
-                            </a>
-                        </li>
-                        <li>
-                            <a onClick={onCopy}>
-                                <Icon name="Copy" size="sm" /> Sao chép
-                            </a>
-                        </li>
-                        <li>
-                            <a onClick={onShare}>
-                                <Icon name="Share2" size="sm" /> Chia sẻ
-                            </a>
-                        </li>
-                        <li>
-                            <a className="text-error" onClick={onDelete}>
-                                <Icon name="Trash2" size="sm" /> Xóa
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                {menuItems.length > 0 && (
+                    <div className="dropdown dropdown-end">
+                        <button className="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Icon name="MoreVertical" size="sm" />
+                        </button>
+                        <ul className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-xl w-48 border border-base-300">
+                            {menuItems.map((item) => (
+                                <li key={item.label}>
+                                    <a className={item.className} onClick={item.action}>
+                                        <Icon name={item.icon} size="sm" /> {item.label}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </div>
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-2 mb-4">
-                <CompactStat
-                    value={deck.mastered}
-                    label="Thuộc"
-                    bgColor="bg-green-500/5"
-                    valueColor="text-green-600"
-                />
-                <CompactStat
-                    value={deck.learning}
-                    label="Đang học"
-                    bgColor="bg-orange-500/5"
-                    valueColor="text-orange-600"
-                />
-                <CompactStat
-                    value={deck.new}
-                    label="Mới"
-                    bgColor="bg-blue-500/5"
-                    valueColor="text-blue-600"
-                />
+                <CompactStat value={deck.mastered} label="Thuộc" bgColor="bg-green-500/5" valueColor="text-green-600" />
+                <CompactStat value={deck.learning} label="Đang học" bgColor="bg-orange-500/5" valueColor="text-orange-600" />
+                <CompactStat value={deck.new} label="Mới" bgColor="bg-blue-500/5" valueColor="text-blue-600" />
             </div>
 
-            {/* Progress Bar */}
             <ProgressBar
                 progress={progressPercent}
                 color={(DECK_COLOR_STYLES[deck.color] || DECK_COLOR_STYLES.blue).progressGradient}
@@ -133,7 +94,6 @@ export default function FlashcardDeckCard({
                 className="mb-4"
             />
 
-            {/* Footer */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 text-xs text-base-content/60">
                     <span className="flex items-center gap-1">
@@ -161,7 +121,6 @@ export default function FlashcardDeckCard({
     );
 }
 
-// Add New Deck Card
 export function AddDeckCard({ onClick, variants }) {
     return (
         <motion.div
@@ -177,12 +136,7 @@ export function AddDeckCard({ onClick, variants }) {
             <h3 className="text-lg font-bold text-base-content/60 group-hover:text-blue-500 transition-colors">
                 Tạo Bộ Flashcard Mới
             </h3>
-            <p className="text-sm text-base-content/40 mt-1">
-                Hoặc import từ file
-            </p>
+            <p className="text-sm text-base-content/40 mt-1">Hoặc import từ file</p>
         </motion.div>
     );
 }
-
-
-

@@ -1,17 +1,10 @@
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
 
-/**
- * QuickStudySection - Section for quick review of due cards
- * 
- * @param {number} dueToday - Number of cards due today
- * @param {function} onStartQuickStudy - Callback when starting quick study
- * @param {object} variants - Animation variants
- */
 export default function QuickStudySection({
     dueToday = 0,
     onStartQuickStudy,
-    variants
+    variants,
 }) {
     return (
         <motion.div

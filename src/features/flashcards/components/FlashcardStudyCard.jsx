@@ -1,21 +1,14 @@
 import { motion } from 'motion/react';
 
-/**
- * FlashcardStudyCard - Interactive flashcard with flip animation
- * 
- * @param {object} card - Card data with front, back, difficulty
- * @param {boolean} isFlipped - Whether card is flipped
- * @param {function} onFlip - Callback when card is clicked to flip
- */
 export default function FlashcardStudyCard({
     card,
     isFlipped = false,
-    onFlip
+    onFlip,
 }) {
     const difficultyConfig = {
         easy: { label: 'Dễ', class: 'badge-success' },
         medium: { label: 'Trung bình', class: 'badge-warning' },
-        hard: { label: 'Khó', class: 'badge-error' }
+        hard: { label: 'Khó', class: 'badge-error' },
     };
 
     const difficulty = difficultyConfig[card.difficulty] || difficultyConfig.medium;
@@ -29,19 +22,16 @@ export default function FlashcardStudyCard({
                 animate={{ rotateY: isFlipped ? 180 : 0 }}
                 transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-                {/* Front of card */}
                 <div
                     className="absolute inset-0 bg-base-100 rounded-3xl shadow-2xl border border-base-300 p-8 flex flex-col items-center justify-center backface-hidden"
                     style={{ backfaceVisibility: 'hidden' }}
                 >
-                    {/* Difficulty Badge */}
                     <div className="absolute top-4 left-4">
                         <span className={`badge ${difficulty.class}`}>
                             {difficulty.label}
                         </span>
                     </div>
 
-                    {/* Question */}
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -52,13 +42,11 @@ export default function FlashcardStudyCard({
                         </p>
                     </motion.div>
 
-                    {/* Hint */}
                     <p className="absolute bottom-4 text-sm text-base-content/40">
                         Click để lật thẻ
                     </p>
                 </div>
 
-                {/* Back of card */}
                 <div
                     className="absolute inset-0 bg-gradient-to-br from-blue-600 to-violet-600 rounded-3xl shadow-2xl p-8 flex flex-col items-center justify-center"
                     style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
@@ -78,10 +66,9 @@ export default function FlashcardStudyCard({
     );
 }
 
-// Study Progress Header
 export function StudyProgress({
     stats,
-    progress
+    progress,
 }) {
     return (
         <div className="flex items-center gap-6">
@@ -109,4 +96,3 @@ export function StudyProgress({
         </div>
     );
 }
-
