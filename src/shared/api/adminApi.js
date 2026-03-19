@@ -1,4 +1,5 @@
-import axiosClient from "./axiosClient";
+import axiosClient from './axiosClient';
+import subjectApi from './subjectApi';
 
 const adminApi = {
     // ===== USER MANAGEMENT =====
@@ -52,8 +53,10 @@ const adminApi = {
      * @param {Object} data - Course data
      * @returns {{ course: Object }}
      */
-    createCourse(data) {
-        return axiosClient.post("/courses", data);
+    async createCourse(data) {
+        const response = await axiosClient.post('/courses', data);
+        subjectApi.clearCache();
+        return response;
     },
 
     /**
@@ -63,8 +66,10 @@ const adminApi = {
      * @param {Object} data - Updated course data
      * @returns {{ course: Object }}
      */
-    updateCourse(id, data) {
-        return axiosClient.put(`/courses/${id}`, data);
+    async updateCourse(id, data) {
+        const response = await axiosClient.put(`/courses/${id}`, data);
+        subjectApi.clearCache();
+        return response;
     },
 
     /**
@@ -73,8 +78,10 @@ const adminApi = {
      * @param {string} id - Course ID
      * @returns {{ message: string }}
      */
-    deleteCourse(id) {
-        return axiosClient.delete(`/courses/${id}`);
+    async deleteCourse(id) {
+        const response = await axiosClient.delete(`/courses/${id}`);
+        subjectApi.clearCache();
+        return response;
     },
 
     // ===== ORDER MANAGEMENT =====

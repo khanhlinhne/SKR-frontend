@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s http://localhost:5000/api/auth/google)"
     ]
   }
 }

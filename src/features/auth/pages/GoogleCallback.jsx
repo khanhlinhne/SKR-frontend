@@ -4,6 +4,7 @@ import { Loader2, ShieldCheck } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthCard, AuthShell } from '@/features/auth/components';
 import { hydrateProfileAfterAuth } from '@/shared/user';
+import { setAccessToken, setRefreshToken } from '@/shared/utils/tokenManager';
 
 export default function GoogleCallback() {
     const navigate = useNavigate();
@@ -18,9 +19,10 @@ export default function GoogleCallback() {
         const error = searchParams.get('error') || searchParams.get('message');
 
         if (accessToken) {
-            localStorage.setItem('accessToken', accessToken);
+            // Lưu token với thời hạn (Google callback mặc định 24h)
+            setAccessToken(accessToken, 24 * 60 * 60);
             if (refreshToken) {
-                localStorage.setItem('refreshToken', refreshToken);
+                setRefreshToken(refreshToken);
             }
             await hydrateProfileAfterAuth();
             navigate(safeRedirectTarget || '/dashboard', { replace: true });

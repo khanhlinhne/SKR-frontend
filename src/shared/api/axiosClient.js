@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAccessToken, clearTokens } from '@/shared/utils/tokenManager';
 
 const isDev = import.meta.env.DEV;
 
@@ -12,22 +13,16 @@ const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
+        const token = getAccessToken();
 
-        if (token && token !== 'undefined' && token !== 'null') {
+        if (token) {
             config.headers.Authorization = `Bearer ${token}`;
 
             if (isDev) {
                 console.log('Sending request with token:', `${token.substring(0, 20)}...`);
             }
-        } else if (token === 'undefined' || token === 'null') {
-            if (isDev) {
-                console.warn('Invalid token found in localStorage, removing it');
-            }
-
-            localStorage.removeItem('accessToken');
         } else if (isDev) {
-            console.log('No valid token found in localStorage');
+            console.log('No valid token found - token expired or not set');
         }
 
         return config;
@@ -47,8 +42,7 @@ axiosClient.interceptors.response.use(
                     const isUserDataEndpoint = url.includes('/user/profile') || url.includes('/user/change-password');
 
                     if (!isUserDataEndpoint) {
-                        localStorage.removeItem('accessToken');
-                        localStorage.removeItem('user');
+                        clearTokens();
                     }
 
                     if (url.includes('/auth/login') || url.includes('/auth/register')) {

@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
+import { createStudyReviewTransport } from '@/features/flashcards/utils/studyReviewTransport';
 import { flashcardApi, subjectApi } from '@/shared/api';
+import { mapWithConcurrency } from '@/shared/utils/mapWithConcurrency.js';
+import { isTokenValid } from '@/shared/utils/tokenManager';
 import Icon from '@/shared/ui/icons/Icon';
 import {
     FlashcardDeckCard,
@@ -19,6 +22,56 @@ import {
 import { OwlLoader, StatCard, ViewToggle, FilterSortControls, SectionHeader } from '@/shared/ui/common';
 
 const FALLBACK_DECK_COLORS = ['blue', 'green', 'purple', 'orange', 'yellow', 'red'];
+const SUBJECT_PICKER_LIMIT = 40;
+const CREATE_ITEM_CONCURRENCY = 4;
+const SYNC_STATUS_VISIBLE_THRESHOLD = 8;
+const SYNC_NOW_BUTTON_THRESHOLD = 20;
+const PROGRESS_SYNC_REVIEW_THRESHOLD = 2; // Sync after every 2 reviews (faster UX)
+const PROGRESS_SYNC_INTERVAL_MS = 500; // Sync every 500ms max (was 10s!)
+
+function createClientReviewId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+
+    return `review-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isBatchEndpointUnsupported(error) {
+    const status = error?.response?.status;
+    return status === 404 || status === 405 || status === 501;
+}
+
+function resolveStudySyncConfig() {
+    const effectiveType =
+        typeof navigator !== 'undefined' ? navigator.connection?.effectiveType : null;
+
+    if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+        return {
+            concurrency: 2,
+            fallbackConcurrency: 2,
+            batchSize: 2,
+            flushIntervalMs: 200,
+        };
+    }
+
+    if (effectiveType === '3g') {
+        return {
+            concurrency: 3,
+            fallbackConcurrency: 3,
+            batchSize: 4,
+            flushIntervalMs: 150,
+        };
+    }
+
+    // Fast connection: sync nearly instantly (like Quizlet)
+    return {
+        concurrency: 6,
+        fallbackConcurrency: 4,
+        batchSize: 10,
+        flushIntervalMs: 50, // Nearly instant sync
+    };
+}
 
 function pickDeckColor(deck, index) {
     const seed = deck.setTitle || deck.setDescription || '';
@@ -30,16 +83,16 @@ function pickDeckIcon(deck) {
     const source = `${deck.setTitle || ''} ${Array.isArray(deck.tags) ? deck.tags.join(' ') : ''}`.toLowerCase();
 
     if (source.includes('react') || source.includes('javascript') || source.includes('html') || source.includes('git')) {
-        return '💻';
+        return '\u{1F4BB}';
     }
     if (source.includes('sql') || source.includes('database')) {
-        return '🗄️';
+        return '\u{1F5C4}\uFE0F';
     }
     if (source.includes('vocabulary') || source.includes('từ vựng') || source.includes('tu vung') || source.includes('english')) {
-        return '📘';
+        return '\u{1F4D8}';
     }
 
-    return '📚';
+    return '\u{1F4DA}';
 }
 
 function formatLastStudied(createdAt) {
@@ -82,11 +135,11 @@ function readCurrentUserId() {
         // Ignore malformed cached user data and fall back to the JWT payload.
     }
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
+    if (!isTokenValid()) {
         return null;
     }
 
+    const token = localStorage.getItem('accessToken');
     const payload = token.split('.')[1];
     if (!payload) {
         return null;
@@ -173,11 +226,22 @@ export default function Flashcards() {
     const [activeStudySessionId, setActiveStudySessionId] = useState(null);
     const [studySessionStartedAt, setStudySessionStartedAt] = useState(null);
     const [savingReview, setSavingReview] = useState(false);
-    const [pendingReviewCount, setPendingReviewCount] = useState(0);
+    const [reviewSyncState, setReviewSyncState] = useState({
+        pendingCount: 0,
+        inFlightCount: 0,
+        queuedCount: 0,
+        isFlushing: false,
+    });
+    const [manualSyncing, setManualSyncing] = useState(false);
     const [subjectOptions, setSubjectOptions] = useState([]);
     const [hasAnimated, setHasAnimated] = useState(false);
 
-    const reviewQueueRef = useRef(Promise.resolve());
+    const reviewTransportRef = useRef(null);
+    const pendingDeckProgressRef = useRef(null);
+    const pendingProgressDeckIdRef = useRef(null);
+    const pendingProgressReviewCountRef = useRef(0);
+    const progressSyncTimerRef = useRef(null);
+    const lastProgressAppliedAtRef = useRef(0);
 
     const fetchDecks = useCallback(async () => {
         try {
@@ -204,9 +268,19 @@ export default function Flashcards() {
         }
     }, []);
 
-    const fetchSubjects = useCallback(async () => {
+    const fetchSubjects = useCallback(async (options = {}) => {
+        const forceRefresh = options.forceRefresh === true;
+
         try {
-            const response = await subjectApi.getAll({ limit: 100, status: 'published' });
+            const response = await subjectApi.getAll(
+                {
+                    limit: SUBJECT_PICKER_LIMIT,
+                    status: 'published',
+                    sortBy: 'purchaseCount',
+                    sortOrder: 'desc',
+                },
+                { forceRefresh },
+            );
             const payload = response?.data || response || {};
             const items = Array.isArray(payload.items) ? payload.items : [];
 
@@ -227,8 +301,15 @@ export default function Flashcards() {
 
     useEffect(() => {
         fetchDecks();
-        fetchSubjects();
-    }, [fetchDecks, fetchSubjects]);
+    }, [fetchDecks]);
+
+    useEffect(() => {
+        if (!showCreateModal || subjectOptions.length > 0) {
+            return;
+        }
+
+        void fetchSubjects();
+    }, [showCreateModal, subjectOptions.length, fetchSubjects]);
 
     const applyDeckProgress = useCallback((deckId, deckProgress) => {
         if (!deckProgress) {
@@ -268,6 +349,35 @@ export default function Flashcards() {
         );
     }, []);
 
+    const applyOptimisticDeckDelta = useCallback((deckId, { masteredDelta = 0, dueTodayDelta = 0 }) => {
+        if (!deckId || (!masteredDelta && !dueTodayDelta)) {
+            return;
+        }
+
+        const applyDelta = (deck) => {
+            const totalCards = Math.max(Number(deck.totalCards || 0), 0);
+            const nextMastered = Math.min(
+                totalCards,
+                Math.max(Number(deck.mastered || 0) + Number(masteredDelta || 0), 0),
+            );
+            const nextDueToday = Math.max(Number(deck.dueToday || 0) + Number(dueTodayDelta || 0), 0);
+
+            return {
+                ...deck,
+                mastered: nextMastered,
+                dueToday: nextDueToday,
+                raw: {
+                    ...deck.raw,
+                    masteredCount: nextMastered,
+                    dueToday: nextDueToday,
+                },
+            };
+        };
+
+        setDecks((prevDecks) => prevDecks.map((deck) => (deck.id === deckId ? applyDelta(deck) : deck)));
+        setSelectedDeck((prevDeck) => (prevDeck?.id === deckId ? applyDelta(prevDeck) : prevDeck));
+    }, []);
+
     const updateStudyStat = useCallback((result, delta = 1) => {
         const statKey = result === 'correct' ? 'correct' : result === 'incorrect' ? 'incorrect' : 'skipped';
         setStudyStats((prev) => ({
@@ -275,6 +385,148 @@ export default function Flashcards() {
             [statKey]: Math.max((prev[statKey] || 0) + delta, 0),
         }));
     }, []);
+
+    const resetReviewSyncState = useCallback(() => {
+        setReviewSyncState({
+            pendingCount: 0,
+            inFlightCount: 0,
+            queuedCount: 0,
+            isFlushing: false,
+        });
+    }, []);
+
+    const clearProgressSyncTimer = useCallback(() => {
+        if (!progressSyncTimerRef.current) {
+            return;
+        }
+
+        clearTimeout(progressSyncTimerRef.current);
+        progressSyncTimerRef.current = null;
+    }, []);
+
+    const resetProgressSyncBuffer = useCallback(() => {
+        pendingDeckProgressRef.current = null;
+        pendingProgressDeckIdRef.current = null;
+        pendingProgressReviewCountRef.current = 0;
+        clearProgressSyncTimer();
+    }, [clearProgressSyncTimer]);
+
+    const flushProgressSyncBuffer = useCallback(
+        ({ force = false } = {}) => {
+            const deckProgress = pendingDeckProgressRef.current;
+            const deckId = pendingProgressDeckIdRef.current;
+            if (!deckProgress || !deckId) {
+                return;
+            }
+
+            const elapsedMs = Date.now() - lastProgressAppliedAtRef.current;
+            if (
+                !force &&
+                pendingProgressReviewCountRef.current < PROGRESS_SYNC_REVIEW_THRESHOLD &&
+                elapsedMs < PROGRESS_SYNC_INTERVAL_MS
+            ) {
+                return;
+            }
+
+            applyDeckProgress(deckId, deckProgress);
+            lastProgressAppliedAtRef.current = Date.now();
+            resetProgressSyncBuffer();
+        },
+        [applyDeckProgress, resetProgressSyncBuffer],
+    );
+
+    const queueProgressSync = useCallback(
+        (deckId, deckProgress, syncedReviewCount = 1) => {
+            if (!deckProgress || !deckId) {
+                return;
+            }
+
+            pendingDeckProgressRef.current = deckProgress;
+            pendingProgressDeckIdRef.current = deckId;
+            pendingProgressReviewCountRef.current += Math.max(Number(syncedReviewCount) || 0, 1);
+
+            if (pendingProgressReviewCountRef.current >= PROGRESS_SYNC_REVIEW_THRESHOLD) {
+                flushProgressSyncBuffer({ force: true });
+                return;
+            }
+
+            if (!progressSyncTimerRef.current) {
+                progressSyncTimerRef.current = setTimeout(() => {
+                    progressSyncTimerRef.current = null;
+                    flushProgressSyncBuffer({ force: true });
+                }, PROGRESS_SYNC_INTERVAL_MS);
+            }
+        },
+        [flushProgressSyncBuffer],
+    );
+
+    const disposeStudyReviewTransport = useCallback(() => {
+        reviewTransportRef.current?.dispose();
+        reviewTransportRef.current = null;
+        resetReviewSyncState();
+    }, [resetReviewSyncState]);
+
+    const initializeStudyReviewTransport = useCallback(
+        (deckId, sessionId) => {
+            disposeStudyReviewTransport();
+            resetProgressSyncBuffer();
+
+            const syncConfig = resolveStudySyncConfig();
+            const transport = createStudyReviewTransport({
+                maxConcurrent: syncConfig.concurrency,
+                maxBatchSize: syncConfig.batchSize,
+                flushIntervalMs: syncConfig.flushIntervalMs,
+                maxAttempts: 3,
+                retryBaseDelayMs: 1000,
+                retryMaxDelayMs: 8000,
+                submitBatch: async (reviews) => {
+                    const normalizedReviews = reviews.map((review) => ({
+                        flashcardItemId: review.flashcardItemId,
+                        result: review.result,
+                        reviewedAt: review.reviewedAt || new Date().toISOString(),
+                        clientReviewId: review.clientReviewId || createClientReviewId(),
+                    }));
+
+                    // Fire-and-forget: Don't wait, don't show errors
+                    // UI already updated with optimistic updates
+                    try {
+                        await flashcardApi.submitStudyReviewBatch(deckId, sessionId, {
+                            reviews: normalizedReviews,
+                        });
+                    } catch (batchError) {
+                        // Silently try fallback without showing errors
+                        if (isBatchEndpointUnsupported(batchError)) {
+                            // Try single API but don't wait
+                            normalizedReviews.forEach((review) => {
+                                flashcardApi.submitStudyReview(deckId, sessionId, {
+                                    flashcardItemId: review.flashcardItemId,
+                                    result: review.result,
+                                    reviewedAt: review.reviewedAt,
+                                    clientReviewId: review.clientReviewId,
+                                }).catch(() => {}); // Silent fail
+                            });
+                        }
+                        // Silent fail - UI already updated
+                    }
+
+                    // Return success even if backend failed - UI is already updated
+                    return { success: true };
+                },
+                onBatchSuccess: (_response, _reviews) => {
+                    // Silent success - UI already updated
+                },
+                onError: (_err) => {
+                    // Silent error - don't disrupt UX
+                    // Reviews are already saved in UI via optimistic updates
+                },
+            });
+
+            transport.subscribe(setReviewSyncState);
+            reviewTransportRef.current = transport;
+            return transport;
+        },
+        [disposeStudyReviewTransport, queueProgressSync, resetProgressSyncBuffer],
+    );
 
     const resetStudyState = useCallback(() => {
         setStudyMode(false);
@@ -286,10 +538,11 @@ export default function Flashcards() {
         setSavingReview(false);
         setActiveStudySessionId(null);
         setStudySessionStartedAt(null);
-        setPendingReviewCount(0);
         setStudyStats({ correct: 0, incorrect: 0, skipped: 0 });
-        reviewQueueRef.current = Promise.resolve();
-    }, []);
+        setManualSyncing(false);
+        resetProgressSyncBuffer();
+        disposeStudyReviewTransport();
+    }, [disposeStudyReviewTransport, resetProgressSyncBuffer]);
 
     const finalizeStudySession = useCallback(async (deckId, options = {}) => {
         const sessionId = options.sessionId ?? activeStudySessionId;
@@ -297,10 +550,12 @@ export default function Flashcards() {
             return false;
         }
 
+        let completed = false;
         setSavingReview(true);
 
         try {
-            await reviewQueueRef.current;
+            await reviewTransportRef.current?.flushAll({ timeoutMs: 20_000 });
+            flushProgressSyncBuffer({ force: true });
 
             const startedAt = options.startedAt ?? studySessionStartedAt;
             const durationSeconds = startedAt
@@ -312,55 +567,69 @@ export default function Flashcards() {
             });
             const payload = extractStudyPayload(response);
             applyDeckProgress(deckId, payload.deckProgress);
+            completed = true;
             return true;
         } catch (err) {
             console.error('Failed to complete study session:', err);
             setError(err.response?.data?.message || err.message || 'Không thể hoàn tất phiên học flashcard');
             return false;
         } finally {
-            reviewQueueRef.current = Promise.resolve();
-            setPendingReviewCount(0);
             setSavingReview(false);
-            setActiveStudySessionId(null);
-            setStudySessionStartedAt(null);
+            if (completed) {
+                setActiveStudySessionId(null);
+                setStudySessionStartedAt(null);
+                disposeStudyReviewTransport();
+            }
         }
-    }, [activeStudySessionId, studySessionStartedAt, applyDeckProgress]);
+    }, [activeStudySessionId, studySessionStartedAt, applyDeckProgress, disposeStudyReviewTransport, flushProgressSyncBuffer]);
 
     const enqueueStudyReview = useCallback((payload) => {
-        setPendingReviewCount((current) => current + 1);
+        const transport = reviewTransportRef.current;
+        if (!transport) {
+            throw new Error('Study review transport is not ready.');
+        }
 
-        const persistReview = async () => {
-            const response = await flashcardApi.submitStudyReview(payload.deckId, payload.sessionId, {
-                flashcardItemId: payload.flashcardItemId,
-                result: payload.result,
+        transport.enqueue(payload);
+    }, []);
+
+    useEffect(() => {
+        if (!studyMode) {
+            return undefined;
+        }
+
+        const flushPendingReviews = () => {
+            void reviewTransportRef.current?.flushAll({ timeoutMs: 4_000 }).then(() => {
+                flushProgressSyncBuffer({ force: true });
+            }).catch(() => {
+                // Keep the optimistic UI responsive and let the next retry handle errors.
             });
-            const reviewPayload = extractStudyPayload(response);
-            applyDeckProgress(payload.deckId, reviewPayload.deckProgress);
-            return reviewPayload;
         };
 
-        const queuedPromise = reviewQueueRef.current.then(persistReview, persistReview);
-        reviewQueueRef.current = queuedPromise.then(
-            () => undefined,
-            () => undefined,
-        );
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                flushPendingReviews();
+            }
+        };
 
-        return queuedPromise
-            .catch((err) => {
-                updateStudyStat(payload.result, -1);
-                console.error('Failed to save flashcard progress:', err);
-                setError(err.response?.data?.message || err.message || 'Không thể lưu tiến độ flashcard');
-                throw err;
-            })
-            .finally(() => {
-                setPendingReviewCount((current) => Math.max(current - 1, 0));
-            });
-    }, [applyDeckProgress, updateStudyStat]);
+        window.addEventListener('beforeunload', flushPendingReviews);
+        window.addEventListener('pagehide', flushPendingReviews);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('beforeunload', flushPendingReviews);
+            window.removeEventListener('pagehide', flushPendingReviews);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [studyMode, flushProgressSyncBuffer]);
 
     useEffect(() => {
         const timer = setTimeout(() => setHasAnimated(true), 1000);
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => () => {
+        clearProgressSyncTimer();
+    }, [clearProgressSyncTimer]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -402,8 +671,9 @@ export default function Flashcards() {
             setStudyStats({ correct: 0, incorrect: 0, skipped: 0 });
             setItemsLoading(true);
             setSavingReview(false);
-            setPendingReviewCount(0);
-            reviewQueueRef.current = Promise.resolve();
+            setManualSyncing(false);
+            resetProgressSyncBuffer();
+            disposeStudyReviewTransport();
 
             const items = await fetchDeckItems(deck.id);
             setCurrentDeckItems(items);
@@ -411,9 +681,14 @@ export default function Flashcards() {
             if (items.length > 0) {
                 const response = await flashcardApi.startStudySession(deck.id);
                 const payload = extractStudyPayload(response);
-                setActiveStudySessionId(payload.session?.sessionId || null);
+                const sessionId = payload.session?.sessionId || null;
+                setActiveStudySessionId(sessionId);
                 setStudySessionStartedAt(Date.now());
                 applyDeckProgress(deck.id, payload.deckProgress);
+
+                if (sessionId) {
+                    initializeStudyReviewTransport(deck.id, sessionId);
+                }
             } else {
                 setActiveStudySessionId(null);
                 setStudySessionStartedAt(null);
@@ -446,40 +721,50 @@ export default function Flashcards() {
         setError(null);
         updateStudyStat(result, 1);
 
+        const optimisticDeckDelta =
+            result === 'correct'
+                ? { masteredDelta: 1, dueTodayDelta: -1 }
+                : { masteredDelta: 0, dueTodayDelta: 0 };
+        applyOptimisticDeckDelta(deckId, optimisticDeckDelta);
+
+        try {
+            // Enqueue review - UI already updated via optimistic update
+            // Fire-and-forget: don't wait for backend
+            enqueueStudyReview({
+                flashcardItemId: currentCard.id,
+                result,
+                reviewedAt: new Date().toISOString(),
+                clientReviewId: createClientReviewId(),
+            });
+        } catch (err) {
+            updateStudyStat(result, -1);
+            if (optimisticDeckDelta.masteredDelta || optimisticDeckDelta.dueTodayDelta) {
+                applyOptimisticDeckDelta(deckId, {
+                    masteredDelta: -optimisticDeckDelta.masteredDelta,
+                    dueTodayDelta: -optimisticDeckDelta.dueTodayDelta,
+                });
+            }
+            setError(err.message || 'Không thể khởi tạo đồng bộ tiến độ flashcard.');
+            return;
+        }
+
         const isLastCard = currentCardIndex >= currentDeckItems.length - 1;
 
         if (!isLastCard) {
             setCurrentCardIndex((prev) => prev + 1);
             setIsFlipped(false);
-        }
-
-        const savePromise = enqueueStudyReview({
-            deckId,
-            sessionId,
-            flashcardItemId: currentCard.id,
-            result,
-        });
-
-        if (!isLastCard) {
             return;
         }
 
-        setSavingReview(true);
-
         void (async () => {
-            try {
-                await savePromise;
-                const finalized = await finalizeStudySession(deckId, {
-                    sessionId,
-                    startedAt: studySessionStartedAt,
-                });
+            const finalized = await finalizeStudySession(deckId, {
+                sessionId,
+                startedAt: studySessionStartedAt,
+            });
 
-                if (finalized) {
-                    resetStudyState();
-                    void fetchDecks();
-                }
-            } catch {
-                setSavingReview(false);
+            if (finalized) {
+                resetStudyState();
+                void fetchDecks();
             }
         })();
     }, [
@@ -490,6 +775,7 @@ export default function Flashcards() {
         activeStudySessionId,
         studySessionStartedAt,
         updateStudyStat,
+        applyOptimisticDeckDelta,
         enqueueStudyReview,
         finalizeStudySession,
         fetchDecks,
@@ -512,6 +798,22 @@ export default function Flashcards() {
             void fetchDecks();
         }
     }, [selectedDeck, activeStudySessionId, studySessionStartedAt, finalizeStudySession, fetchDecks, resetStudyState]);
+
+    const handleManualSync = useCallback(async () => {
+        if (!reviewTransportRef.current || manualSyncing) {
+            return;
+        }
+
+        setManualSyncing(true);
+        try {
+            await reviewTransportRef.current.flushAll({ timeoutMs: 4_000 });
+            flushProgressSyncBuffer({ force: true });
+        } catch (syncError) {
+            setError(syncError.message || 'Không thể đồng bộ nhanh tiến độ flashcard.');
+        } finally {
+            setManualSyncing(false);
+        }
+    }, [manualSyncing, flushProgressSyncBuffer]);
 
     const handlePrevCard = () => {
         if (currentCardIndex > 0) {
@@ -597,14 +899,19 @@ export default function Flashcards() {
                 throw new Error('Không nhận được mã bộ flashcard mới từ máy chủ.');
             }
 
-            await Promise.all(
-                cards.map((card, index) =>
+            await mapWithConcurrency(
+                cards,
+                async (card, index) =>
                     flashcardApi.createItem(createdSetId, {
                         frontText: card.frontText.trim(),
                         backText: card.backText.trim(),
                         cardOrder: card.cardOrder ?? index,
                     }),
-                ),
+                {
+                    concurrency: CREATE_ITEM_CONCURRENCY,
+                    retries: 1,
+                    retryDelayMs: 150,
+                },
             );
 
             await fetchDecks();
@@ -631,7 +938,6 @@ export default function Flashcards() {
                 err.response = { data: { message } };
             }
             setError(message);
-            setError(err.response?.data?.message || err.message || 'Không thể tạo flashcard');
         }
     };
 
@@ -711,9 +1017,19 @@ export default function Flashcards() {
                                 <span>{error}</span>
                             </div>
                         )}
-                        {pendingReviewCount > 0 && !error && (
-                            <div className="mb-4 text-center text-sm text-base-content/60">
-                                Đang lưu {pendingReviewCount} thẻ ở nền...
+                        {reviewSyncState.queuedCount > SYNC_STATUS_VISIBLE_THRESHOLD && !error && (
+                            <div className="mb-4 flex items-center justify-center gap-3 text-sm text-base-content/60">
+                                <span>Đang đồng bộ {reviewSyncState.queuedCount} thẻ ở nền...</span>
+                                {reviewSyncState.queuedCount > SYNC_NOW_BUTTON_THRESHOLD && (
+                                    <button
+                                        type="button"
+                                        onClick={handleManualSync}
+                                        disabled={manualSyncing || savingReview}
+                                        className="btn btn-xs rounded-full"
+                                    >
+                                        {manualSyncing ? 'Đang đồng bộ...' : 'Đồng bộ nhanh'}
+                                    </button>
+                                )}
                             </div>
                         )}
                         <div className="flex-1 flex items-center justify-center">

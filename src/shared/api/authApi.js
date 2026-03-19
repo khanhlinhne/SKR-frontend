@@ -1,4 +1,9 @@
-import axiosClient from "./axiosClient";
+import axiosClient from './axiosClient';
+import { createTimedRequestMemo } from '../utils/requestMemo.js';
+
+const PROFILE_CACHE_KEY = 'auth:profile';
+const PROFILE_CACHE_TTL_MS = 30 * 1000;
+const authRequestMemo = createTimedRequestMemo();
 
 const authApi = {
     /**
@@ -68,8 +73,10 @@ const authApi = {
      *   (co the truyen username HOAC email, kem password)
      * @returns {{ message: string, token: string }}
      */
-    login(data) {
-        return axiosClient.post("/auth/login", data);
+    async login(data) {
+        const response = await axiosClient.post('/auth/login', data);
+        authRequestMemo.invalidate(PROFILE_CACHE_KEY);
+        return response;
     },
 
     /**
@@ -77,8 +84,17 @@ const authApi = {
      * GET /api/user/profile
      * @returns {{ user: Object }}
      */
-    getMe() {
-        return axiosClient.get("/user/profile");
+    getMe(options = {}) {
+        const forceRefresh = options.forceRefresh === true;
+
+        return authRequestMemo.run(
+            PROFILE_CACHE_KEY,
+            () => axiosClient.get('/user/profile'),
+            {
+                ttlMs: PROFILE_CACHE_TTL_MS,
+                force: forceRefresh,
+            },
+        );
     },
 
     /**
@@ -87,8 +103,10 @@ const authApi = {
      * @param {Object} data - { name, phone, location, bio }
      * @returns {{ message: string, user: Object }}
      */
-    updateProfile(data) {
-        return axiosClient.put("/user/profile", data);
+    async updateProfile(data) {
+        const response = await axiosClient.put('/user/profile', data);
+        authRequestMemo.invalidate(PROFILE_CACHE_KEY);
+        return response;
     },
 
     /**
@@ -98,7 +116,11 @@ const authApi = {
      * @returns {{ message: string }}
      */
     changePassword(data) {
-        return axiosClient.post("/user/change-password", data);
+        return axiosClient.post('/user/change-password', data);
+    },
+
+    clearProfileCache() {
+        authRequestMemo.invalidate(PROFILE_CACHE_KEY);
     },
 };
 

@@ -18,8 +18,8 @@ export default function NavBar() {
 
     const navLinks = [
         { name: 'Tính năng', href: '#features' },
-        { name: 'Lợi ích', href: '#benefits' },
-        { name: 'Giá cả', href: '#pricing' },
+        { name: 'Flashcard', href: '/flashcards' },
+        { name: 'Khóa học', href: '/courses' },
         { name: 'Blog', href: '#blog' }
     ];
 

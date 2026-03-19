@@ -1,6 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { clearTokens } from '@/shared/utils/tokenManager';
 import {
     BarChart3,
     BookOpen,
@@ -34,8 +35,7 @@ export default function DashboardSidebar() {
     });
 
     const handleLogout = () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('user');
+        clearTokens();
         navigate('/login');
     };
 

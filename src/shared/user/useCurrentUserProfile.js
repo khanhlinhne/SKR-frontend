@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import authApi from '@/shared/api/authApi';
+import { isTokenValid } from '@/shared/utils/tokenManager';
 
 const PROFILE_STORAGE_KEY = 'skr-current-user-profile';
 const PROFILE_UPDATED_EVENT = 'skr:profile-updated';
 const PROFILE_FETCH_TTL_MS = 60 * 1000;
 
 const DEFAULT_PROFILE = {
-    name: 'Ngu?i dùng',
+    name: 'Ngu?i dï¿½ng',
     avatarUrl: '',
     email: '',
     isPremium: false,
@@ -81,6 +82,7 @@ function normalizeProfile(source) {
         avatarUrl: raw.avatarUrl || raw.avatar_url || raw.avatar || storedUser.avatarUrl || storedUser.avatar || '',
         email: raw.email || storedUser.email || '',
         isPremium: Boolean(premiumValue),
+        roles: roleCodes,
     };
 }
 
@@ -139,6 +141,7 @@ export function updateCachedUserProfile(source) {
             avatarUrl: normalized.avatarUrl,
             email: normalized.email,
             isPremium: normalized.isPremium,
+            roles: normalized.roles,
         }),
     );
 
@@ -165,8 +168,7 @@ export function useCurrentUserProfile({ fetchOnMount = true } = {}) {
             return cachedProfile;
         }
 
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
+        if (!isTokenValid()) {
             return cachedProfile;
         }
 

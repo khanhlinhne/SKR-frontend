@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, BarChart3, BrainCircuit, Layers3, Lock, Mail } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -11,6 +11,8 @@ import {
     AuthShell,
     AuthStatusBanner,
 } from '@/features/auth/components';
+import { buildGoogleAuthUrl } from '@/features/auth/utils/googleAuthUrl';
+import { setAccessToken, setRefreshToken } from '@/shared/utils/tokenManager';
 
 const loginFeatures = [
     {
@@ -21,7 +23,7 @@ const loginFeatures = [
     {
         icon: BrainCircuit,
         title: 'AI hỗ trợ đúng lúc',
-        description: 'Nhận gợi ý ôn tập, tóm tắt và giải thích khi bạn thật sự cần, không thêm nhiễu.',
+        description: 'Nhận gợi ý ôn tập, tóm tắt và giải thích khi bạn thật sự cần, không thêm nhiều.',
     },
     {
         icon: BarChart3,
@@ -68,14 +70,16 @@ export default function Login() {
             });
 
             const token = data.data?.tokens?.accessToken;
+            const expiresIn = data.data?.tokens?.expiresIn;
             if (!token) {
                 setError('Đăng nhập thất bại: không nhận được token từ server.');
                 return;
             }
 
-            localStorage.setItem('accessToken', token);
+            // Lưu token với thời hạn (mặc định 24h nếu server không trả expiresIn)
+            setAccessToken(token, expiresIn || 24 * 60 * 60);
             if (data.data?.tokens?.refreshToken) {
-                localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
+                setRefreshToken(data.data.tokens.refreshToken);
             }
             await hydrateProfileAfterAuth(data.data?.user || data.user || null);
             navigate(safeRedirectTarget || '/dashboard');
@@ -167,17 +171,18 @@ export default function Login() {
                             </span>
                         </div>
                     </div>
-
-                    <AuthGoogleButton onClick={() => {
-                        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-                        const googleAuthUrl = new URL('/auth/google', apiBaseUrl);
-                        if (safeRedirectTarget) {
-                            googleAuthUrl.searchParams.set('redirect', safeRedirectTarget);
-                        }
-                        window.location.href = googleAuthUrl.toString();
-                    }} />
+                    <AuthGoogleButton
+                        onClick={() => {
+                            window.location.href = buildGoogleAuthUrl(
+                                import.meta.env.VITE_API_BASE_URL,
+                                safeRedirectTarget,
+                            );
+                        }}
+                    />
                 </form>
             </AuthCard>
         </AuthShell>
     );
 }
+
+

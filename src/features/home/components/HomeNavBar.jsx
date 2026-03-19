@@ -1,19 +1,25 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Menu, X } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import HomeThemeToggle from './HomeThemeToggle';
+import { isTokenValid, clearTokens } from '@/shared/utils/tokenManager';
+import { readCachedUserProfile, getUserInitials } from '@/shared/user/useCurrentUserProfile';
 
 const navItems = [
     { label: 'Tính năng', href: '#features' },
     { label: 'Môn học', href: '#curriculum' },
+    { label: 'Flashcard', href: '/flashcards/explore' },
     { label: 'Bảng giá', href: '#pricing' },
 ];
 
 export default function HomeNavBar() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userProfile, setUserProfile] = useState(null);
     const resolveAnchorHref = (href) => (location.pathname === '/' ? href : `/${href}`);
 
     useEffect(() => {
@@ -22,6 +28,39 @@ export default function HomeNavBar() {
         window.addEventListener('scroll', onScroll);
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
+
+    // Check authentication state
+    useEffect(() => {
+        const checkAuth = () => {
+            const authenticated = isTokenValid();
+            setIsAuthenticated(authenticated);
+            if (authenticated) {
+                setUserProfile(readCachedUserProfile());
+            } else {
+                setUserProfile(null);
+            }
+        };
+
+        checkAuth();
+
+        // Listen for storage changes (e.g., login/logout in another tab)
+        const handleStorage = (e) => {
+            if (e.key === 'accessToken' || e.key === 'user') {
+                checkAuth();
+            }
+        };
+
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, [location.pathname]);
+
+    const handleLogout = () => {
+        clearTokens();
+        setIsAuthenticated(false);
+        setUserProfile(null);
+        setIsOpen(false);
+        navigate('/');
+    };
 
     return (
         <motion.header
@@ -52,38 +91,99 @@ export default function HomeNavBar() {
 
                 <nav className="hidden items-center gap-8 lg:flex">
                     {navItems.map((item, index) => (
-                        <motion.a
-                            key={item.label}
-                            href={resolveAnchorHref(item.href)}
-                            initial={{ opacity: 0, y: -8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
-                            whileHover={{ y: -1 }}
-                            className="apple-transition apple-secondary-text text-sm font-medium hover:text-[var(--apple-text)]"
-                        >
-                            {item.label}
-                        </motion.a>
+                        item.href.startsWith('/') ? (
+                            <motion.div
+                                key={item.label}
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
+                                whileHover={{ y: -1 }}
+                            >
+                                <Link
+                                    to={item.href}
+                                    className="apple-transition apple-secondary-text text-sm font-medium hover:text-[var(--apple-text)]"
+                                >
+                                    {item.label}
+                                </Link>
+                            </motion.div>
+                        ) : (
+                            <motion.a
+                                key={item.label}
+                                href={resolveAnchorHref(item.href)}
+                                initial={{ opacity: 0, y: -8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35, delay: 0.08 + index * 0.04 }}
+                                whileHover={{ y: -1 }}
+                                className="apple-transition apple-secondary-text text-sm font-medium hover:text-[var(--apple-text)]"
+                            >
+                                {item.label}
+                            </motion.a>
+                        )
                     ))}
                 </nav>
 
+                {/* Desktop right-side buttons */}
                 <div className="hidden items-center gap-3 lg:flex">
                     <HomeThemeToggle />
-                    <Link
-                        to="/login"
-                        className="apple-transition apple-subtle-hover inline-flex h-11 items-center rounded-full px-5 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
-                    >
-                        Đăng nhập
-                    </Link>
-                    <motion.div whileHover={{ y: -1 }}>
-                        <Link
-                            to="/signup"
-                            className="apple-primary-button apple-transition inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold"
-                        >
-                            Bắt đầu
-                        </Link>
-                    </motion.div>
+
+                    {isAuthenticated && userProfile ? (
+                        <>
+                            <motion.div whileHover={{ y: -1 }}>
+                                <Link
+                                    to="/dashboard"
+                                    className="apple-secondary-button apple-transition inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-medium"
+                                >
+                                    <LayoutDashboard className="h-4 w-4" />
+                                    Dashboard
+                                </Link>
+                            </motion.div>
+
+                            <div className="flex items-center gap-2.5 rounded-full border border-[var(--apple-border)] bg-[var(--apple-panel)] px-3 py-1.5">
+                                {userProfile.avatarUrl ? (
+                                    <img
+                                        src={userProfile.avatarUrl}
+                                        alt={userProfile.name}
+                                        className="h-8 w-8 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="apple-solid-surface flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
+                                        {getUserInitials(userProfile.name)}
+                                    </div>
+                                )}
+                                <span className="apple-main-text max-w-[100px] truncate text-sm font-medium">
+                                    {userProfile.name}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={handleLogout}
+                                    className="apple-transition ml-1 flex h-7 w-7 items-center justify-center rounded-full text-[var(--apple-text-muted)] hover:bg-red-500/10 hover:text-red-500"
+                                    title="Đăng xuất"
+                                >
+                                    <LogOut className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <Link
+                                to="/login"
+                                className="apple-transition apple-subtle-hover inline-flex h-11 items-center rounded-full px-5 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
+                            >
+                                Đăng nhập
+                            </Link>
+                            <motion.div whileHover={{ y: -1 }}>
+                                <Link
+                                    to="/signup"
+                                    className="apple-primary-button apple-transition inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold"
+                                >
+                                    Bắt đầu
+                                </Link>
+                            </motion.div>
+                        </>
+                    )}
                 </div>
 
+                {/* Mobile hamburger */}
                 <div className="flex items-center gap-2 lg:hidden">
                     <HomeThemeToggle />
                     <button
@@ -97,6 +197,7 @@ export default function HomeNavBar() {
                 </div>
             </div>
 
+            {/* Mobile menu dropdown */}
             <motion.div
                 initial={false}
                 animate={{
@@ -109,14 +210,25 @@ export default function HomeNavBar() {
             >
                 <div className="flex flex-col gap-2 py-4">
                     {navItems.map((item) => (
-                        <a
-                            key={item.label}
-                            href={resolveAnchorHref(item.href)}
-                            onClick={() => setIsOpen(false)}
-                            className="apple-transition apple-subtle-hover mx-5 rounded-2xl px-4 py-3 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
-                        >
-                            {item.label}
-                        </a>
+                        item.href.startsWith('/') ? (
+                            <Link
+                                key={item.label}
+                                to={item.href}
+                                onClick={() => setIsOpen(false)}
+                                className="apple-transition apple-subtle-hover mx-5 rounded-2xl px-4 py-3 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
+                            >
+                                {item.label}
+                            </Link>
+                        ) : (
+                            <a
+                                key={item.label}
+                                href={resolveAnchorHref(item.href)}
+                                onClick={() => setIsOpen(false)}
+                                className="apple-transition apple-subtle-hover mx-5 rounded-2xl px-4 py-3 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
+                            >
+                                {item.label}
+                            </a>
+                        )
                     ))}
                     <div className="mx-5 mt-2 flex flex-col gap-2 border-t apple-border pt-4">
                         <div className="flex items-center justify-between rounded-2xl px-4 py-3 apple-soft-panel">
@@ -126,20 +238,65 @@ export default function HomeNavBar() {
                             </div>
                             <HomeThemeToggle />
                         </div>
-                        <Link
-                            to="/login"
-                            onClick={() => setIsOpen(false)}
-                            className="apple-secondary-button apple-transition inline-flex h-11 items-center justify-center rounded-full text-sm font-medium"
-                        >
-                            Đăng nhập
-                        </Link>
-                        <Link
-                            to="/signup"
-                            onClick={() => setIsOpen(false)}
-                            className="apple-primary-button apple-transition inline-flex h-11 items-center justify-center rounded-full text-sm font-semibold"
-                        >
-                            Bắt đầu
-                        </Link>
+
+                        {isAuthenticated && userProfile ? (
+                            <>
+                                {/* Mobile: show user info */}
+                                <div className="flex items-center gap-3 rounded-2xl px-4 py-3 apple-soft-panel">
+                                    {userProfile.avatarUrl ? (
+                                        <img
+                                            src={userProfile.avatarUrl}
+                                            alt={userProfile.name}
+                                            className="h-9 w-9 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="apple-solid-surface flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold">
+                                            {getUserInitials(userProfile.name)}
+                                        </div>
+                                    )}
+                                    <div className="min-w-0">
+                                        <p className="apple-main-text truncate text-sm font-semibold">{userProfile.name}</p>
+                                        {userProfile.email && (
+                                            <p className="apple-secondary-text truncate text-xs">{userProfile.email}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <Link
+                                    to="/dashboard"
+                                    onClick={() => setIsOpen(false)}
+                                    className="apple-primary-button apple-transition inline-flex h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold"
+                                >
+                                    <LayoutDashboard className="h-4 w-4" />
+                                    Đi tới Dashboard
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={handleLogout}
+                                    className="apple-transition inline-flex h-11 items-center justify-center gap-2 rounded-full border border-red-500/20 text-sm font-medium text-red-500 hover:bg-red-500/10"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    Đăng xuất
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/login"
+                                    onClick={() => setIsOpen(false)}
+                                    className="apple-secondary-button apple-transition inline-flex h-11 items-center justify-center rounded-full text-sm font-medium"
+                                >
+                                    Đăng nhập
+                                </Link>
+                                <Link
+                                    to="/signup"
+                                    onClick={() => setIsOpen(false)}
+                                    className="apple-primary-button apple-transition inline-flex h-11 items-center justify-center rounded-full text-sm font-semibold"
+                                >
+                                    Bắt đầu
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </motion.div>

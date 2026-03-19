@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { clearTokens } from '@/shared/utils/tokenManager';
 import {
     LayoutDashboard,
     Users,
@@ -28,8 +29,7 @@ export default function AdminSidebar() {
     });
 
     const handleLogout = () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('user');
+        clearTokens();
         navigate('/login');
     };
 

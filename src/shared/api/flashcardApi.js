@@ -70,6 +70,17 @@ const flashcardApi = {
     },
 
     /**
+     * Lưu nhiều review trong 1 request (nếu backend hỗ trợ)
+     * POST /api/flashcard-sets/{setId}/study-sessions/{sessionId}/reviews/batch
+     * @param {string|number} setId - Flashcard set ID
+     * @param {string|number} sessionId - Study session ID
+     * @param {Object} data - { reviews: Array<{ flashcardItemId, result, reviewedAt, clientReviewId }> }
+     */
+    submitStudyReviewBatch(setId, sessionId, data) {
+        return axiosClient.post(`/flashcard-sets/${setId}/study-sessions/${sessionId}/reviews/batch`, data);
+    },
+
+    /**
      * Kết thúc phiên học flashcard
      * POST /api/flashcard-sets/{setId}/study-sessions/{sessionId}/complete
      * @param {string|number} setId - Flashcard set ID
@@ -121,6 +132,44 @@ const flashcardApi = {
      */
     deleteItem(setId, itemId) {
         return axiosClient.delete(`/flashcard-sets/${setId}/items/${itemId}`);
+    },
+
+    // ========== PUBLIC FLASHcard SETS (Guest Access) ==========
+
+    /**
+     * Tìm kiếm flashcard sets công khai (không cần auth)
+     * GET /api/public/flashcard-sets
+     * @param {Object} params - { q, search, page, limit, sortBy, sortOrder }
+     */
+    searchPublic(params) {
+        return axiosClient.get("/public/flashcard-sets", { params });
+    },
+
+    /**
+     * Lấy preview của 1 flashcard set (giới hạn số thẻ)
+     * GET /api/public/flashcard-sets/{id}
+     * @param {string|number} id - Flashcard set ID hoặc slug
+     */
+    getPreviewBySlug(idOrSlug) {
+        return axiosClient.get(`/public/flashcard-sets/${idOrSlug}`);
+    },
+
+    /**
+     * Lấy preview theo ID (giới hạn số thẻ)
+     * GET /api/public/flashcard-sets/{id}
+     * @param {string|number} id - Flashcard set ID
+     */
+    getPreviewById(id) {
+        return axiosClient.get(`/public/flashcard-sets/${id}`);
+    },
+
+    /**
+     * Lấy full flashcard set (yêu cầu auth)
+     * GET /api/flashcard-sets/{id}
+     * @param {string|number} id - Flashcard set ID hoặc slug
+     */
+    getFullSet(idOrSlug) {
+        return axiosClient.get(`/flashcard-sets/${idOrSlug}`);
     },
 };
 

@@ -6,6 +6,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { orderApi, subjectApi } from '@/shared/api';
 import { useCurrentUserProfile } from '@/shared/user';
 import { OwlLoader } from '@/shared/ui/common';
+import { isTokenValid } from '@/shared/utils/tokenManager';
 import {
     buildCourseLearnPath,
     buildLoginRedirectPath,
@@ -68,15 +69,6 @@ const PLANS = {
     },
 };
 
-function hasAuthToken() {
-    if (typeof window === 'undefined') {
-        return false;
-    }
-
-    const token = localStorage.getItem('accessToken');
-    return Boolean(token && token !== 'undefined' && token !== 'null');
-}
-
 export default function Checkout() {
     const [searchParams] = useSearchParams();
     const location = useLocation();
@@ -85,7 +77,7 @@ export default function Checkout() {
     const planId = searchParams.get('plan') || 'pro';
     const courseId = searchParams.get('id');
     const selectedPlan = PLANS[planId] || PLANS.pro;
-    const isAuthenticated = hasAuthToken();
+    const isAuthenticated = isTokenValid();
     const loginHref = buildLoginRedirectPath(`${location.pathname}${location.search}`);
     const appHomePath = isAuthenticated ? '/dashboard' : '/';
 

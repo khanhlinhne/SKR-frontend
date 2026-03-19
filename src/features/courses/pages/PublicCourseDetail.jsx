@@ -29,7 +29,16 @@ export default function PublicCourseDetail() {
                 setLoading(true);
                 setError('');
 
-                const detailResponse = await subjectApi.getById(id);
+                const [detailResponse, relatedResponse] = await Promise.all([
+                    subjectApi.getById(id),
+                    subjectApi.getAll({
+                        status: 'published',
+                        limit: 6,
+                        sortBy: 'purchaseCount',
+                        sortOrder: 'desc',
+                    }),
+                ]);
+
                 const detailData = detailResponse.data?.data || detailResponse.data || detailResponse;
 
                 if (!detailData || (detailData.status && detailData.status !== 'published')) {
@@ -37,13 +46,6 @@ export default function PublicCourseDetail() {
                 }
 
                 const mappedCourse = mapCourseToPublicModel(detailData, 0);
-
-                const relatedResponse = await subjectApi.getAll({
-                    status: 'published',
-                    limit: 4,
-                    sortBy: 'purchaseCount',
-                    sortOrder: 'desc',
-                });
 
                 const relatedItems = (relatedResponse.data?.items || [])
                     .filter((item) => (item.subjectId ?? item.courseId ?? item.id) !== mappedCourse.id)
@@ -233,70 +235,102 @@ export default function PublicCourseDetail() {
                                 </div>
                             </motion.section>
 
-                            {relatedCourses.length > 0 ? (
+                            {relatedCourses.length > 0 && (
                                 <motion.section
                                     initial={{ opacity: 0, y: 16 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.45, delay: 0.1 }}
                                     className="apple-panel apple-card-shadow rounded-[36px] border p-7 sm:p-9"
                                 >
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                                        <div>
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                                        <div className="max-w-xl">
                                             <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
                                                 More public courses
                                             </div>
-                                            <h2 className="apple-main-text mt-5 text-3xl font-semibold tracking-[-0.03em]">
-                                                Một vài khóa public khác đang được người học quan tâm
+                                            <h2 className="apple-main-text mt-5 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">
+                                                Khóa học khác đang được quan tâm
                                             </h2>
                                         </div>
                                         <Link
                                             to="/courses"
-                                            className="apple-secondary-button apple-transition inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-semibold"
+                                            className="apple-secondary-button apple-transition inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold"
                                         >
                                             Xem tất cả
+                                            <ArrowRight className="h-4 w-4" />
                                         </Link>
                                     </div>
 
-                                    <div className="mt-8 grid gap-4 md:grid-cols-3">
-                                        {relatedCourses.map((relatedCourse) => (
-                                            <article key={relatedCourse.id} className="overflow-hidden rounded-[28px] border border-white/45 bg-white/75 shadow-sm backdrop-blur-xl">
-                                                <img
-                                                    src={relatedCourse.bannerUrl}
-                                                    alt={`Khóa học ${relatedCourse.title}`}
-                                                    className="aspect-[16/10] w-full object-cover"
-                                                />
-                                                <div className="space-y-4 p-5">
-                                                    <div>
-                                                        <p className="apple-secondary-text text-xs font-semibold uppercase tracking-[0.16em]">
-                                                            {relatedCourse.instructorName}
-                                                        </p>
-                                                        <h3 className="apple-main-text mt-2 text-lg font-semibold">{relatedCourse.title}</h3>
-                                                        <p className="apple-secondary-text mt-2 text-sm leading-7">{relatedCourse.subtitle}</p>
-                                                    </div>
+                                    <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                        {relatedCourses.map((relatedCourse, idx) => (
+                                            <motion.article
+                                                key={relatedCourse.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.4, delay: 0.15 + idx * 0.08 }}
+                                                className="group flex flex-col overflow-hidden rounded-[24px] border border-[var(--apple-border)] bg-[var(--apple-panel-strong)] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--apple-shadow-medium)]"
+                                            >
+                                                {/* Banner with gradient overlay */}
+                                                <div className="relative aspect-[16/9] w-full overflow-hidden">
+                                                    <img
+                                                        src={relatedCourse.bannerUrl}
+                                                        alt={`Khóa học ${relatedCourse.title}`}
+                                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+                                                    {/* Floating price badge */}
+                                                    <span className="absolute bottom-3 left-3 inline-flex items-center rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-gray-900 shadow-sm backdrop-blur-sm">
+                                                        {relatedCourse.formattedPrice}
+                                                    </span>
+                                                </div>
 
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <span className="text-base font-semibold text-base-content">
-                                                            {relatedCourse.formattedPrice}
-                                                        </span>
+                                                {/* Content area */}
+                                                <div className="flex flex-1 flex-col p-5">
+                                                    <p className="apple-secondary-text text-[11px] font-semibold uppercase tracking-[0.14em]">
+                                                        {relatedCourse.instructorName}
+                                                    </p>
+
+                                                    <h3 className="apple-main-text mt-2 line-clamp-2 text-base font-semibold leading-snug">
+                                                        {relatedCourse.title}
+                                                    </h3>
+
+                                                    <p className="apple-secondary-text mt-2 line-clamp-2 text-sm leading-relaxed">
+                                                        {relatedCourse.subtitle}
+                                                    </p>
+
+                                                    {relatedCourse.stats && relatedCourse.stats.length > 0 && (
+                                                        <div className="mt-3 flex flex-wrap gap-1.5">
+                                                            {relatedCourse.stats.slice(0, 2).map((stat) => (
+                                                                <span
+                                                                    key={stat}
+                                                                    className="apple-chip inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium"
+                                                                >
+                                                                    {stat}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="mt-auto pt-4">
                                                         <Link
                                                             to={`/courses/${relatedCourse.id}`}
-                                                            className="apple-primary-button apple-transition inline-flex h-10 items-center justify-center rounded-full px-4 text-xs font-semibold"
+                                                            className="apple-primary-button apple-transition inline-flex h-10 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold"
                                                         >
                                                             Xem khóa học
+                                                            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                                                         </Link>
                                                     </div>
                                                 </div>
-                                            </article>
+                                            </motion.article>
                                         ))}
                                     </div>
                                 </motion.section>
-                            ) : null}
+                            )}
                         </div>
 
                         <div>
                             <PublicCoursePurchasePanel course={course} previewAnchorId={PREVIEW_SECTION_ID} />
 
-                            {!course.hasAccess && !course.isFree ? (
+                            {!course.hasAccess && !course.isFree && (
                                 <div className="mt-6 rounded-[28px] border border-white/45 bg-white/75 p-5 shadow-sm backdrop-blur-xl">
                                     <p className="text-sm font-semibold text-base-content">
                                         Muốn vào checkout ngay?
@@ -312,7 +346,7 @@ export default function PublicCourseDetail() {
                                         <ArrowRight className="ml-2 h-4 w-4" />
                                     </Link>
                                 </div>
-                            ) : null}
+                            )}
                         </div>
                     </div>
                 </section>

@@ -1,3 +1,5 @@
+import { isTokenValid } from '@/shared/utils/tokenManager';
+
 const COURSE_ACCENTS = [
     {
         key: 'blue',
@@ -37,8 +39,8 @@ export function hasAuthToken() {
         return false;
     }
 
-    const token = localStorage.getItem('accessToken');
-    return Boolean(token && token !== 'undefined' && token !== 'null');
+    // Sử dụng tokenManager để kiểm tra token còn hiệu lực không
+    return isTokenValid();
 }
 
 export function buildCourseCheckoutPath(courseId) {

@@ -158,7 +158,7 @@ const mockReviews = [
 export default function CourseDetail() {
     const { id } = useParams();
     const [subject, setSubject] = useState(null);
-    const [allSubjects, setAllSubjects] = useState([]);
+    const [relatedSubjects, setRelatedSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -179,22 +179,37 @@ export default function CourseDetail() {
                     mockMapped.level = 'Cơ bản → Nâng cao';
                     mockMapped.creator = MOCK_DETAIL_COURSE.creator;
                     setSubject(mockMapped);
+                    setRelatedSubjects([]);
                     setLoading(false);
                     return;
                 }
 
-                // Fetch current subject detail
-                const detailRes = await subjectApi.getById(id);
-                const subjectData = detailRes.data?.data || detailRes.data;
-                setSubject(mapApiToCourse(subjectData));
+                const [detailRes, relatedRes] = await Promise.all([
+                    subjectApi.getById(id),
+                    subjectApi.getAll({
+                        status: 'published',
+                        limit: 8,
+                        sortBy: 'purchaseCount',
+                        sortOrder: 'desc',
+                    }),
+                ]);
 
-                // Fetch all subjects for related courses
-                const allRes = await subjectApi.getAll({ limit: 100 });
-                const items = allRes.data?.items || allRes.data || [];
-                setAllSubjects(items.map(mapApiToCourse));
+                const subjectData = detailRes.data?.data || detailRes.data;
+                const mappedSubject = mapApiToCourse(subjectData);
+                setSubject(mappedSubject);
+
+                const items = relatedRes.data?.items || relatedRes.data || [];
+                const currentSubjectId = String(mappedSubject?.subjectId ?? id);
+                setRelatedSubjects(
+                    items
+                        .map(mapApiToCourse)
+                        .filter((item) => item.subjectId && String(item.subjectId) !== currentSubjectId)
+                        .slice(0, 3),
+                );
             } catch (err) {
                 console.error('Error fetching subject:', err);
                 setError(err.message || 'Không thể tải thông tin môn học');
+                setRelatedSubjects([]);
             } finally {
                 setLoading(false);
             }
@@ -206,7 +221,7 @@ export default function CourseDetail() {
     }, [id]);
 
     const course = subject;
-    const expert = course ? mapApiToExpert(subject?.creator || allSubjects.find(s => s.subjectId === subject?.subjectId)?.creator) : null;
+    const expert = course ? mapApiToExpert(subject?.creator) : null;
 
     // Map chapters from API
     const chapters = useMemo(() => {
@@ -226,12 +241,7 @@ export default function CourseDetail() {
     }, [course, subject]);
 
     // Get related courses
-    const relatedCourses = useMemo(() => {
-        if (!course) return [];
-        return allSubjects
-            .filter(c => c.subjectId !== course.subjectId)
-            .slice(0, 3);
-    }, [course, allSubjects]);
+    const relatedCourses = relatedSubjects;
 
     // Animation variants
     const containerVariants = {
