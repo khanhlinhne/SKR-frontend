@@ -45,7 +45,28 @@ const adminApi = {
         return axiosClient.put(`/user/${id}/status`, data);
     },
 
-    // ===== COURSE MANAGEMENT =====
+    /**
+     * Lay chi tiet 1 khoa hoc (Admin view)
+     * GET /api/courses/:id
+     * @param {string} id - Course ID
+     * @returns {{ course: Object }}
+     */
+    getCourseById(id) {
+        return axiosClient.get(`/courses/${id}`);
+    },
+
+    /**
+     * Toggle trang thai cong khai / an cua khoa hoc
+     * PUT /api/courses/:id
+     * @param {string} id - Course ID
+     * @param {string} status - 'published' | 'draft'
+     * @returns {{ course: Object }}
+     */
+    togglePublish(id, status) {
+        return axiosClient.patch(`/courses/${id}`, { status });
+    },
+
+
 
     /**
      * Lay tat ca khoa hoc (Admin view)
@@ -77,7 +98,7 @@ const adminApi = {
      * @returns {{ course: Object }}
      */
     async updateCourse(id, data) {
-        const response = await axiosClient.put(`/courses/${id}`, data);
+        const response = await axiosClient.patch(`/courses/${id}`, data);
         subjectApi.clearCache();
         return response;
     },

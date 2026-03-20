@@ -16,5 +16,6 @@ export { default as RevenueBreakdown } from './RevenueBreakdown';
 export { default as BusinessKPICards } from './BusinessKPICards';
 export { default as CourseSummaryCard } from './CourseSummaryCard';
 export { default as ExpertAssignmentCard } from './ExpertAssignmentCard';
+export { default as CourseEditModal } from './CourseEditModal';
 
 export { containerVariants, cardVariants, statusConfig, mockCourseDetail } from './constants';
