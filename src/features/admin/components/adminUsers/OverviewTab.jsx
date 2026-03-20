@@ -24,10 +24,10 @@ function InfoRow({ icon, label, value }) {
  */
 export default function OverviewTab({ user }) {
     const stats = [
-        { label: 'Tổng chi tiêu', value: user.totalSpent, icon: TrendingUp, gradient: 'from-emerald-500 to-teal-600' },
-        { label: 'Khóa học', value: user.courses, icon: BookOpen, gradient: 'from-blue-500 to-indigo-600' },
-        { label: 'Hoàn thành', value: user.completedCourses, icon: CheckCircle2, gradient: 'from-violet-500 to-purple-600' },
-        { label: 'Chứng chỉ', value: user.certificates, icon: Award, gradient: 'from-amber-500 to-orange-600' },
+        { label: 'Tổng chi tiêu', value: user.totalSpent || '₫0', icon: TrendingUp, gradient: 'from-emerald-500 to-teal-600' },
+        { label: 'Khóa học', value: user.courses || 0, icon: BookOpen, gradient: 'from-blue-500 to-indigo-600' },
+        { label: 'Hoàn thành', value: user.completedCourses || 0, icon: CheckCircle2, gradient: 'from-violet-500 to-purple-600' },
+        { label: 'Chứng chỉ', value: user.certificates || 0, icon: Award, gradient: 'from-amber-500 to-orange-600' },
     ];
 
     return (

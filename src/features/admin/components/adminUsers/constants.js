@@ -41,22 +41,22 @@ export const modalVariants = {
 
 // ===== STATUS CONFIG =====
 export const statusConfig = {
-    active: { label: 'Hoạt động', icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-500/10', dot: 'bg-emerald-500' },
-    pending: { label: 'Chờ xác minh', icon: AlertCircle, color: 'text-amber-600 bg-amber-500/10', dot: 'bg-amber-500' },
-    banned: { label: 'Bị khóa', icon: XCircle, color: 'text-red-500 bg-red-500/10', dot: 'bg-red-500' },
+    true: { label: 'Hoạt động', icon: CheckCircle2, color: 'text-emerald-600 bg-emerald-500/10', dot: 'bg-emerald-500' },
+    false: { label: 'Bị khóa', icon: XCircle, color: 'text-red-500 bg-red-500/10', dot: 'bg-red-500' },
 };
 
 // ===== ROLE OPTIONS =====
+// role_code map voi mst_roles.role_code trong database
 export const roleOptions = [
-    { value: 'Learner', label: 'Learner', description: 'Người học' },
-    { value: 'Expert', label: 'Expert', description: 'Chuyên gia' },
-    { value: 'Staff', label: 'Staff', description: 'Nhân viên' },
-    { value: 'Admin', label: 'Admin', description: 'Quản trị viên' },
+    { value: 'user', label: 'Learner', description: 'Người học' },
+    { value: 'creator', label: 'Expert', description: 'Chuyên gia' },
+    { value: 'staff', label: 'Staff', description: 'Nhân viên' },
+    { value: 'admin', label: 'Admin', description: 'Quản trị viên' },
 ];
 
 export const roleBadgeStyle = {
-    Learner: 'badge-ghost',
-    Expert: 'badge-info',
-    Staff: 'badge-warning',
-    Admin: 'badge-error',
+    user: 'badge-ghost',
+    creator: 'badge-info',
+    staff: 'badge-warning',
+    admin: 'badge-error',
 };

@@ -7,11 +7,21 @@ const adminApi = {
     /**
      * Lay danh sach tat ca users (Admin only)
      * GET /api/user/all
-     * @param {Object} params - { page, limit, search, role, status }
-     * @returns {{ users: Array, total: number }}
+     * @param {Object} params - { page, limit, search, role, isActive }
+     * @returns {{ items: Array, pagination: Object }}
      */
     getAllUsers(params) {
         return axiosClient.get("/user/all", { params });
+    },
+
+    /**
+     * Tao tai khoan moi (Admin only)
+     * POST /api/user
+     * @param {Object} data - { email, password, fullName, username, phoneNumber, roles }
+     * @returns {{ data: Object }}
+     */
+    createUser(data) {
+        return axiosClient.post("/user", data);
     },
 
     /**
@@ -28,7 +38,7 @@ const adminApi = {
      * Cap nhat trang thai user (ban/unban)
      * PUT /api/user/:id/status
      * @param {string} id - User ID
-     * @param {Object} data - { status: 'active' | 'banned' }
+     * @param {Object} data - { isActive: boolean }
      * @returns {{ message: string }}
      */
     updateUserStatus(id, data) {

@@ -4,6 +4,7 @@ import {
     UserPlus, X, User, Mail, Phone, Shield, AlertCircle,
 } from 'lucide-react';
 import { overlayVariants, modalVariants, roleOptions } from './constants';
+import adminApi from '@/shared/api/adminApi';
 
 /**
  * FormField - Wrapper component cho mỗi field trong form.
@@ -33,13 +34,16 @@ function FormField({ label, icon, required, error, children }) {
 
 /**
  * AddUserModal - Modal thêm người dùng mới.
+ * Gọi POST /api/auth/register để tạo tài khoản.
  */
-export default function AddUserModal({ onClose }) {
+export default function AddUserModal({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         name: '', email: '', phone: '', role: 'Learner',
         password: '', confirmPassword: '', sendWelcomeEmail: true,
     });
     const [errors, setErrors] = useState({});
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
 
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -58,11 +62,28 @@ export default function AddUserModal({ onClose }) {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (validate()) {
-            console.log('Creating user:', formData);
+        setSubmitError('');
+        if (!validate()) return;
+
+        setSubmitting(true);
+        try {
+            const payload = {
+                email: formData.email,
+                password: formData.password,
+                fullName: formData.name || undefined,
+                phoneNumber: formData.phone || undefined,
+                roles: formData.role !== 'Learner' ? [formData.role] : [],
+            };
+            await adminApi.createUser(payload);
+            onSuccess?.();
             onClose();
+        } catch (err) {
+            const msg = err?.response?.data?.message || err?.message || 'Đã xảy ra lỗi khi tạo tài khoản.';
+            setSubmitError(msg);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -97,6 +118,15 @@ export default function AddUserModal({ onClose }) {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                    {submitError && (
+                        <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                            <p className="text-xs text-red-500 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                {submitError}
+                            </p>
+                        </div>
+                    )}
+
                     <div className="space-y-4">
                         <FormField label="Họ và tên" icon={<User className="w-4 h-4" />} required error={errors.name}>
                             <input type="text" placeholder="Nguyễn Văn A" value={formData.name}
@@ -164,9 +194,13 @@ export default function AddUserModal({ onClose }) {
                     </div>
 
                     <div className="flex gap-3 mt-6 pt-4 border-t border-base-300">
-                        <button type="button" onClick={onClose} className="btn btn-ghost flex-1 rounded-xl font-bold">Hủy</button>
-                        <button type="submit" className="btn flex-1 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white border-none shadow-lg font-bold rounded-xl hover:shadow-emerald-500/25 hover:shadow-xl transition-all">
-                            <UserPlus className="w-4 h-4" /> Tạo tài khoản
+                        <button type="button" onClick={onClose} className="btn btn-ghost flex-1 rounded-xl font-bold" disabled={submitting}>Hủy</button>
+                        <button type="submit" className="btn flex-1 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white border-none shadow-lg font-bold rounded-xl hover:shadow-emerald-500/25 hover:shadow-xl transition-all" disabled={submitting}>
+                            {submitting ? (
+                                <><span className="loading loading-spinner loading-xs" /> Đang tạo...</>
+                            ) : (
+                                <><UserPlus className="w-4 h-4" /> Tạo tài khoản</>
+                            )}
                         </button>
                     </div>
                 </form>
