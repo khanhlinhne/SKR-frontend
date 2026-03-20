@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthCard, AuthShell } from '@/features/auth/components';
 import { hydrateProfileAfterAuth } from '@/shared/user';
 import { setAccessToken, setRefreshToken } from '@/shared/utils/tokenManager';
+import { resolvePostLoginDestination } from '@/shared/auth/roleAccess';
+import { readCachedUserProfile } from '@/shared/user';
 
 export default function GoogleCallback() {
     const navigate = useNavigate();
@@ -25,7 +27,8 @@ export default function GoogleCallback() {
                 setRefreshToken(refreshToken);
             }
             await hydrateProfileAfterAuth();
-            navigate(safeRedirectTarget || '/dashboard', { replace: true });
+            const profile = readCachedUserProfile();
+            navigate(safeRedirectTarget || resolvePostLoginDestination(profile, '/dashboard'), { replace: true });
             return;
         }
 

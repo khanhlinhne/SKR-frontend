@@ -9,6 +9,9 @@ import {
     Frown,
     GraduationCap,
     ArrowRight,
+    ThumbsUp,
+    Gift,
+    Flame,
 } from 'lucide-react';
 
 import { DashboardSidebar } from '@/features/learner/components';
@@ -183,6 +186,7 @@ export default function Courses() {
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showAll, setShowAll] = useState(false);
 
     // Fetch subjects from API
     useEffect(() => {
@@ -221,6 +225,27 @@ export default function Courses() {
     const filteredCourses = useMemo(() => {
         return sortCourses(filterCourses(subjects, filters, searchQuery), sortBy);
     }, [subjects, filters, searchQuery, sortBy]);
+
+    // ─── Category Sections ────────────────────────────────────
+    const topSellers = useMemo(() => {
+        return [...subjects]
+            .sort((a, b) => b.purchaseCount - a.purchaseCount)
+            .slice(0, 4);
+    }, [subjects]);
+
+    const topRated = useMemo(() => {
+        return [...subjects]
+            .filter(c => c.ratingAverage > 0)
+            .sort((a, b) => b.ratingAverage - a.ratingAverage || b.ratingCount - a.ratingCount)
+            .slice(0, 4);
+    }, [subjects]);
+
+    const freeCourses = useMemo(() => {
+        return [...subjects]
+            .filter(c => c.isFree)
+            .sort((a, b) => b.purchaseCount - a.purchaseCount)
+            .slice(0, 4);
+    }, [subjects]);
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -281,15 +306,15 @@ export default function Courses() {
                     </motion.div>
 
                     {/* Toolbar: Search + Filter + Sort + View */}
-                    <motion.div variants={cardVariants} className="mb-6">
+                    <motion.div variants={cardVariants} className="mb-8">
                         <CoursesToolbar
                             searchQuery={searchQuery}
-                            onSearchChange={setSearchQuery}
+                            onSearchChange={(q) => { setSearchQuery(q); setShowAll(true); }}
                             filters={filters}
-                            onFilterChange={handleFilterChange}
-                            onResetFilters={handleResetFilters}
+                            onFilterChange={(k, v) => { handleFilterChange(k, v); setShowAll(true); }}
+                            onResetFilters={() => { handleResetFilters(); setShowAll(true); }}
                             sortBy={sortBy}
-                            onSortChange={setSortBy}
+                            onSortChange={(s) => { setSortBy(s); setShowAll(true); }}
                             viewMode={viewMode}
                             onViewChange={setViewMode}
                             totalCourses={filteredCourses.length}
@@ -301,7 +326,6 @@ export default function Courses() {
 
                     {/* Loading State */}
                     {loading && <OwlLoader message="Đang tải môn học..." />}
-
 
                     {/* Error State */}
                     {!loading && error && (
@@ -325,60 +349,128 @@ export default function Courses() {
                         </motion.div>
                     )}
 
-                    {/* Course Grid / List */}
-                    {!loading && !error && filteredCourses.length > 0 ? (
-                        <motion.div
-                            key={viewMode + sortBy + JSON.stringify(filters) + searchQuery}
-                            variants={containerVariants}
-                            initial="hidden"
-                            animate="visible"
-                            className={
-                                viewMode === 'grid'
-                                    ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5'
-                                    : 'space-y-4'
-                            }
-                        >
-                            {filteredCourses.map((course) => {
-                                const expert = mapApiToExpert(course.creator);
-                                return viewMode === 'grid' ? (
-                                    <CourseCard
-                                        key={course.id}
-                                        course={course}
-                                        expert={expert}
-                                        variants={cardVariants}
-                                    />
-                                ) : (
-                                    <CourseListItem
-                                        key={course.id}
-                                        course={course}
-                                        expert={expert}
-                                        variants={cardVariants}
-                                    />
-                                );
-                            })}
-                        </motion.div>
-                    ) : (
-                        /* Empty state */
-                        !loading && !error && (
-                            <motion.div
-                                variants={cardVariants}
-                                className="flex flex-col items-center justify-center py-16 text-center"
-                            >
-                                <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center mb-5">
-                                    <Frown className="w-8 h-8 text-base-content/30" />
-                                </div>
-                                <h3 className="text-lg font-black text-base-content mb-2">Không tìm thấy môn học</h3>
-                                <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
-                                    Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm kết quả.
-                                </p>
+                    {/* ── Show all filtered courses (when searching/filtering) ── */}
+                    {!loading && !error && showAll && filteredCourses.length > 0 && (
+                        <div className="mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-black text-base-content tracking-tight">
+                                    Kết quả tìm kiếm
+                                    <span className="ml-2 text-sm font-medium text-base-content/50">
+                                        ({filteredCourses.length} môn học)
+                                    </span>
+                                </h2>
                                 <button
-                                    onClick={handleResetFilters}
-                                    className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
+                                    onClick={() => setShowAll(false)}
+                                    className="btn btn-sm btn-ghost text-base-content/50 font-bold gap-1"
                                 >
-                                    Xóa bộ lọc
+                                    <ArrowRight className="w-4 h-4 rotate-180" />
+                                    Ẩn bỏ
                                 </button>
+                            </div>
+                            <motion.div
+                                key={viewMode + sortBy + JSON.stringify(filters) + searchQuery}
+                                variants={containerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className={
+                                    viewMode === 'grid'
+                                        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5'
+                                        : 'space-y-4'
+                                }
+                            >
+                                {filteredCourses.map((course) => {
+                                    const expert = mapApiToExpert(course.creator);
+                                    return viewMode === 'grid' ? (
+                                        <CourseCard
+                                            key={course.id}
+                                            course={course}
+                                            expert={expert}
+                                            variants={cardVariants}
+                                        />
+                                    ) : (
+                                        <CourseListItem
+                                            key={course.id}
+                                            course={course}
+                                            expert={expert}
+                                            variants={cardVariants}
+                                        />
+                                    );
+                                })}
                             </motion.div>
-                        )
+                        </div>
+                    )}
+
+                    {/* ── Empty search result ── */}
+                    {!loading && !error && showAll && filteredCourses.length === 0 && (
+                        <motion.div
+                            variants={cardVariants}
+                            className="flex flex-col items-center justify-center py-16 text-center"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center mb-5">
+                                <Frown className="w-8 h-8 text-base-content/30" />
+                            </div>
+                            <h3 className="text-lg font-black text-base-content mb-2">Không tìm thấy môn học</h3>
+                            <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
+                                Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm kết quả.
+                            </p>
+                            <button
+                                onClick={() => { handleResetFilters(); setShowAll(false); }}
+                                className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
+                            >
+                                Xóa bộ lọc
+                            </button>
+                        </motion.div>
+                    )}
+
+                    {/* ── Category Sections (when NOT searching/filtering) ── */}
+                    {!loading && !error && !showAll && subjects.length > 0 && (
+                        <div className="mb-8 space-y-8">
+                            {/* Top Bán Chạy */}
+                            <CategorySection
+                                title="Top Bán Chạy"
+                                icon={<Flame className="w-5 h-5" />}
+                                iconBg="from-orange-500 to-red-500"
+                                courses={topSellers}
+                                mapApiToExpert={mapApiToExpert}
+                                containerVariants={containerVariants}
+                                cardVariants={cardVariants}
+                            />
+
+                            {/* Top Đánh Giá Cao */}
+                            <CategorySection
+                                title="Top Đánh Giá Cao"
+                                icon={<ThumbsUp className="w-5 h-5" />}
+                                iconBg="from-violet-500 to-purple-500"
+                                courses={topRated}
+                                mapApiToExpert={mapApiToExpert}
+                                containerVariants={containerVariants}
+                                cardVariants={cardVariants}
+                            />
+
+                            {/* Khóa Học Miễn Phí */}
+                            <CategorySection
+                                title="Khóa Học Miễn Phí"
+                                icon={<Gift className="w-5 h-5" />}
+                                iconBg="from-emerald-500 to-teal-500"
+                                courses={freeCourses}
+                                mapApiToExpert={mapApiToExpert}
+                                containerVariants={containerVariants}
+                                cardVariants={cardVariants}
+                            />
+                        </div>
+                    )}
+
+                    {/* ── View All Button ── */}
+                    {!loading && !error && (
+                        <motion.div variants={cardVariants} className="flex justify-center mb-8">
+                            <button
+                                onClick={() => setShowAll(true)}
+                                className="btn bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg gap-2 px-8"
+                            >
+                                Xem tất cả {subjects.length} môn học
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        </motion.div>
                     )}
 
                     {/* CTA: Become Expert */}
@@ -415,6 +507,52 @@ export default function Courses() {
                 </motion.main>
             </div>
         </div>
+    );
+}
+
+// ─── Category Section Component ──────────────────────────
+
+function CategorySection({
+    title,
+    icon,
+    iconBg,
+    courses,
+    mapApiToExpert,
+    containerVariants,
+    cardVariants,
+}) {
+    if (courses.length === 0) return null;
+
+    return (
+        <section>
+            {/* Section Header */}
+            <div className="flex items-center gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${iconBg} flex items-center justify-center shadow-lg text-white`}>
+                    {icon}
+                </div>
+                <h2 className="text-xl font-black text-base-content tracking-tight">{title}</h2>
+            </div>
+
+            {/* Course Grid */}
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5"
+            >
+                {courses.map((course) => {
+                    const expert = mapApiToExpert(course.creator);
+                    return (
+                        <CourseCard
+                            key={course.id}
+                            course={course}
+                            expert={expert}
+                            variants={cardVariants}
+                        />
+                    );
+                })}
+            </motion.div>
+        </section>
     );
 }
 

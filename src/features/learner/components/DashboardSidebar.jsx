@@ -5,6 +5,7 @@ import { clearTokens } from '@/shared/utils/tokenManager';
 import {
     BarChart3,
     BookOpen,
+    BookMarked,
     CreditCard,
     FileText,
     Brain,
@@ -49,6 +50,7 @@ export default function DashboardSidebar() {
 
     const menuItems = [
         { icon: BarChart3, label: 'Tổng quan', path: '/dashboard' },
+        { icon: BookMarked, label: 'Khóa học của tôi', path: '/my-courses' },
         { icon: BookOpen, label: 'Môn học', path: '/courses' },
         { icon: CreditCard, label: 'Flashcards', path: '/flashcards' },
         { icon: FileText, label: 'Thi thử', path: '/tests' },

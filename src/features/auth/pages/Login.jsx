@@ -13,6 +13,7 @@ import {
 } from '@/features/auth/components';
 import { buildGoogleAuthUrl } from '@/features/auth/utils/googleAuthUrl';
 import { setAccessToken, setRefreshToken } from '@/shared/utils/tokenManager';
+import { resolvePostLoginDestination } from '@/shared/auth/roleAccess';
 
 const loginFeatures = [
     {
@@ -81,8 +82,12 @@ export default function Login() {
             if (data.data?.tokens?.refreshToken) {
                 setRefreshToken(data.data.tokens.refreshToken);
             }
-            await hydrateProfileAfterAuth(data.data?.user || data.user || null);
-            navigate(safeRedirectTarget || '/dashboard');
+            // fetchMe gọi /user/profile để lấy profile đầy đủ (có roles)
+            const user = await hydrateProfileAfterAuth();
+            console.log('[Login] user after hydrate:', user);
+            console.log('[Login] roles:', user?.roles);
+            console.log('[Login] hasAdminRole:', user?.roles?.includes('admin'));
+            navigate(safeRedirectTarget || resolvePostLoginDestination(user, '/dashboard'));
         } catch (err) {
             setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
         } finally {

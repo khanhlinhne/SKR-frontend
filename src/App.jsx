@@ -13,6 +13,7 @@ const VerifyEmail = lazy(() => import('@/features/auth/pages/VerifyEmail'));
 const ResetPassword = lazy(() => import('@/features/auth/pages/ResetPassword'));
 
 const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
+const MyCourses = lazy(() => import('@/features/my-courses/pages/MyCourses'));
 const Profile = lazy(() => import('@/features/profile/pages/Profile'));
 const Flashcards = lazy(() => import('@/features/flashcards/pages/Flashcards'));
 const PublicFlashcards = lazy(() => import('@/features/flashcards/pages/PublicFlashcards'));
@@ -76,6 +77,7 @@ function App() {
                 {/* ==================== PROTECTED ROUTES ==================== */}
                 {/* Yêu cầu đăng nhập */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
                 <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
