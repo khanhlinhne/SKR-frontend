@@ -1,4 +1,5 @@
-﻿const ADMIN_ROLE_CODES = new Set(['admin', 'super_admin']);
+const ADMIN_ROLE_CODES = new Set(['admin', 'super_admin']);
+const EXPERT_ROLE_CODES = new Set(['creator', 'expert']);
 
 function normalizeRoleCode(value) {
     if (typeof value !== 'string') {
@@ -63,6 +64,20 @@ export function hasAdminRole(source) {
     );
 }
 
+export function hasExpertRole(source) {
+    const roleCodes = Array.isArray(source) ? source : extractRoleCodes(source);
+
+    return roleCodes.some((roleCode) =>
+        EXPERT_ROLE_CODES.has(String(roleCode).toLowerCase()),
+    );
+}
+
+/**
+ * Xác định trang đích sau đăng nhập dựa trên role.
+ * Ưu tiên: admin → expert/creator → fallback (learner dashboard)
+ */
 export function resolvePostLoginDestination(source, fallbackPath = '/dashboard') {
-    return hasAdminRole(source) ? '/admin' : fallbackPath;
+    if (hasAdminRole(source)) return '/admin';
+    if (hasExpertRole(source)) return '/expert';
+    return fallbackPath;
 }

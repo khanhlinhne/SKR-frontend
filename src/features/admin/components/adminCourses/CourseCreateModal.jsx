@@ -132,11 +132,10 @@ function TextInput({ value, onChange, placeholder, error, maxLength, ...props })
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 maxLength={maxLength}
-                className={`w-full px-4 py-2.5 rounded-xl bg-base-200/40 border ${
-                    error
+                className={`w-full px-4 py-2.5 rounded-xl bg-base-200/40 border ${error
                         ? 'border-red-500/50 focus:border-red-500'
                         : 'border-base-300/50 focus:border-emerald-500'
-                } focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/25 transition-all duration-200`}
+                    } focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/25 transition-all duration-200`}
                 {...props}
             />
             {maxLength && (
@@ -157,11 +156,10 @@ function TextArea({ value, onChange, placeholder, error, maxLength, rows = 4 }) 
                 placeholder={placeholder}
                 maxLength={maxLength}
                 rows={rows}
-                className={`w-full px-4 py-3 rounded-xl bg-base-200/40 border ${
-                    error
+                className={`w-full px-4 py-3 rounded-xl bg-base-200/40 border ${error
                         ? 'border-red-500/50 focus:border-red-500'
                         : 'border-base-300/50 focus:border-emerald-500'
-                } focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/25 transition-all duration-200 resize-none`}
+                    } focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/25 transition-all duration-200 resize-none`}
             />
             {maxLength && (
                 <span className="absolute right-3 bottom-3 text-[10px] text-base-content/25 font-mono tabular-nums">
@@ -310,17 +308,31 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
         try {
             const payload = {
                 courseName: formData.courseName.trim(),
-                courseCode: formData.courseCode.trim() || undefined,
-                category: formData.category,
                 courseDescription: formData.description.trim(),
-                bannerUrl: formData.bannerUrl.trim() || undefined,
-                priceAmount: formData.isFree ? 0 : Number(formData.price),
+                category: formData.category,
                 isFree: formData.isFree,
-                originalPrice: formData.originalPrice
-                    ? Number(formData.originalPrice)
-                    : undefined,
                 status: formData.status,
             };
+
+            // courseCode is optional — backend auto-generates if omitted
+            if (formData.courseCode.trim()) {
+                payload.courseCode = formData.courseCode.trim();
+            }
+
+            // Banner URL → backend field name
+            if (formData.bannerUrl.trim()) {
+                payload.courseBannerUrl = formData.bannerUrl.trim();
+            }
+
+            // Price fields — backend validator expects decimal strings
+            if (!formData.isFree) {
+                payload.priceAmount = String(Number(formData.price) || 0);
+                if (formData.originalPrice) {
+                    payload.originalPrice = String(Number(formData.originalPrice));
+                }
+            } else {
+                payload.priceAmount = '0';
+            }
 
             if (formData.publishedAt) {
                 payload.publishedAt = new Date(formData.publishedAt).toISOString();
@@ -332,11 +344,18 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
             setTimeout(() => onSuccess(created), 800);
         } catch (err) {
             console.error('Lỗi khi tạo khóa học:', err);
-            setSubmitError(
-                err?.response?.data?.message ||
-                err?.response?.data?.error ||
-                'Không thể tạo khóa học. Vui lòng thử lại.'
-            );
+            // Extract validation errors from express-validator
+            const errData = err?.response?.data;
+            if (errData?.errors && Array.isArray(errData.errors)) {
+                const messages = errData.errors.map(e => e.msg || e.message).join('. ');
+                setSubmitError(messages || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.');
+            } else {
+                setSubmitError(
+                    errData?.message ||
+                    errData?.error ||
+                    'Không thể tạo khóa học. Vui lòng thử lại.'
+                );
+            }
         } finally {
             setSubmitting(false);
         }
@@ -379,19 +398,17 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                             type="button"
                             key={cat.value}
                             onClick={() => updateField('category', cat.value)}
-                            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-200 ${
-                                formData.category === cat.value
+                            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-200 ${formData.category === cat.value
                                     ? 'border-emerald-500/50 bg-emerald-500/5 ring-2 ring-emerald-500/10 shadow-sm'
                                     : 'border-base-300/40 bg-base-200/30 hover:border-base-content/10 hover:bg-base-200/60'
-                            }`}
+                                }`}
                         >
                             <span className="text-xl leading-none">{cat.icon}</span>
                             <span
-                                className={`text-[10px] font-bold leading-tight text-center ${
-                                    formData.category === cat.value
+                                className={`text-[10px] font-bold leading-tight text-center ${formData.category === cat.value
                                         ? 'text-emerald-700'
                                         : 'text-base-content/50'
-                                }`}
+                                    }`}
                             >
                                 {cat.label}
                             </span>
@@ -487,14 +504,12 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                                 updateField('originalPrice', '');
                             }
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
-                            formData.isFree ? 'bg-emerald-500' : 'bg-base-300'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${formData.isFree ? 'bg-emerald-500' : 'bg-base-300'
+                            }`}
                     >
                         <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                formData.isFree ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${formData.isFree ? 'translate-x-6' : 'translate-x-1'
+                                }`}
                         />
                     </button>
                 </div>
@@ -559,14 +574,12 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                                     isPublished ? 'draft' : 'published'
                                 )
                             }
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${
-                                isPublished ? 'bg-emerald-500' : 'bg-base-300'
-                            }`}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 ${isPublished ? 'bg-emerald-500' : 'bg-base-300'
+                                }`}
                         >
                             <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                    isPublished ? 'translate-x-6' : 'translate-x-1'
-                                }`}
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-300 ${isPublished ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
                             />
                         </button>
                     </div>
@@ -583,11 +596,10 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                                 value={formData.publishedAt}
                                 onChange={(e) => updateField('publishedAt', e.target.value)}
                                 min={new Date().toISOString().split('T')[0]}
-                                className={`w-full px-3 py-2 rounded-lg bg-base-100 border ${
-                                    errors.publishedAt
+                                className={`w-full px-3 py-2 rounded-lg bg-base-100 border ${errors.publishedAt
                                         ? 'border-red-500'
                                         : 'border-base-300/50'
-                                } focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm text-base-content transition-all duration-200`}
+                                    } focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm text-base-content transition-all duration-200`}
                             />
                             {errors.publishedAt && (
                                 <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
@@ -621,8 +633,8 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                             {formData.isFree
                                 ? 'Miễn phí'
                                 : price > 0
-                                ? `${price.toLocaleString('vi-VN')}₫`
-                                : '—'}
+                                    ? `${price.toLocaleString('vi-VN')}₫`
+                                    : '—'}
                             {discount > 0 && (
                                 <span className="text-rose-500 ml-1">(-{discount}%)</span>
                             )}
@@ -709,22 +721,20 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                                     <button
                                         type="button"
                                         onClick={() => goToStep(s.id)}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 w-full ${
-                                            isActive
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200 w-full ${isActive
                                                 ? 'bg-emerald-500/10 text-emerald-700'
                                                 : isCompleted
-                                                ? 'text-emerald-600 hover:bg-emerald-500/5'
-                                                : 'text-base-content/30 hover:text-base-content/50'
-                                        }`}
+                                                    ? 'text-emerald-600 hover:bg-emerald-500/5'
+                                                    : 'text-base-content/30 hover:text-base-content/50'
+                                            }`}
                                     >
                                         <div
-                                            className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold transition-all ${
-                                                isActive
+                                            className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold transition-all ${isActive
                                                     ? 'bg-emerald-600 text-white'
                                                     : isCompleted
-                                                    ? 'bg-emerald-500/15 text-emerald-600'
-                                                    : 'bg-base-200 text-base-content/30'
-                                            }`}
+                                                        ? 'bg-emerald-500/15 text-emerald-600'
+                                                        : 'bg-base-200 text-base-content/30'
+                                                }`}
                                         >
                                             {isCompleted ? (
                                                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -738,11 +748,10 @@ export default function CourseCreateModal({ onClose, onSuccess }) {
                                     </button>
                                     {i < STEPS.length - 1 && (
                                         <div
-                                            className={`w-6 h-px mx-1 flex-shrink-0 ${
-                                                step > s.id
+                                            className={`w-6 h-px mx-1 flex-shrink-0 ${step > s.id
                                                     ? 'bg-emerald-500/30'
                                                     : 'bg-base-300/40'
-                                            }`}
+                                                }`}
                                         />
                                     )}
                                 </div>

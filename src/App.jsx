@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Homepage from '@/features/home/pages/Homepage';
 import { OwlLoader } from '@/shared/ui/common';
-import { ProtectedRoute, AdminRoute } from '@/shared/guards';
+import { ProtectedRoute, AdminRoute, ExpertRoute } from '@/shared/guards';
 import './App.css';
 
 const Login = lazy(() => import('@/features/auth/pages/Login'));
@@ -35,6 +35,16 @@ const AdminCourses = lazy(() => import('@/features/admin/pages/AdminCourses'));
 const AdminCourseDetail = lazy(() => import('@/features/admin/pages/AdminCourseDetail'));
 const AdminOrders = lazy(() => import('@/features/admin/pages/AdminOrders'));
 const AdminSettings = lazy(() => import('@/features/admin/pages/AdminSettings'));
+
+const ExpertDashboard = lazy(() => import('@/features/expert/pages/ExpertDashboard'));
+const ExpertCurriculum = lazy(() => import('@/features/expert/pages/ExpertCurriculum'));
+const ExpertAIAssistant = lazy(() => import('@/features/expert/pages/ExpertAIAssistant'));
+const ExpertAssetLibrary = lazy(() => import('@/features/expert/pages/ExpertAssetLibrary'));
+const ExpertAdminRequests = lazy(() => import('@/features/expert/pages/ExpertAdminRequests'));
+const ExpertAnalytics = lazy(() => import('@/features/expert/pages/ExpertAnalytics'));
+const ExpertQAHub = lazy(() => import('@/features/expert/pages/ExpertQAHub'));
+const ExpertRevenue = lazy(() => import('@/features/expert/pages/ExpertRevenue'));
+const ExpertProfile = lazy(() => import('@/features/expert/pages/ExpertProfile'));
 
 const UnauthorizedRoute = lazy(() => import('@/shared/guards/UnauthorizedRoute'));
 
@@ -97,6 +107,18 @@ function App() {
                 <Route path="/admin/courses/:id" element={<AdminRoute><AdminCourseDetail /></AdminRoute>} />
                 <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+
+                {/* ==================== EXPERT ROUTES ==================== */}
+                {/* Yêu cầu đăng nhập + quyền creator/expert */}
+                <Route path="/expert" element={<ExpertRoute><ExpertDashboard /></ExpertRoute>} />
+                <Route path="/expert/curriculum" element={<ExpertRoute><ExpertCurriculum /></ExpertRoute>} />
+                <Route path="/expert/ai-assistant" element={<ExpertRoute><ExpertAIAssistant /></ExpertRoute>} />
+                <Route path="/expert/assets" element={<ExpertRoute><ExpertAssetLibrary /></ExpertRoute>} />
+                <Route path="/expert/requests" element={<ExpertRoute><ExpertAdminRequests /></ExpertRoute>} />
+                <Route path="/expert/analytics" element={<ExpertRoute><ExpertAnalytics /></ExpertRoute>} />
+                <Route path="/expert/qa" element={<ExpertRoute><ExpertQAHub /></ExpertRoute>} />
+                <Route path="/expert/revenue" element={<ExpertRoute><ExpertRevenue /></ExpertRoute>} />
+                <Route path="/expert/profile" element={<ExpertRoute><ExpertProfile /></ExpertRoute>} />
             </Routes>
         </Suspense>
     );
