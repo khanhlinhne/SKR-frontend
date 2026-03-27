@@ -15,6 +15,12 @@ axiosClient.interceptors.request.use(
     (config) => {
         const token = getAccessToken();
 
+        // Let browser set multipart boundary automatically for FormData payloads
+        if (typeof FormData !== 'undefined' && config.data instanceof FormData && config.headers) {
+            delete config.headers['Content-Type'];
+            delete config.headers['content-type'];
+        }
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
 

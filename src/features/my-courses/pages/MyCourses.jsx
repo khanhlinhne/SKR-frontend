@@ -30,107 +30,28 @@ import {
     MyCoursesToolbar,
 } from '@/features/my-courses/components';
 import { enrollmentApi } from '@/shared/api';
+import { useCurrentUserProfile } from '@/shared/user/useCurrentUserProfile';
 import { OwlLoader } from '@/shared/ui/common';
 
-// ─── Mock Data (để demo khi chưa có API thật) ─────────────
-const MOCK_ENROLLMENTS = [
-    {
-        id: 1,
-        courseId: 1,
-        title: 'Toán Cao Cấp - Giải Tích & Đại Số',
-        instructorName: 'TS. Nguyễn Văn Minh',
-        bannerUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
-        progressPercent: 65,
-        completedLessons: 31,
-        totalLessons: 48,
-        totalChapters: 12,
-        estimatedDurationHours: 24,
-        ratingAverage: 4.9,
-        ratingCount: 1248,
-        enrolledAt: '2025-12-20T00:00:00Z',
-        lastAccessedAt: '2026-03-19T14:30:00Z',
-    },
-    {
-        id: 2,
-        courseId: 2,
-        title: 'Lập Trình Python - Từ Cơ Bản Đến Nâng Cao',
-        instructorName: 'ThS. Trần Hoàng Long',
-        bannerUrl: 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=600&h=400&fit=crop',
-        progressPercent: 100,
-        completedLessons: 36,
-        totalLessons: 36,
-        totalChapters: 8,
-        estimatedDurationHours: 18,
-        ratingAverage: 4.8,
-        ratingCount: 892,
-        enrolledAt: '2025-10-01T00:00:00Z',
-        lastAccessedAt: '2026-01-15T10:00:00Z',
-    },
-    {
-        id: 3,
-        courseId: 3,
-        title: 'Tiếng Anh Giao Tiếp - IELTS Speaking',
-        instructorName: 'Ms. Phạm Thị Hương',
-        bannerUrl: 'https://images.unsplash.com/photo-1543109740-4bdb38fda756?w=600&h=400&fit=crop',
-        progressPercent: 30,
-        completedLessons: 9,
-        totalLessons: 30,
-        totalChapters: 6,
-        estimatedDurationHours: 15,
-        ratingAverage: 4.7,
-        ratingCount: 634,
-        enrolledAt: '2026-02-10T00:00:00Z',
-        lastAccessedAt: '2026-03-18T09:00:00Z',
-    },
-    {
-        id: 4,
-        courseId: 4,
-        title: 'Kinh Tế Vi Mô - Lý Thuyết & Ứng Dụng',
-        instructorName: 'PGS. Lê Minh Tuấn',
-        bannerUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&h=400&fit=crop',
-        progressPercent: 0,
-        completedLessons: 0,
-        totalLessons: 24,
-        totalChapters: 5,
-        estimatedDurationHours: 12,
-        ratingAverage: 4.5,
-        ratingCount: 310,
-        enrolledAt: '2026-03-15T00:00:00Z',
-        lastAccessedAt: null,
-    },
-    {
-        id: 5,
-        courseId: 5,
-        title: 'Vật Lý Đại Cương - Cơ Học & Nhiệt Học',
-        instructorName: 'TS. Hoàng Văn Đức',
-        bannerUrl: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?w=600&h=400&fit=crop',
-        progressPercent: 85,
-        completedLessons: 34,
-        totalLessons: 40,
-        totalChapters: 10,
-        estimatedDurationHours: 20,
-        ratingAverage: 4.6,
-        ratingCount: 455,
-        enrolledAt: '2025-11-05T00:00:00Z',
-        lastAccessedAt: '2026-03-20T08:00:00Z',
-    },
-    {
-        id: 6,
-        courseId: 6,
-        title: 'React.js & Next.js - Fullstack Web Development',
-        instructorName: 'ThS. Nguyễn Đình Khoa',
-        bannerUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop',
-        progressPercent: 100,
-        completedLessons: 42,
-        totalLessons: 42,
-        totalChapters: 9,
-        estimatedDurationHours: 28,
-        ratingAverage: 4.9,
-        ratingCount: 1102,
-        enrolledAt: '2025-09-15T00:00:00Z',
-        lastAccessedAt: '2026-02-20T16:00:00Z',
-    },
-];
+// ─── Helper: map API enrollment item to component format ──
+function mapEnrollmentItem(item) {
+    return {
+        id: item.enrollmentId || item.id,
+        courseId: item.courseId,
+        title: item.courseName || item.title,
+        instructorName: item.instructorName,
+        bannerUrl: item.bannerUrl,
+        progressPercent: item.progressPercent ?? 0,
+        completedLessons: item.completedLessons ?? 0,
+        totalLessons: item.totalLessons ?? 0,
+        totalChapters: item.totalChapters ?? 0,
+        estimatedDurationHours: item.estimatedDurationHours ?? 0,
+        ratingAverage: item.ratingAverage ?? 0,
+        ratingCount: item.ratingCount ?? 0,
+        enrolledAt: item.purchasedAt || item.enrolledAt || item.createdAt,
+        lastAccessedAt: item.lastAccessedAt,
+    };
+}
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -295,7 +216,7 @@ function QuickResumeCard({ enrollment }) {
 
 // ─── Hero Section ─────────────────────────────────────────
 
-function HeroSection({ stats, userName = 'Đoàn Thế Anh' }) {
+function HeroSection({ stats, userName = 'Người dùng' }) {
     const overallProgress = stats.totalCourses > 0
         ? Math.round(((stats.completed + stats.inProgress * 0.5) / stats.totalCourses) * 100)
         : 0;
@@ -445,40 +366,21 @@ export default function MyCourses() {
     const [statusFilter, setStatusFilter] = useState('all');
     const [sortBy, setSortBy] = useState('recent');
     const [viewMode, setViewMode] = useState('grid');
+    const { profile } = useCurrentUserProfile();
 
-    // Fetch enrollments
+    // Fetch enrollments from real API
     useEffect(() => {
         const fetchEnrollments = async () => {
             try {
                 setLoading(true);
+                setError(null);
                 const response = await enrollmentApi.getMyEnrollments();
                 const items = response.data?.items || response.data || [];
-
-                if (items.length > 0) {
-                    setEnrollments(
-                        items.map((item) => ({
-                            id: item.enrollmentId || item.id,
-                            courseId: item.subjectId || item.courseId,
-                            title: item.subjectName || item.title,
-                            instructorName: item.instructorName || item.creator?.displayName,
-                            bannerUrl: item.subjectBannerUrl || item.bannerUrl,
-                            progressPercent: item.progressPercent ?? item.progress ?? 0,
-                            completedLessons: item.completedLessons ?? 0,
-                            totalLessons: item.totalLessons ?? 0,
-                            totalChapters: item.totalChapters ?? 0,
-                            estimatedDurationHours: item.estimatedDurationHours ?? 0,
-                            ratingAverage: item.ratingAverage ?? 0,
-                            ratingCount: item.ratingCount ?? 0,
-                            enrolledAt: item.enrolledAt || item.createdAt,
-                            lastAccessedAt: item.lastAccessedAt,
-                        }))
-                    );
-                } else {
-                    setEnrollments(MOCK_ENROLLMENTS);
-                }
+                setEnrollments(items.map(mapEnrollmentItem));
             } catch (err) {
                 console.error('Error fetching enrollments:', err);
-                setEnrollments(MOCK_ENROLLMENTS);
+                setError('Không thể tải danh sách khóa học. Vui lòng thử lại.');
+                setEnrollments([]);
             } finally {
                 setLoading(false);
             }
@@ -525,7 +427,7 @@ export default function MyCourses() {
                 >
                     {/* Hero Section with Stats */}
                     <motion.div variants={fadeInUp} className="mb-4">
-                        <HeroSection stats={stats} />
+                        <HeroSection stats={stats} userName={profile.name} />
                     </motion.div>
 
                     {/* Loading */}
@@ -557,7 +459,11 @@ export default function MyCourses() {
 
                     {/* Main content */}
                     {!loading && !error && (
-                        <>
+                        <motion.div
+                            variants={containerVariants}
+                            initial="hidden"
+                            animate="visible"
+                        >
                             {/* Continue Learning (compact, only when default view) */}
                             {statusFilter === 'all' &&
                                 !searchQuery &&
@@ -721,7 +627,7 @@ export default function MyCourses() {
                                     </div>
                                 </motion.div>
                             )}
-                        </>
+                        </motion.div>
                     )}
                 </motion.main>
             </div>

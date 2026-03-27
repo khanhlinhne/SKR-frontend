@@ -69,6 +69,7 @@ function normalizeProfile(source) {
               : premiumByRole;
 
     return {
+        userId: raw.userId || raw.user_id || raw.id || storedUser.userId || storedUser.user_id || storedUser.id || null,
         name:
             raw.fullName ||
             raw.displayName ||
@@ -135,6 +136,7 @@ export function updateCachedUserProfile(source) {
         'user',
         JSON.stringify({
             ...storedUser,
+            userId: normalized.userId || storedUser.userId,
             name: normalized.name,
             fullName: storedUser.fullName || normalized.name,
             displayName: storedUser.displayName || normalized.name,

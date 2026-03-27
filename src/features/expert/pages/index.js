@@ -1,6 +1,7 @@
 // Expert Pages - Export all
 export { default as ExpertDashboard } from './ExpertDashboard';
 export { default as ExpertCurriculum } from './ExpertCurriculum';
+export { default as ExpertCurriculumDetail } from './ExpertCurriculumDetail';
 export { default as ExpertAIAssistant } from './ExpertAIAssistant';
 export { default as ExpertAssetLibrary } from './ExpertAssetLibrary';
 export { default as ExpertAdminRequests } from './ExpertAdminRequests';

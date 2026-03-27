@@ -108,6 +108,10 @@ export default function AdminCourseDetail() {
         setShowEditModal(false);
     };
 
+    const handleExpertAssigned = (updatedCourse) => {
+        setCourse(normalizeCourse(updatedCourse));
+    };
+
     const handleDelete = async () => {
         if (!course) return;
         if (!window.confirm(`Bạn có chắc muốn xóa khóa học "${course.name}"?\nHành động này không thể hoàn tác.`)) return;
@@ -289,7 +293,7 @@ export default function AdminCourseDetail() {
                     {/* Right Column (1/3 width) - Info, Breakdown & Expert */}
                     <div className="space-y-6">
                         <CourseSummaryCard course={course} />
-                        <ExpertAssignmentCard creator={course.creator} />
+                        <ExpertAssignmentCard creator={course.creator} courseId={course.id} onExpertAssigned={handleExpertAssigned} />
                         <RevenueBreakdown course={course} />
                     </div>
                 </div>

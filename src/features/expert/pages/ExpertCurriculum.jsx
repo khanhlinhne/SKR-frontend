@@ -1,194 +1,410 @@
-import { useState, useRef } from 'react';
-import { motion, AnimatePresence, Reorder } from 'motion/react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { ExpertLayout } from '@/features/expert/components';
+import courseApi from '@/shared/api/courseApi';
 import {
-    Plus,
-    GripVertical,
-    PlayCircle,
-    FileText,
-    HelpCircle,
-    ChevronDown,
-    ChevronRight,
-    Trash2,
-    Pencil,
-    Copy,
-    MoreHorizontal,
-    Eye,
-    Save,
-    Upload,
-    Video,
-    FileUp,
-    X,
-    Check,
-    FolderPlus,
-    Layers,
-    Clock,
     BookOpen,
+    Search,
+    Filter,
+    Plus,
+    ChevronRight,
+    Layers,
+    Users,
+    Clock,
+    Eye,
+    Pencil,
+    BarChart3,
+    GraduationCap,
+    FolderOpen,
+    AlertCircle,
+    Loader2,
+    RefreshCw,
+    Star,
+    TrendingUp,
+    LayoutGrid,
+    List,
 } from 'lucide-react';
 
 // ===== ANIMATION =====
 const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
 };
 const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
-
-// ===== LESSON TYPE CONFIG =====
-const lessonTypeConfig = {
-    video: { label: 'Video', icon: PlayCircle, color: 'text-blue-500 bg-blue-500/10', gradient: 'from-blue-500 to-cyan-500' },
-    document: { label: 'Tài liệu', icon: FileText, color: 'text-emerald-500 bg-emerald-500/10', gradient: 'from-emerald-500 to-teal-500' },
-    quiz: { label: 'Trắc nghiệm', icon: HelpCircle, color: 'text-amber-500 bg-amber-500/10', gradient: 'from-amber-500 to-orange-500' },
+const itemVariants = {
+    hidden: { opacity: 0, scale: 0.95, y: 15 },
+    visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-// ===== MOCK DATA =====
-const initialCourse = {
-    id: 1,
-    name: 'React & Next.js Masterclass',
-    status: 'draft',
-    chapters: [
-        {
-            id: 'ch-1',
-            title: 'Giới thiệu React',
-            expanded: true,
-            lessons: [
-                { id: 'ls-1', title: 'React là gì?', type: 'video', duration: '12:30', status: 'published' },
-                { id: 'ls-2', title: 'Cài đặt môi trường', type: 'video', duration: '08:45', status: 'published' },
-                { id: 'ls-3', title: 'Tài liệu hướng dẫn cài đặt', type: 'document', duration: '5 trang', status: 'published' },
-                { id: 'ls-4', title: 'Bài kiểm tra: Kiến thức cơ bản', type: 'quiz', duration: '10 câu', status: 'draft' },
-            ],
-        },
-        {
-            id: 'ch-2',
-            title: 'Components & Props',
-            expanded: false,
-            lessons: [
-                { id: 'ls-5', title: 'Functional Components', type: 'video', duration: '15:20', status: 'published' },
-                { id: 'ls-6', title: 'Props và truyền dữ liệu', type: 'video', duration: '18:10', status: 'draft' },
-                { id: 'ls-7', title: 'Bài tập Components', type: 'quiz', duration: '8 câu', status: 'draft' },
-            ],
-        },
-        {
-            id: 'ch-3',
-            title: 'State & Lifecycle',
-            expanded: false,
-            lessons: [
-                { id: 'ls-8', title: 'useState Hook', type: 'video', duration: '20:00', status: 'draft' },
-                { id: 'ls-9', title: 'useEffect Deep Dive', type: 'video', duration: '25:30', status: 'draft' },
-            ],
-        },
-    ],
+// ===== STATUS CONFIG =====
+const statusConfig = {
+    published: { label: 'Đã xuất bản', color: 'badge-success', dot: 'bg-emerald-500' },
+    draft: { label: 'Bản nháp', color: 'badge-warning', dot: 'bg-amber-500' },
+    archived: { label: 'Lưu trữ', color: 'badge-ghost', dot: 'bg-base-content/30' },
 };
 
-const courseStats = {
-    totalChapters: 3,
-    totalLessons: 9,
-    totalDuration: '1h 50m',
-    publishedLessons: 4,
-};
+// ===== COURSE CARD =====
+function CourseCard({ course }) {
+    const navigate = useNavigate();
+    const status = statusConfig[course.status] || statusConfig.draft;
+    const hasContent = (course._count?.chapters || course.chaptersCount || 0) > 0;
+    const chapterCount = course._count?.chapters || course.chaptersCount || 0;
+    const lessonCount = course._count?.lessons || course.lessonsCount || 0;
+    const studentCount = course._count?.enrollments || course.enrollmentsCount || course.purchaseCount || 0;
+
+    return (
+        <motion.div variants={itemVariants} layout>
+            <div
+                onClick={() => navigate(`/expert/curriculum/${course.courseId || course.id}`)}
+                className="block group cursor-pointer"
+            >
+                <div className="bg-base-100 rounded-2xl border border-base-300 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group-hover:border-violet-500/30">
+                    {/* Banner */}
+                    <div className="relative h-36 overflow-hidden">
+                        {course.courseBannerUrl ? (
+                            <img
+                                src={course.courseBannerUrl}
+                                alt={course.courseName}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/15 to-purple-600/20 flex items-center justify-center">
+                                <GraduationCap className="w-12 h-12 text-violet-500/40" />
+                            </div>
+                        )}
+                        {/* Status badge */}
+                        <div className="absolute top-3 left-3">
+                            <span className={`badge badge-sm font-bold gap-1.5 ${status.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                                {status.label}
+                            </span>
+                        </div>
+                        {/* Content indicator */}
+                        <div className="absolute top-3 right-3">
+                            {hasContent ? (
+                                <span className="badge badge-sm bg-violet-600 text-white border-none font-bold gap-1">
+                                    <Pencil className="w-3 h-3" />
+                                    Chỉnh sửa
+                                </span>
+                            ) : (
+                                <span className="badge badge-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none font-bold gap-1">
+                                    <Plus className="w-3 h-3" />
+                                    Thêm nội dung
+                                </span>
+                            )}
+                        </div>
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent opacity-60" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 space-y-3">
+                        {/* Course name */}
+                        <div>
+                            {course.courseCode && (
+                                <p className="text-[10px] font-bold text-violet-600 uppercase tracking-wider mb-1">
+                                    {course.courseCode}
+                                </p>
+                            )}
+                            <h3 className="font-black text-base-content text-base leading-tight line-clamp-2 group-hover:text-violet-600 transition-colors">
+                                {course.courseName}
+                            </h3>
+                        </div>
+
+                        {/* Description */}
+                        {course.courseDescription && (
+                            <p className="text-xs text-base-content/50 line-clamp-2 leading-relaxed">
+                                {course.courseDescription}
+                            </p>
+                        )}
+
+                        {/* Stats row */}
+                        <div className="flex items-center gap-3 pt-1">
+                            <div className="flex items-center gap-1.5 text-xs text-base-content/50">
+                                <Layers className="w-3.5 h-3.5 text-violet-500" />
+                                <span className="font-bold">{chapterCount}</span>
+                                <span>chương</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-base-content/50">
+                                <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+                                <span className="font-bold">{lessonCount}</span>
+                                <span>bài</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-base-content/50">
+                                <Users className="w-3.5 h-3.5 text-emerald-500" />
+                                <span className="font-bold">{studentCount}</span>
+                                <span>HV</span>
+                            </div>
+                        </div>
+
+                        {/* Progress bar (content completeness) */}
+                        {hasContent && (
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between text-[10px] font-bold">
+                                    <span className="text-base-content/40 uppercase tracking-wider">Nội dung</span>
+                                    <span className="text-violet-600">{lessonCount} bài giảng</span>
+                                </div>
+                                <div className="w-full h-1.5 rounded-full bg-base-300 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
+                                        style={{ width: `${Math.min(100, (lessonCount / Math.max(1, chapterCount * 5)) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Action hint */}
+                        <div className="flex items-center justify-between pt-1">
+                            {course.priceAmount > 0 ? (
+                                <span className="text-xs font-black text-emerald-600">
+                                    {Number(course.priceAmount).toLocaleString('vi-VN')}đ
+                                </span>
+                            ) : (
+                                <span className="badge badge-xs badge-ghost font-bold">Miễn phí</span>
+                            )}
+                            <div className="flex items-center gap-1 text-xs font-bold text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span>{hasContent ? 'Quản lý nội dung' : 'Bắt đầu soạn'}</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+// ===== COURSE LIST ITEM (for list view) =====
+function CourseListItem({ course }) {
+    const navigate = useNavigate();
+    const status = statusConfig[course.status] || statusConfig.draft;
+    const hasContent = (course._count?.chapters || course.chaptersCount || 0) > 0;
+    const chapterCount = course._count?.chapters || course.chaptersCount || 0;
+    const lessonCount = course._count?.lessons || course.lessonsCount || 0;
+    const studentCount = course._count?.enrollments || course.enrollmentsCount || course.purchaseCount || 0;
+
+    return (
+        <motion.div variants={itemVariants} layout>
+            <div
+                onClick={() => navigate(`/expert/curriculum/${course.courseId || course.id}`)}
+                className="block group cursor-pointer"
+            >
+                <div className="bg-base-100 rounded-2xl border border-base-300 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group-hover:border-violet-500/30 p-4 flex items-center gap-4">
+                    {/* Thumbnail */}
+                    <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
+                        {course.courseBannerUrl ? (
+                            <img
+                                src={course.courseBannerUrl}
+                                alt={course.courseName}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-violet-500/20 via-fuchsia-500/15 to-purple-600/20 flex items-center justify-center">
+                                <GraduationCap className="w-8 h-8 text-violet-500/40" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            {course.courseCode && (
+                                <span className="text-[10px] font-bold text-violet-600 bg-violet-500/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    {course.courseCode}
+                                </span>
+                            )}
+                            <span className={`badge badge-xs font-bold gap-1 ${status.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                                {status.label}
+                            </span>
+                        </div>
+                        <h3 className="font-black text-base-content text-sm leading-tight truncate group-hover:text-violet-600 transition-colors">
+                            {course.courseName}
+                        </h3>
+                        {course.courseDescription && (
+                            <p className="text-xs text-base-content/40 truncate mt-0.5">{course.courseDescription}</p>
+                        )}
+                        {/* Stats */}
+                        <div className="flex items-center gap-4 mt-2">
+                            <div className="flex items-center gap-1 text-xs text-base-content/50">
+                                <Layers className="w-3 h-3 text-violet-500" />
+                                <span className="font-bold">{chapterCount}</span> chương
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-base-content/50">
+                                <BookOpen className="w-3 h-3 text-blue-500" />
+                                <span className="font-bold">{lessonCount}</span> bài
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-base-content/50">
+                                <Users className="w-3 h-3 text-emerald-500" />
+                                <span className="font-bold">{studentCount}</span> HV
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right side */}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                        {course.priceAmount > 0 ? (
+                            <span className="text-sm font-black text-emerald-600">
+                                {Number(course.priceAmount).toLocaleString('vi-VN')}đ
+                            </span>
+                        ) : (
+                            <span className="badge badge-sm badge-ghost font-bold">Miễn phí</span>
+                        )}
+                        {hasContent ? (
+                            <span className="badge badge-sm bg-violet-600 text-white border-none font-bold gap-1 hidden sm:flex">
+                                <Pencil className="w-3 h-3" />
+                                Chỉnh sửa
+                            </span>
+                        ) : (
+                            <span className="badge badge-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none font-bold gap-1 hidden sm:flex">
+                                <Plus className="w-3 h-3" />
+                                Thêm nội dung
+                            </span>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-base-content/30 group-hover:text-violet-600 transition-colors" />
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+// ===== EMPTY STATE =====
+function EmptyState({ searchTerm }) {
+    return (
+        <motion.div variants={cardVariants} className="col-span-full">
+            <div className="bg-base-100 rounded-2xl border-2 border-dashed border-base-300 p-12 text-center">
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 flex items-center justify-center mb-4">
+                    <FolderOpen className="w-10 h-10 text-violet-500/50" />
+                </div>
+                <h3 className="text-lg font-black text-base-content mb-2">
+                    {searchTerm ? 'Không tìm thấy khóa học' : 'Chưa có khóa học nào'}
+                </h3>
+                <p className="text-sm text-base-content/50 max-w-md mx-auto">
+                    {searchTerm
+                        ? `Không có khóa học nào trùng khớp với "${searchTerm}". Hãy thử từ khóa khác.`
+                        : 'Bạn chưa được phân công quản lý khóa học nào. Vui lòng liên hệ Admin để được giao khóa học.'
+                    }
+                </p>
+            </div>
+        </motion.div>
+    );
+}
+
+// ===== ERROR STATE =====
+function ErrorState({ message, onRetry }) {
+    return (
+        <motion.div variants={cardVariants} className="col-span-full">
+            <div className="bg-base-100 rounded-2xl border border-red-500/20 p-12 text-center">
+                <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                    <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-lg font-black text-base-content mb-2">Lỗi tải dữ liệu</h3>
+                <p className="text-sm text-base-content/50 mb-4">{message}</p>
+                <button onClick={onRetry} className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5">
+                    <RefreshCw className="w-4 h-4" />
+                    Thử lại
+                </button>
+            </div>
+        </motion.div>
+    );
+}
 
 // ===== MAIN COMPONENT =====
 export default function ExpertCurriculum() {
-    const [course, setCourse] = useState(initialCourse);
-    const [showAddLesson, setShowAddLesson] = useState(null);
-    const [editingTitle, setEditingTitle] = useState(null);
-    const [editValue, setEditValue] = useState('');
-    const [dragOverChapter, setDragOverChapter] = useState(null);
-    const dragItem = useRef(null);
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [viewMode, setViewMode] = useState(() => {
+        try { return localStorage.getItem('skr-expert-curriculum-view') || 'grid'; } catch { return 'grid'; }
+    });
 
-    const toggleChapter = (chapterId) => {
-        setCourse(prev => ({
-            ...prev,
-            chapters: prev.chapters.map(ch =>
-                ch.id === chapterId ? { ...ch, expanded: !ch.expanded } : ch
-            ),
-        }));
+    const handleViewChange = (mode) => {
+        setViewMode(mode);
+        try { localStorage.setItem('skr-expert-curriculum-view', mode); } catch { /* ignore */ }
     };
 
-    const addChapter = () => {
-        const newChapter = {
-            id: `ch-${Date.now()}`,
-            title: `Chương mới ${course.chapters.length + 1}`,
-            expanded: true,
-            lessons: [],
-        };
-        setCourse(prev => ({ ...prev, chapters: [...prev.chapters, newChapter] }));
-    };
+    const fetchCourses = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            // Lấy userId từ localStorage — expert chỉ xem khóa học được admin giao
+            const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            const userId = storedUser.userId || storedUser.id || storedUser.user_id;
 
-    const addLesson = (chapterId, type) => {
-        const typeLabels = { video: 'Video bài giảng', document: 'Tài liệu mới', quiz: 'Bài kiểm tra mới' };
-        const newLesson = {
-            id: `ls-${Date.now()}`,
-            title: typeLabels[type],
-            type,
-            duration: type === 'video' ? '00:00' : type === 'quiz' ? '0 câu' : '0 trang',
-            status: 'draft',
-        };
-        setCourse(prev => ({
-            ...prev,
-            chapters: prev.chapters.map(ch =>
-                ch.id === chapterId ? { ...ch, lessons: [...ch.lessons, newLesson] } : ch
-            ),
-        }));
-        setShowAddLesson(null);
-    };
+            if (!userId) {
+                setCourses([]);
+                setLoading(false);
+                return;
+            }
 
-    const deleteLesson = (chapterId, lessonId) => {
-        setCourse(prev => ({
-            ...prev,
-            chapters: prev.chapters.map(ch =>
-                ch.id === chapterId
-                    ? { ...ch, lessons: ch.lessons.filter(l => l.id !== lessonId) }
-                    : ch
-            ),
-        }));
-    };
+            // Luôn truyền creatorId để chỉ lấy khóa học được giao cho expert này
+            // Truyền admin=true để có thể xem cả draft/archived
+            const res = await courseApi.getAll({
+                limit: 50,
+                creatorId: userId,
+                admin: true,
+            });
+            const data = res?.data?.courses || res?.data?.items || res?.data || res?.courses || res?.items || [];
+            setCourses(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('[ExpertCurriculum] fetch error:', err);
+            setError(err.response?.data?.message || 'Không thể tải danh sách khóa học.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-    const deleteChapter = (chapterId) => {
-        setCourse(prev => ({
-            ...prev,
-            chapters: prev.chapters.filter(ch => ch.id !== chapterId),
-        }));
-    };
+    useEffect(() => {
+        fetchCourses();
+    }, [fetchCourses]);
 
-    const startEditTitle = (id, currentTitle) => {
-        setEditingTitle(id);
-        setEditValue(currentTitle);
-    };
+    // ===== FILTERED COURSES =====
+    const filteredCourses = courses.filter(c => {
+        const matchSearch = !searchTerm ||
+            c.courseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.courseCode?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+        return matchSearch && matchStatus;
+    });
 
-    const saveEditTitle = (type, chapterId, lessonId = null) => {
-        if (!editValue.trim()) return;
-        setCourse(prev => ({
-            ...prev,
-            chapters: prev.chapters.map(ch => {
-                if (type === 'chapter' && ch.id === chapterId) {
-                    return { ...ch, title: editValue.trim() };
-                }
-                if (type === 'lesson' && ch.id === chapterId) {
-                    return {
-                        ...ch,
-                        lessons: ch.lessons.map(l =>
-                            l.id === lessonId ? { ...l, title: editValue.trim() } : l
-                        ),
-                    };
-                }
-                return ch;
-            }),
-        }));
-        setEditingTitle(null);
-        setEditValue('');
-    };
-
-    const reorderLessons = (chapterId, newOrder) => {
-        setCourse(prev => ({
-            ...prev,
-            chapters: prev.chapters.map(ch =>
-                ch.id === chapterId ? { ...ch, lessons: newOrder } : ch
-            ),
-        }));
-    };
+    // ===== STATS =====
+    const stats = [
+        {
+            label: 'Tổng khóa học',
+            value: courses.length,
+            icon: GraduationCap,
+            color: 'text-violet-500',
+            bg: 'bg-violet-500/10',
+        },
+        {
+            label: 'Đã xuất bản',
+            value: courses.filter(c => c.status === 'published').length,
+            icon: Eye,
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-500/10',
+        },
+        {
+            label: 'Bản nháp',
+            value: courses.filter(c => c.status === 'draft').length,
+            icon: Pencil,
+            color: 'text-amber-500',
+            bg: 'bg-amber-500/10',
+        },
+        {
+            label: 'Tổng học viên',
+            value: courses.reduce((sum, c) => sum + (c._count?.enrollments || c.enrollmentsCount || c.purchaseCount || 0), 0),
+            icon: Users,
+            color: 'text-blue-500',
+            bg: 'bg-blue-500/10',
+        },
+    ];
 
     return (
         <ExpertLayout>
@@ -197,256 +413,129 @@ export default function ExpertCurriculum() {
                 <motion.div variants={cardVariants} className="flex flex-wrap items-center justify-between gap-4 mb-6">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm text-base-content/50 font-medium">Chương trình học</span>
+                            <span className="text-sm text-base-content/50 font-medium">Expert Studio</span>
                             <ChevronRight className="w-3 h-3 text-base-content/30" />
-                            <span className="text-sm text-violet-600 font-bold">{course.name}</span>
+                            <span className="text-sm text-violet-600 font-bold">Chương trình học</span>
                         </div>
-                        <h1 className="text-2xl lg:text-3xl font-black text-base-content">Trình tạo Chương trình học</h1>
-                        <p className="text-sm text-base-content/60 mt-1">Kéo thả để sắp xếp các module và bài giảng</p>
+                        <h1 className="text-2xl lg:text-3xl font-black text-base-content">Khóa học của tôi</h1>
+                        <p className="text-sm text-base-content/60 mt-1">
+                            Chọn khóa học để quản lý chương, bài giảng và nội dung
+                        </p>
                     </div>
-                    <div className="flex gap-2">
-                        <button className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5">
-                            <Eye className="w-4 h-4" />
-                            Xem trước
-                        </button>
-                        <button className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold shadow-lg shadow-violet-500/25 gap-1.5">
-                            <Save className="w-4 h-4" />
-                            Lưu thay đổi
-                        </button>
-                    </div>
+                    <button
+                        onClick={fetchCourses}
+                        className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5"
+                        disabled={loading}
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        Làm mới
+                    </button>
                 </motion.div>
 
-                {/* Stats Bar */}
+                {/* Stats */}
                 <motion.div variants={cardVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                    {[
-                        { label: 'Chương', value: courseStats.totalChapters, icon: Layers, color: 'text-violet-500' },
-                        { label: 'Bài giảng', value: courseStats.totalLessons, icon: BookOpen, color: 'text-blue-500' },
-                        { label: 'Tổng thời gian', value: courseStats.totalDuration, icon: Clock, color: 'text-emerald-500' },
-                        { label: 'Đã xuất bản', value: `${courseStats.publishedLessons}/${courseStats.totalLessons}`, icon: Check, color: 'text-amber-500' },
-                    ].map((stat, i) => (
-                        <div key={i} className="bg-base-100 rounded-xl p-3 border border-base-300 flex items-center gap-3">
-                            <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                    {stats.map((stat, i) => (
+                        <div key={i} className="bg-base-100 rounded-xl p-3.5 border border-base-300 flex items-center gap-3 shadow-sm">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg}`}>
+                                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                            </div>
                             <div>
-                                <p className="text-lg font-black text-base-content">{stat.value}</p>
+                                <p className="text-xl font-black text-base-content">{stat.value}</p>
                                 <p className="text-[10px] text-base-content/50 font-bold uppercase tracking-wider">{stat.label}</p>
                             </div>
                         </div>
                     ))}
                 </motion.div>
 
-                {/* Chapters List */}
-                <div className="space-y-4">
-                    {course.chapters.map((chapter, chapterIdx) => (
-                        <motion.div
-                            key={chapter.id}
-                            variants={cardVariants}
-                            className="bg-base-100 rounded-2xl border border-base-300 shadow-lg overflow-hidden"
-                        >
-                            {/* Chapter Header */}
-                            <div
-                                className={`flex items-center gap-3 px-5 py-4 cursor-pointer transition-colors ${chapter.expanded ? 'bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 border-b border-base-300' : 'hover:bg-base-200/50'}`}
-                                onClick={() => toggleChapter(chapter.id)}
+                {/* Search & Filter Bar */}
+                <motion.div variants={cardVariants} className="flex flex-wrap items-center gap-3 mb-6">
+                    {/* Search */}
+                    <div className="relative flex-1 min-w-[220px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/30" />
+                        <input
+                            type="text"
+                            placeholder="Tìm khóa học theo tên hoặc mã..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="input input-bordered w-full pl-10 rounded-xl font-medium text-sm h-10"
+                        />
+                    </div>
+                    {/* Status Filter */}
+                    <div className="flex items-center gap-1.5 bg-base-100 rounded-xl border border-base-300 p-1">
+                        {[
+                            { key: 'all', label: 'Tất cả' },
+                            { key: 'published', label: 'Đã xuất bản' },
+                            { key: 'draft', label: 'Bản nháp' },
+                            { key: 'archived', label: 'Lưu trữ' },
+                        ].map(f => (
+                            <button
+                                key={f.key}
+                                onClick={() => setStatusFilter(f.key)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    statusFilter === f.key
+                                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md'
+                                        : 'text-base-content/50 hover:text-base-content hover:bg-base-200'
+                                }`}
                             >
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                    <GripVertical className="w-4 h-4 text-base-content/30 cursor-grab" />
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center text-white font-black text-sm shadow-md">
-                                        {chapterIdx + 1}
-                                    </div>
-                                </div>
-
-                                {editingTitle === chapter.id ? (
-                                    <div className="flex-1 flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                                        <input
-                                            type="text"
-                                            value={editValue}
-                                            onChange={e => setEditValue(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && saveEditTitle('chapter', chapter.id)}
-                                            className="input input-sm input-bordered flex-1 font-bold"
-                                            autoFocus
-                                        />
-                                        <button onClick={() => saveEditTitle('chapter', chapter.id)} className="btn btn-sm btn-circle btn-ghost text-emerald-500">
-                                            <Check className="w-4 h-4" />
-                                        </button>
-                                        <button onClick={() => setEditingTitle(null)} className="btn btn-sm btn-circle btn-ghost text-red-500">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-black text-base-content text-base">{chapter.title}</h3>
-                                        <p className="text-xs text-base-content/50">{chapter.lessons.length} bài giảng</p>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                    <button
-                                        onClick={() => startEditTitle(chapter.id, chapter.title)}
-                                        className="btn btn-ghost btn-xs btn-circle"
-                                        title="Đổi tên"
-                                    >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                        onClick={() => deleteChapter(chapter.id)}
-                                        className="btn btn-ghost btn-xs btn-circle text-red-500"
-                                        title="Xóa chương"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <div className="ml-1">
-                                        {chapter.expanded
-                                            ? <ChevronDown className="w-5 h-5 text-base-content/40" />
-                                            : <ChevronRight className="w-5 h-5 text-base-content/40" />
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Lessons */}
-                            <AnimatePresence>
-                                {chapter.expanded && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="overflow-hidden"
-                                    >
-                                        <div className="px-5 py-3 space-y-1.5">
-                                            {chapter.lessons.map((lesson, lessonIdx) => {
-                                                const ltConfig = lessonTypeConfig[lesson.type];
-                                                const LessonIcon = ltConfig.icon;
-
-                                                return (
-                                                    <motion.div
-                                                        key={lesson.id}
-                                                        initial={{ opacity: 0, x: -10 }}
-                                                        animate={{ opacity: 1, x: 0 }}
-                                                        transition={{ delay: lessonIdx * 0.05 }}
-                                                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-base-200/50 group transition-colors"
-                                                    >
-                                                        <GripVertical className="w-4 h-4 text-base-content/20 cursor-grab flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${ltConfig.color}`}>
-                                                            <LessonIcon className="w-4 h-4" />
-                                                        </div>
-
-                                                        {editingTitle === lesson.id ? (
-                                                            <div className="flex-1 flex items-center gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    value={editValue}
-                                                                    onChange={e => setEditValue(e.target.value)}
-                                                                    onKeyDown={e => e.key === 'Enter' && saveEditTitle('lesson', chapter.id, lesson.id)}
-                                                                    className="input input-sm input-bordered flex-1 font-medium"
-                                                                    autoFocus
-                                                                />
-                                                                <button onClick={() => saveEditTitle('lesson', chapter.id, lesson.id)} className="btn btn-xs btn-circle btn-ghost text-emerald-500">
-                                                                    <Check className="w-3.5 h-3.5" />
-                                                                </button>
-                                                                <button onClick={() => setEditingTitle(null)} className="btn btn-xs btn-circle btn-ghost text-red-500">
-                                                                    <X className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="font-bold text-sm text-base-content truncate">{lesson.title}</p>
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ltConfig.color}`}>
-                                                                        {ltConfig.label}
-                                                                    </span>
-                                                                    <span className="text-[11px] text-base-content/50">{lesson.duration}</span>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Status & Actions */}
-                                                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${lesson.status === 'published'
-                                                                ? 'text-emerald-600 bg-emerald-500/10'
-                                                                : 'text-amber-600 bg-amber-500/10'
-                                                            }`}>
-                                                                {lesson.status === 'published' ? 'Đã xuất bản' : 'Nháp'}
-                                                            </span>
-                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
-                                                                <button
-                                                                    onClick={() => startEditTitle(lesson.id, lesson.title)}
-                                                                    className="btn btn-ghost btn-xs btn-circle"
-                                                                >
-                                                                    <Pencil className="w-3 h-3" />
-                                                                </button>
-                                                                <button className="btn btn-ghost btn-xs btn-circle">
-                                                                    <Copy className="w-3 h-3" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => deleteLesson(chapter.id, lesson.id)}
-                                                                    className="btn btn-ghost btn-xs btn-circle text-red-500"
-                                                                >
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Add Lesson */}
-                                        <div className="px-5 pb-4">
-                                            {showAddLesson === chapter.id ? (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: -10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    className="flex items-center gap-2 p-3 rounded-xl border-2 border-dashed border-violet-500/30 bg-violet-500/5"
-                                                >
-                                                    <span className="text-sm font-bold text-base-content/70 mr-2">Thêm:</span>
-                                                    {Object.entries(lessonTypeConfig).map(([type, config]) => {
-                                                        const Icon = config.icon;
-                                                        return (
-                                                            <button
-                                                                key={type}
-                                                                onClick={() => addLesson(chapter.id, type)}
-                                                                className={`btn btn-sm rounded-xl font-bold gap-1.5 ${config.color} border-none hover:scale-105 transition-transform`}
-                                                            >
-                                                                <Icon className="w-4 h-4" />
-                                                                {config.label}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                    <button
-                                                        onClick={() => setShowAddLesson(null)}
-                                                        className="btn btn-sm btn-circle btn-ghost ml-auto"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </motion.div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setShowAddLesson(chapter.id)}
-                                                    className="btn btn-sm btn-ghost rounded-xl font-bold text-violet-600 w-full border-2 border-dashed border-base-300 hover:border-violet-500/50 gap-1.5"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                    Thêm bài giảng
-                                                </button>
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </motion.div>
-                    ))}
-                </div>
-
-                {/* Add Chapter */}
-                <motion.div variants={cardVariants} className="mt-4">
-                    <button
-                        onClick={addChapter}
-                        className="btn btn-lg w-full rounded-2xl font-black text-violet-600 bg-base-100 border-2 border-dashed border-violet-500/30 hover:border-violet-500 hover:bg-violet-500/5 transition-all gap-2 shadow-lg"
-                    >
-                        <FolderPlus className="w-5 h-5" />
-                        Thêm chương mới
-                    </button>
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center bg-base-100 rounded-xl border border-base-300 p-1">
+                        <button
+                            onClick={() => handleViewChange('grid')}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                                viewMode === 'grid'
+                                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md'
+                                    : 'text-base-content/40 hover:text-base-content hover:bg-base-200'
+                            }`}
+                            title="Hiển thị dạng lưới"
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => handleViewChange('list')}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                                viewMode === 'list'
+                                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md'
+                                    : 'text-base-content/40 hover:text-base-content hover:bg-base-200'
+                            }`}
+                            title="Hiển thị dạng danh sách"
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                    </div>
                 </motion.div>
+
+                {/* Course Grid */}
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="text-center space-y-3">
+                            <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto" />
+                            <p className="text-sm text-base-content/50 font-medium">Đang tải khóa học...</p>
+                        </div>
+                    </div>
+                ) : (
+                    <motion.div
+                        key={viewMode}
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className={viewMode === 'grid'
+                            ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5'
+                            : 'flex flex-col gap-3'
+                        }
+                    >
+                        {error && <ErrorState message={error} onRetry={fetchCourses} />}
+                        {!error && filteredCourses.length === 0 && <EmptyState searchTerm={searchTerm} />}
+                        {!error && filteredCourses.map(course =>
+                            viewMode === 'grid'
+                                ? <CourseCard key={course.courseId || course.id} course={course} />
+                                : <CourseListItem key={course.courseId || course.id} course={course} />
+                        )}
+                    </motion.div>
+                )}
             </motion.div>
         </ExpertLayout>
     );

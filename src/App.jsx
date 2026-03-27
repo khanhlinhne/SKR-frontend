@@ -38,6 +38,7 @@ const AdminSettings = lazy(() => import('@/features/admin/pages/AdminSettings'))
 
 const ExpertDashboard = lazy(() => import('@/features/expert/pages/ExpertDashboard'));
 const ExpertCurriculum = lazy(() => import('@/features/expert/pages/ExpertCurriculum'));
+const ExpertCurriculumDetail = lazy(() => import('@/features/expert/pages/ExpertCurriculumDetail'));
 const ExpertAIAssistant = lazy(() => import('@/features/expert/pages/ExpertAIAssistant'));
 const ExpertAssetLibrary = lazy(() => import('@/features/expert/pages/ExpertAssetLibrary'));
 const ExpertAdminRequests = lazy(() => import('@/features/expert/pages/ExpertAdminRequests'));
@@ -112,6 +113,7 @@ function App() {
                 {/* Yêu cầu đăng nhập + quyền creator/expert */}
                 <Route path="/expert" element={<ExpertRoute><ExpertDashboard /></ExpertRoute>} />
                 <Route path="/expert/curriculum" element={<ExpertRoute><ExpertCurriculum /></ExpertRoute>} />
+                <Route path="/expert/curriculum/:courseId" element={<ExpertRoute><ExpertCurriculumDetail /></ExpertRoute>} />
                 <Route path="/expert/ai-assistant" element={<ExpertRoute><ExpertAIAssistant /></ExpertRoute>} />
                 <Route path="/expert/assets" element={<ExpertRoute><ExpertAssetLibrary /></ExpertRoute>} />
                 <Route path="/expert/requests" element={<ExpertRoute><ExpertAdminRequests /></ExpertRoute>} />

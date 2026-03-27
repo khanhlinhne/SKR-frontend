@@ -148,6 +148,30 @@ const adminApi = {
     getDashboardStats() {
         return axiosClient.get("/admin/stats");
     },
+
+    // ===== EXPERT ASSIGNMENT =====
+
+    /**
+     * Lay danh sach tat ca experts (users co role creator)
+     * GET /api/user/all?role=creator&limit=100
+     * @returns {{ items: Array, pagination: Object }}
+     */
+    getExperts(params = {}) {
+        return axiosClient.get("/user/all", {
+            params: { role: "creator", limit: 100, isActive: "true", ...params },
+        });
+    },
+
+    /**
+     * Phan cong expert cho khoa hoc
+     * PATCH /api/courses/:id/assign-expert
+     * @param {string} courseId - Course ID
+     * @param {string} expertId - Expert User ID
+     * @returns {{ data: Object }}
+     */
+    assignExpert(courseId, expertId) {
+        return axiosClient.patch(`/courses/${courseId}/assign-expert`, { expertId });
+    },
 };
 
 export default adminApi;
