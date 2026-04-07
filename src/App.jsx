@@ -98,7 +98,7 @@ function App() {
                 <Route path="/tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
                 <Route path="/tests/:id" element={<ProtectedRoute><TestDetail /></ProtectedRoute>} />
                 <Route path="/tests/:id/take" element={<ProtectedRoute><QuizTaking /></ProtectedRoute>} />
-                <Route path="/tests/:id/results" element={<ProtectedRoute><QuizResults /></ProtectedRoute>} />
+                <Route path="/tests/:id/results/:attemptId" element={<ProtectedRoute><QuizResults /></ProtectedRoute>} />
 
                 {/* ==================== ADMIN ROUTES ==================== */}
                 {/* Yêu cầu đăng nhập + quyền admin */}

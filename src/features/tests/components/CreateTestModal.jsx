@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
-import { DIFFICULTY_CONFIG, SUBJECT_CONFIG, QUESTION_TYPE_CONFIG } from './utils';
+import { DIFFICULTY_CONFIG, QUESTION_TYPE_CONFIG } from './utils';
+import quizApi from '@/shared/api/quizApi';
 
 /**
  * CreateTestModal - Modal tạo bài thi mới
- * Maps to: lrn_practice_tests table
+ * Maps to: POST /api/quiz-practices
  */
 export default function CreateTestModal({ isOpen, onClose, onCreate }) {
     const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        subjectKey: '',
-        difficulty: 'medium',
+        testTitle: '',
+        testDescription: '',
+        difficultyLevels: ['medium'],
         totalQuestions: 20,
         timeLimitMinutes: 30,
         questionTypes: ['multiple_choice'],
@@ -20,6 +20,7 @@ export default function CreateTestModal({ isOpen, onClose, onCreate }) {
         randomizeOptions: true,
         showCorrectAnswers: true,
     });
+    const [creating, setCreating] = useState(false);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -34,19 +35,28 @@ export default function CreateTestModal({ isOpen, onClose, onCreate }) {
         }));
     };
 
-    const handleSubmit = () => {
-        if (!formData.title || !formData.subjectKey) return;
-        onCreate({
-            ...formData,
-            id: `pt-${Date.now()}`,
-            attemptsCount: 0,
-            bestScore: null,
-            averageScore: null,
-            lastAttemptAt: null,
-            createdAt: new Date().toISOString(),
-            status: 'active',
-        });
-        onClose();
+    const setDifficulty = (key) => {
+        setFormData(prev => ({
+            ...prev,
+            difficultyLevels: prev.difficultyLevels.includes(key)
+                ? prev.difficultyLevels.filter(d => d !== key)
+                : [...prev.difficultyLevels, key]
+        }));
+    };
+
+    const handleSubmit = async () => {
+        if (!formData.testTitle.trim()) return;
+        try {
+            setCreating(true);
+            await quizApi.createPractice(formData);
+            onCreate?.();
+            onClose();
+        } catch (err) {
+            console.error('Error creating practice test:', err);
+            alert('Không thể tạo bài thi. Vui lòng thử lại.');
+        } finally {
+            setCreating(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -97,8 +107,8 @@ export default function CreateTestModal({ isOpen, onClose, onCreate }) {
                             type="text"
                             placeholder="VD: Toán Cao Cấp - Đạo Hàm"
                             className="input input-bordered w-full rounded-xl focus:border-blue-500"
-                            value={formData.title}
-                            onChange={(e) => handleChange('title', e.target.value)}
+                            value={formData.testTitle}
+                            onChange={(e) => handleChange('testTitle', e.target.value)}
                         />
                     </div>
 
@@ -111,44 +121,22 @@ export default function CreateTestModal({ isOpen, onClose, onCreate }) {
                             placeholder="Mô tả ngắn gọn về nội dung bài thi..."
                             className="textarea textarea-bordered w-full rounded-xl focus:border-blue-500 resize-none"
                             rows={2}
-                            value={formData.description}
-                            onChange={(e) => handleChange('description', e.target.value)}
+                            value={formData.testDescription}
+                            onChange={(e) => handleChange('testDescription', e.target.value)}
                         />
-                    </div>
-
-                    {/* Subject */}
-                    <div className="form-control">
-                        <label className="label">
-                            <span className="label-text font-bold text-sm">Môn học <span className="text-red-500">*</span></span>
-                        </label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {Object.entries(SUBJECT_CONFIG).map(([key, config]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => handleChange('subjectKey', key)}
-                                    className={`p-3 rounded-xl border-2 text-center transition-all ${formData.subjectKey === key
-                                        ? 'border-blue-500 bg-blue-500/10'
-                                        : 'border-base-300 hover:border-blue-500/30'
-                                        }`}
-                                >
-                                    <span className="text-lg">{config.icon}</span>
-                                    <p className="text-xs font-bold mt-1">{config.label}</p>
-                                </button>
-                            ))}
-                        </div>
                     </div>
 
                     {/* Difficulty */}
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text font-bold text-sm">Độ khó</span>
+                            <span className="label-text font-bold text-sm">Độ khó (chọn nhiều)</span>
                         </label>
                         <div className="flex gap-2">
                             {Object.entries(DIFFICULTY_CONFIG).map(([key, config]) => (
                                 <button
                                     key={key}
-                                    onClick={() => handleChange('difficulty', key)}
-                                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border-2 ${formData.difficulty === key
+                                    onClick={() => setDifficulty(key)}
+                                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border-2 ${formData.difficultyLevels.includes(key)
                                         ? `${config.bg} ${config.color} border-current`
                                         : 'border-base-300 text-base-content/60 hover:border-base-content/20'
                                         }`}
@@ -237,18 +225,22 @@ export default function CreateTestModal({ isOpen, onClose, onCreate }) {
 
                 {/* Footer */}
                 <div className="p-6 pt-4 border-t border-base-300 flex items-center justify-end gap-3">
-                    <button onClick={onClose} className="btn btn-ghost rounded-xl font-bold">
+                    <button onClick={onClose} disabled={creating} className="btn btn-ghost rounded-xl font-bold">
                         Hủy
                     </button>
                     <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSubmit}
-                        disabled={!formData.title || !formData.subjectKey}
+                        disabled={!formData.testTitle.trim() || creating}
                         className="btn bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg shadow-blue-600/20 gap-2 disabled:opacity-50"
                     >
-                        <Icon name="Plus" size="md" />
-                        Tạo bài thi
+                        {creating ? (
+                            <span className="loading loading-spinner loading-sm" />
+                        ) : (
+                            <Icon name="Plus" size="md" />
+                        )}
+                        {creating ? 'Đang tạo...' : 'Tạo bài thi'}
                     </motion.button>
                 </div>
             </motion.div>

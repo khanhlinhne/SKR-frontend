@@ -3,38 +3,48 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
 import Icon from '@/shared/ui/icons/Icon';
-import { CircularProgress } from '@/shared/ui/common/ProgressBar';
 import {
-    MOCK_PRACTICE_TESTS,
     DIFFICULTY_CONFIG,
-    SUBJECT_CONFIG,
     QUESTION_TYPE_CONFIG,
+    DEFAULT_GRADIENT,
+    DEFAULT_ICON,
     formatDuration,
     formatRelativeTime,
     getScoreColor,
     getScoreGrade,
 } from '@/features/tests/components';
+import { useQuizDetail } from '@/features/tests/hooks/useQuiz';
 
 /**
  * TestDetail Page — Xem chi tiết bài thi trước khi bắt đầu
  * Route: /tests/:id
- *
- * Sections:
- * 1. Breadcrumb + Back button
- * 2. Hero section (title, subject, difficulty, description)
- * 3. Test configuration overview
- * 4. Best score & performance stats
- * 5. Past attempts history
- * 6. Start test CTA
+ * Data: quizApi.getPracticeById() + quizApi.getMyAttempts()
  */
 export default function TestDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [showConfirm, setShowConfirm] = useState(false);
+    const [starting, setStarting] = useState(false);
 
-    const test = MOCK_PRACTICE_TESTS.find(t => t.id === id);
+    const { practice: test, attempts, loading, error, startAttempt } = useQuizDetail(id);
 
-    if (!test) {
+    // Loading state
+    if (loading) {
+        return (
+            <div className="flex h-screen bg-base-200 overflow-hidden">
+                <DashboardSidebar />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <span className="loading loading-spinner loading-lg text-blue-500 mb-4" />
+                        <p className="text-sm text-base-content/50 font-medium">Đang tải bài thi...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Not found
+    if (error || !test) {
         return (
             <div className="flex h-screen bg-base-200 overflow-hidden">
                 <DashboardSidebar />
@@ -43,7 +53,9 @@ export default function TestDetail() {
                         <div className="w-20 h-20 mx-auto bg-base-300/50 rounded-3xl flex items-center justify-center mb-4">
                             <Icon name="FileX" size="3xl" className="text-base-content/30" />
                         </div>
-                        <h2 className="text-xl font-black text-base-content mb-2">Không tìm thấy bài thi</h2>
+                        <h2 className="text-xl font-black text-base-content mb-2">
+                            {error || 'Không tìm thấy bài thi'}
+                        </h2>
                         <p className="text-sm text-base-content/60 mb-6">Bài thi này không tồn tại hoặc đã bị xoá</p>
                         <Link to="/tests" className="btn bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold">
                             <Icon name="ArrowLeft" size="sm" />
@@ -55,20 +67,25 @@ export default function TestDetail() {
         );
     }
 
-    const subject = SUBJECT_CONFIG[test.subjectKey] || {};
-    const difficulty = DIFFICULTY_CONFIG[test.difficulty] || {};
-    const hasAttempts = test.attemptsCount > 0;
+    const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
+    const hasAttempts = (test.attemptsCount || 0) > 0;
     const grade = getScoreGrade(test.bestScore);
 
-    // Mock attempt history
-    const mockAttempts = hasAttempts ? [
-        { id: 1, date: '2026-02-18T10:30:00Z', score: test.bestScore, time: Math.floor(test.timeLimitMinutes * 0.8 * 60), correct: Math.floor(test.totalQuestions * (test.bestScore / 100)), total: test.totalQuestions },
-        ...(test.attemptsCount > 1 ? [{ id: 2, date: '2026-02-16T14:00:00Z', score: test.averageScore, time: Math.floor(test.timeLimitMinutes * 0.9 * 60), correct: Math.floor(test.totalQuestions * (test.averageScore / 100)), total: test.totalQuestions }] : []),
-        ...(test.attemptsCount > 2 ? [{ id: 3, date: '2026-02-14T09:15:00Z', score: Math.max(40, test.averageScore - 10), time: Math.floor(test.timeLimitMinutes * 60), correct: Math.floor(test.totalQuestions * ((test.averageScore - 10) / 100)), total: test.totalQuestions }] : []),
-    ] : [];
-
-    const handleStartTest = () => {
-        navigate(`/tests/${id}/take`);
+    const handleStartTest = async () => {
+        try {
+            setStarting(true);
+            const data = await startAttempt(50); // passing score = 50%
+            const attemptId = data?.attempt?.attemptId;
+            if (attemptId) {
+                navigate(`/tests/${id}/take?attemptId=${attemptId}`);
+            }
+        } catch (err) {
+            console.error('Failed to start quiz attempt:', err);
+            alert('Không thể bắt đầu bài thi. Vui lòng thử lại.');
+        } finally {
+            setStarting(false);
+            setShowConfirm(false);
+        }
     };
 
     return (
@@ -84,10 +101,7 @@ export default function TestDetail() {
                 >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <Link
-                                to="/tests"
-                                className="btn btn-circle btn-ghost btn-sm"
-                            >
+                            <Link to="/tests" className="btn btn-circle btn-ghost btn-sm">
                                 <Icon name="ArrowLeft" size="md" />
                             </Link>
                             <div>
@@ -96,20 +110,10 @@ export default function TestDetail() {
                                         Thi Thử
                                     </Link>
                                     <Icon name="ChevronRight" size="xs" className="text-base-content/30" />
-                                    <span className="text-xs text-base-content/60 font-bold">{test.title}</span>
+                                    <span className="text-xs text-base-content/60 font-bold">{test.testTitle}</span>
                                 </div>
-                                <h2 className="text-xl font-black text-base-content">{test.title}</h2>
+                                <h2 className="text-xl font-black text-base-content">{test.testTitle}</h2>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button className="btn btn-ghost btn-sm rounded-xl gap-2 font-bold">
-                                <Icon name="Share2" size="sm" />
-                                Chia sẻ
-                            </button>
-                            <button className="btn btn-ghost btn-sm rounded-xl gap-2 font-bold">
-                                <Icon name="Settings" size="sm" />
-                                Chỉnh sửa
-                            </button>
                         </div>
                     </div>
                 </motion.header>
@@ -125,48 +129,53 @@ export default function TestDetail() {
                             className="bg-base-100 rounded-3xl shadow-xl border border-base-300 overflow-hidden mb-6"
                         >
                             {/* Gradient Banner */}
-                            <div className={`h-32 bg-gradient-to-r ${subject.gradient || 'from-blue-500 to-violet-500'} relative overflow-hidden`}>
-                                {/* Decorative Patterns */}
+                            <div className={`h-32 bg-gradient-to-r ${DEFAULT_GRADIENT} relative overflow-hidden`}>
                                 <div className="absolute inset-0 opacity-10">
                                     <div className="absolute top-4 left-8 w-20 h-20 border-4 border-white rounded-full" />
                                     <div className="absolute bottom-2 right-12 w-32 h-32 border-4 border-white rounded-full" />
                                     <div className="absolute top-8 right-40 w-12 h-12 border-4 border-white rounded-lg rotate-45" />
                                 </div>
-                                <div className="absolute bottom-4 left-8 text-5xl opacity-30">{subject.icon}</div>
+                                <div className="absolute bottom-4 left-8 text-5xl opacity-30">{DEFAULT_ICON}</div>
                             </div>
 
                             <div className="p-6 -mt-8 relative z-10">
-                                {/* Subject & Difficulty Badge Row */}
+                                {/* Difficulty Badge Row */}
                                 <div className="flex items-center gap-2 mb-3 ml-1">
                                     <span className="badge badge-lg bg-base-100 shadow-md font-bold gap-1 text-sm">
-                                        {subject.icon} {subject.label}
+                                        {DEFAULT_ICON} Thi thử
                                     </span>
-                                    <span className={`badge badge-lg font-bold ${difficulty.badge}`}>
-                                        {difficulty.label}
-                                    </span>
-                                    {test.status === 'draft' && (
+                                    {difficulty.badge && (
+                                        <span className={`badge badge-lg font-bold ${difficulty.badge}`}>
+                                            {difficulty.label}
+                                        </span>
+                                    )}
+                                    {test.status === 'deleted' && (
                                         <span className="badge badge-lg badge-ghost font-bold gap-1">
-                                            <Icon name="FileEdit" size="xs" /> Nháp
+                                            <Icon name="FileEdit" size="xs" /> Đã xóa
                                         </span>
                                     )}
                                 </div>
 
                                 {/* Title & Description */}
-                                <h1 className="text-2xl font-black text-base-content mb-2">{test.title}</h1>
-                                <p className="text-sm text-base-content/60 leading-relaxed mb-6">{test.description}</p>
+                                <h1 className="text-2xl font-black text-base-content mb-2">{test.testTitle}</h1>
+                                <p className="text-sm text-base-content/60 leading-relaxed mb-6">
+                                    {test.testDescription || 'Bài thi thử'}
+                                </p>
 
                                 {/* Quick Info Chips */}
-                                <div className="flex flex-wrap gap-2">
-                                    {test.questionTypes.map(type => {
-                                        const qt = QUESTION_TYPE_CONFIG[type];
-                                        return qt ? (
-                                            <span key={type} className="badge badge-lg badge-ghost gap-1 font-bold text-xs">
-                                                <Icon name={qt.icon} size="xs" className={qt.color} />
-                                                {qt.label}
-                                            </span>
-                                        ) : null;
-                                    })}
-                                </div>
+                                {test.questionTypes?.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {test.questionTypes.map(type => {
+                                            const qt = QUESTION_TYPE_CONFIG[type];
+                                            return qt ? (
+                                                <span key={type} className="badge badge-lg badge-ghost gap-1 font-bold text-xs">
+                                                    <Icon name={qt.icon} size="xs" className={qt.color} />
+                                                    {qt.label}
+                                                </span>
+                                            ) : null;
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
 
@@ -197,14 +206,14 @@ export default function TestDetail() {
                                             <p className="text-xl font-black text-base-content">{formatDuration(test.timeLimitMinutes)}</p>
                                             <p className="text-xs text-base-content/50 font-bold uppercase">Thời gian</p>
                                         </div>
-                                        <div className={`${difficulty.bg} rounded-xl p-4 text-center border border-current/10`}>
-                                            <Icon name="Signal" size="lg" className={`${difficulty.color} mx-auto mb-2`} />
-                                            <p className={`text-xl font-black ${difficulty.color}`}>{difficulty.label}</p>
+                                        <div className={`${difficulty.bg || 'bg-base-200/50'} rounded-xl p-4 text-center border border-current/10`}>
+                                            <Icon name="Signal" size="lg" className={`${difficulty.color || 'text-base-content/40'} mx-auto mb-2`} />
+                                            <p className={`text-xl font-black ${difficulty.color || 'text-base-content'}`}>{difficulty.label || '—'}</p>
                                             <p className="text-xs text-base-content/50 font-bold uppercase">Độ khó</p>
                                         </div>
                                         <div className="bg-green-500/5 rounded-xl p-4 text-center border border-green-500/10">
                                             <Icon name="PlayCircle" size="lg" className="text-green-500 mx-auto mb-2" />
-                                            <p className="text-xl font-black text-base-content">{test.attemptsCount}</p>
+                                            <p className="text-xl font-black text-base-content">{test.attemptsCount || 0}</p>
                                             <p className="text-xs text-base-content/50 font-bold uppercase">Lượt thi</p>
                                         </div>
                                     </div>
@@ -237,27 +246,28 @@ export default function TestDetail() {
                                     <h3 className="font-black text-base text-base-content mb-4 flex items-center gap-2">
                                         <Icon name="History" size="md" className="text-orange-500" />
                                         Lịch sử thi
-                                        {hasAttempts && (
-                                            <span className="badge badge-sm badge-primary ml-2">{test.attemptsCount} lượt</span>
+                                        {attempts.length > 0 && (
+                                            <span className="badge badge-sm badge-primary ml-2">{attempts.length} lượt</span>
                                         )}
                                     </h3>
 
-                                    {hasAttempts ? (
+                                    {attempts.length > 0 ? (
                                         <div className="space-y-3">
-                                            {mockAttempts.map((attempt, idx) => {
-                                                const attemptGrade = getScoreGrade(attempt.score);
+                                            {attempts.map((attempt, idx) => {
+                                                const attemptGrade = getScoreGrade(attempt.percentageScore);
                                                 return (
                                                     <motion.div
-                                                        key={attempt.id}
+                                                        key={attempt.attemptId}
                                                         initial={{ opacity: 0, x: -10 }}
                                                         animate={{ opacity: 1, x: 0 }}
                                                         transition={{ delay: 0.3 + idx * 0.1 }}
-                                                        className="flex items-center gap-4 p-4 bg-base-200/40 rounded-xl hover:bg-base-200/70 transition-colors group"
+                                                        className="flex items-center gap-4 p-4 bg-base-200/40 rounded-xl hover:bg-base-200/70 transition-colors group cursor-pointer"
+                                                        onClick={() => navigate(`/tests/${id}/results/${attempt.attemptId}`)}
                                                     >
                                                         {/* Rank Icon */}
                                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${idx === 0
-                                                                ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-lg'
-                                                                : 'bg-base-300 text-base-content/50'
+                                                            ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white shadow-lg'
+                                                            : 'bg-base-300 text-base-content/50'
                                                             }`}>
                                                             {idx === 0 ? '🏆' : `#${idx + 1}`}
                                                         </div>
@@ -265,29 +275,32 @@ export default function TestDetail() {
                                                         {/* Info */}
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-bold text-base-content">
-                                                                Lần thi {test.attemptsCount - idx}
-                                                                {idx === 0 && <span className="text-xs text-yellow-500 ml-2 font-black">Tốt nhất</span>}
+                                                                Lần thi {attempts.length - idx}
+                                                                {idx === 0 && <span className="text-xs text-yellow-500 ml-2 font-black">Gần nhất</span>}
                                                             </p>
                                                             <p className="text-xs text-base-content/50">
-                                                                {formatRelativeTime(attempt.date)} · {Math.floor(attempt.time / 60)}p {attempt.time % 60}s
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Correct / Total */}
-                                                        <div className="text-right hidden sm:block">
-                                                            <p className="text-xs font-bold text-base-content/50">
-                                                                {attempt.correct}/{attempt.total} câu đúng
+                                                                {formatRelativeTime(attempt.submittedAtUtc || attempt.startedAtUtc)}
+                                                                {attempt.status === 'submitted' || attempt.status === 'graded'
+                                                                    ? ` · ${attempt.correctAnswers || 0}/${attempt.totalQuestions} đúng`
+                                                                    : ` · ${attempt.status === 'in_progress' ? 'Đang thi' : attempt.status}`
+                                                                }
                                                             </p>
                                                         </div>
 
                                                         {/* Score */}
                                                         <div className="text-right">
-                                                            <p className={`text-lg font-black ${getScoreColor(attempt.score)}`}>
-                                                                {attempt.score.toFixed(1)}%
-                                                            </p>
-                                                            <p className={`text-[10px] font-bold ${attemptGrade.color}`}>
-                                                                {attemptGrade.label}
-                                                            </p>
+                                                            {attempt.percentageScore != null ? (
+                                                                <>
+                                                                    <p className={`text-lg font-black ${getScoreColor(attempt.percentageScore)}`}>
+                                                                        {Number(attempt.percentageScore).toFixed(1)}%
+                                                                    </p>
+                                                                    <p className={`text-[10px] font-bold ${attemptGrade.color}`}>
+                                                                        {attemptGrade.label}
+                                                                    </p>
+                                                                </>
+                                                            ) : (
+                                                                <p className="text-sm font-bold text-base-content/30">—</p>
+                                                            )}
                                                         </div>
                                                     </motion.div>
                                                 );
@@ -319,7 +332,7 @@ export default function TestDetail() {
                                         Kết quả
                                     </h3>
 
-                                    {hasAttempts ? (
+                                    {hasAttempts && test.bestScore != null ? (
                                         <>
                                             {/* Score Circle */}
                                             <div className="flex justify-center mb-6">
@@ -330,10 +343,10 @@ export default function TestDetail() {
                                                             cx={70} cy={70} r={60}
                                                             strokeWidth={10}
                                                             fill="none"
-                                                            className={test.bestScore >= 80 ? 'stroke-green-500' : test.bestScore >= 50 ? 'stroke-blue-500' : 'stroke-red-500'}
+                                                            className={Number(test.bestScore) >= 80 ? 'stroke-green-500' : Number(test.bestScore) >= 50 ? 'stroke-blue-500' : 'stroke-red-500'}
                                                             strokeLinecap="round"
                                                             initial={{ strokeDashoffset: 377 }}
-                                                            animate={{ strokeDashoffset: 377 - (377 * test.bestScore) / 100 }}
+                                                            animate={{ strokeDashoffset: 377 - (377 * Number(test.bestScore)) / 100 }}
                                                             style={{ strokeDasharray: 377 }}
                                                             transition={{ duration: 1.5, ease: 'easeOut', delay: 0.5 }}
                                                         />
@@ -345,7 +358,7 @@ export default function TestDetail() {
                                                             transition={{ delay: 0.8 }}
                                                             className={`text-2xl font-black ${getScoreColor(test.bestScore)}`}
                                                         >
-                                                            {test.bestScore}%
+                                                            {Number(test.bestScore).toFixed(1)}%
                                                         </motion.span>
                                                         <span className={`text-xs font-bold ${grade.color}`}>{grade.label}</span>
                                                     </div>
@@ -358,25 +371,27 @@ export default function TestDetail() {
                                                     <span className="text-xs font-bold text-base-content/60 flex items-center gap-2">
                                                         <Icon name="Trophy" size="sm" className="text-yellow-500" /> Điểm cao nhất
                                                     </span>
-                                                    <span className={`font-black ${getScoreColor(test.bestScore)}`}>{test.bestScore}%</span>
+                                                    <span className={`font-black ${getScoreColor(test.bestScore)}`}>{Number(test.bestScore).toFixed(1)}%</span>
                                                 </div>
                                                 <div className="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
                                                     <span className="text-xs font-bold text-base-content/60 flex items-center gap-2">
                                                         <Icon name="TrendingUp" size="sm" className="text-blue-500" /> Điểm trung bình
                                                     </span>
-                                                    <span className={`font-black ${getScoreColor(test.averageScore)}`}>{test.averageScore}%</span>
+                                                    <span className={`font-black ${getScoreColor(test.averageScore)}`}>
+                                                        {test.averageScore != null ? `${Number(test.averageScore).toFixed(1)}%` : '—'}
+                                                    </span>
                                                 </div>
                                                 <div className="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
                                                     <span className="text-xs font-bold text-base-content/60 flex items-center gap-2">
                                                         <Icon name="PlayCircle" size="sm" className="text-green-500" /> Lượt thi
                                                     </span>
-                                                    <span className="font-black text-base-content">{test.attemptsCount}</span>
+                                                    <span className="font-black text-base-content">{test.attemptsCount || 0}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between p-3 bg-base-200/50 rounded-xl">
                                                     <span className="text-xs font-bold text-base-content/60 flex items-center gap-2">
                                                         <Icon name="Calendar" size="sm" className="text-violet-500" /> Thi gần nhất
                                                     </span>
-                                                    <span className="font-black text-base-content text-xs">{formatRelativeTime(test.lastAttemptAt)}</span>
+                                                    <span className="font-black text-base-content text-xs">{formatRelativeTime(test.lastAttemptAtUtc)}</span>
                                                 </div>
                                             </div>
                                         </>
@@ -470,7 +485,7 @@ export default function TestDetail() {
                     animate={{ opacity: 1 }}
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                 >
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !starting && setShowConfirm(false)} />
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -483,7 +498,10 @@ export default function TestDetail() {
                             </div>
                             <h3 className="text-xl font-black text-base-content mb-2">Sẵn sàng bắt đầu?</h3>
                             <p className="text-sm text-base-content/60">
-                                Bạn sẽ có <strong>{formatDuration(test.timeLimitMinutes)}</strong> để hoàn thành <strong>{test.totalQuestions} câu hỏi</strong>.
+                                {test.timeLimitMinutes
+                                    ? <>Bạn sẽ có <strong>{formatDuration(test.timeLimitMinutes)}</strong> để hoàn thành <strong>{test.totalQuestions} câu hỏi</strong>.</>
+                                    : <>Bài thi gồm <strong>{test.totalQuestions} câu hỏi</strong>, <strong>không giới hạn thời gian</strong>.</>
+                                }
                             </p>
                         </div>
 
@@ -504,22 +522,31 @@ export default function TestDetail() {
                                 <span className="text-base-content/60 font-medium flex items-center gap-2">
                                     <Icon name="Signal" size="sm" className={difficulty.color} /> Độ khó
                                 </span>
-                                <span className={`font-black ${difficulty.color}`}>{difficulty.label}</span>
+                                <span className={`font-black ${difficulty.color}`}>{difficulty.label || '—'}</span>
                             </div>
                         </div>
 
                         <div className="flex gap-3">
-                            <button onClick={() => setShowConfirm(false)} className="btn flex-1 btn-ghost rounded-xl font-bold">
+                            <button
+                                onClick={() => setShowConfirm(false)}
+                                disabled={starting}
+                                className="btn flex-1 btn-ghost rounded-xl font-bold"
+                            >
                                 Để sau
                             </button>
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={handleStartTest}
+                                disabled={starting}
                                 className="btn flex-1 bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold shadow-lg gap-2"
                             >
-                                <Icon name="Play" size="sm" />
-                                Bắt đầu
+                                {starting ? (
+                                    <span className="loading loading-spinner loading-sm" />
+                                ) : (
+                                    <Icon name="Play" size="sm" />
+                                )}
+                                {starting ? 'Đang tạo...' : 'Bắt đầu'}
                             </motion.button>
                         </div>
                     </motion.div>
@@ -528,5 +555,3 @@ export default function TestDetail() {
         </div>
     );
 }
-
-

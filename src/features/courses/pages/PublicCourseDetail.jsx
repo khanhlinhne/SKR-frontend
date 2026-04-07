@@ -354,5 +354,6 @@ export default function PublicCourseDetail() {
 
             <HomeFooter />
         </div>
+        
     );
 }

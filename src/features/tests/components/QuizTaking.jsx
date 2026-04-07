@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
-import { MOCK_QUESTIONS, MOCK_PRACTICE_TESTS, formatTime, DIFFICULTY_CONFIG } from './utils';
+import { formatTime, DIFFICULTY_CONFIG } from './utils';
+import { useQuizTaking } from '@/features/tests/hooks/useQuiz';
 
 /**
  * QuizHeader - Header bar during quiz with timer, progress, and controls
@@ -20,7 +21,7 @@ function QuizHeader({ test, currentIndex, totalQuestions, timeLeft, onSubmit, fl
                         <Icon name="FileText" size="sm" className="text-white" />
                     </div>
                     <div>
-                        <h3 className="font-black text-sm text-base-content line-clamp-1">{test.title}</h3>
+                        <h3 className="font-black text-sm text-base-content line-clamp-1">{test.quizTitle}</h3>
                         <p className="text-xs text-base-content/50">
                             Câu {currentIndex + 1}/{totalQuestions}
                         </p>
@@ -80,11 +81,11 @@ function QuizHeader({ test, currentIndex, totalQuestions, timeLeft, onSubmit, fl
  * QuestionCard - Renders a single question depending on type
  */
 function QuestionCard({ question, questionIndex, answer, onAnswer, isFlagged, onToggleFlag }) {
-    const diffConfig = DIFFICULTY_CONFIG[question.difficulty] || {};
+    const diffConfig = DIFFICULTY_CONFIG[question.difficultyLevel] || {};
 
     return (
         <motion.div
-            key={question.id}
+            key={question.questionId}
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
@@ -98,9 +99,11 @@ function QuestionCard({ question, questionIndex, answer, onAnswer, isFlagged, on
                         <span className="text-xs font-black text-blue-500 bg-blue-500/10 px-3 py-1 rounded-lg">
                             Câu {questionIndex + 1}
                         </span>
-                        <span className={`badge badge-sm font-bold ${diffConfig.badge}`}>
-                            {diffConfig.label}
-                        </span>
+                        {diffConfig.badge && (
+                            <span className={`badge badge-sm font-bold ${diffConfig.badge}`}>
+                                {diffConfig.label}
+                            </span>
+                        )}
                         <span className="text-xs text-base-content/40 font-medium">
                             {question.points} điểm
                         </span>
@@ -115,31 +118,23 @@ function QuestionCard({ question, questionIndex, answer, onAnswer, isFlagged, on
                 </div>
 
                 <p className="text-base font-bold text-base-content leading-relaxed">
-                    {question.text}
+                    {question.questionText}
                 </p>
-
-                {question.imageUrl && (
-                    <img
-                        src={question.imageUrl}
-                        alt="Question"
-                        className="mt-3 rounded-xl max-h-60 object-contain"
-                    />
-                )}
             </div>
 
             {/* Answer Area */}
             <div className="p-6">
-                {(question.type === 'multiple_choice' || question.type === 'true_false') && (
+                {(question.questionType === 'multiple_choice' || question.questionType === 'true_false') && (
                     <div className="space-y-3">
                         {question.options.map((option, idx) => {
-                            const isSelected = answer === option.id;
+                            const isSelected = (answer || []).includes(option.optionId);
                             const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
                             return (
                                 <motion.button
-                                    key={option.id}
+                                    key={option.optionId}
                                     whileHover={{ scale: 1.01 }}
                                     whileTap={{ scale: 0.99 }}
-                                    onClick={() => onAnswer(option.id)}
+                                    onClick={() => onAnswer(question.questionId, option.optionId)}
                                     className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${isSelected
                                         ? 'border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/10'
                                         : 'border-base-300 hover:border-blue-500/30 hover:bg-base-200/50'
@@ -152,7 +147,7 @@ function QuestionCard({ question, questionIndex, answer, onAnswer, isFlagged, on
                                         {letters[idx]}
                                     </span>
                                     <span className={`font-medium text-sm ${isSelected ? 'text-blue-600 font-bold' : 'text-base-content'}`}>
-                                        {option.text}
+                                        {option.optionText}
                                     </span>
                                     {isSelected && (
                                         <Icon name="CheckCircle2" size="md" className="ml-auto text-blue-500 shrink-0" />
@@ -163,14 +158,14 @@ function QuestionCard({ question, questionIndex, answer, onAnswer, isFlagged, on
                     </div>
                 )}
 
-                {(question.type === 'fill_in_blank' || question.type === 'short_answer') && (
+                {(question.questionType === 'fill_in_blank' || question.questionType === 'short_answer') && (
                     <div>
                         <textarea
-                            placeholder={question.type === 'fill_in_blank' ? 'Nhập câu trả lời...' : 'Viết câu trả lời ngắn gọn...'}
+                            placeholder={question.questionType === 'fill_in_blank' ? 'Nhập câu trả lời...' : 'Viết câu trả lời ngắn gọn...'}
                             className="textarea textarea-bordered w-full rounded-xl focus:border-blue-500 text-sm resize-none"
-                            rows={question.type === 'fill_in_blank' ? 2 : 4}
+                            rows={question.questionType === 'fill_in_blank' ? 2 : 4}
                             value={answer || ''}
-                            onChange={(e) => onAnswer(e.target.value)}
+                            onChange={(e) => onAnswer(question.questionId, e.target.value, true)}
                         />
                     </div>
                 )}
@@ -182,7 +177,7 @@ function QuestionCard({ question, questionIndex, answer, onAnswer, isFlagged, on
 /**
  * QuestionNavigator - Panel showing all question numbers for quick navigation
  */
-function QuestionNavigator({ totalQuestions, currentIndex, answers, flaggedQuestions, onNavigate }) {
+function QuestionNavigator({ questions, currentIndex, answers, flaggedQuestions, onNavigate }) {
     return (
         <div className="bg-base-100 rounded-2xl shadow-lg border border-base-300 p-4">
             <h4 className="font-black text-sm text-base-content mb-3 flex items-center gap-2">
@@ -190,14 +185,15 @@ function QuestionNavigator({ totalQuestions, currentIndex, answers, flaggedQuest
                 Danh sách câu hỏi
             </h4>
             <div className="grid grid-cols-5 gap-2">
-                {Array.from({ length: totalQuestions }, (_, i) => {
+                {questions.map((q, i) => {
                     const isActive = i === currentIndex;
-                    const isAnswered = answers[i] !== undefined && answers[i] !== null && answers[i] !== '';
+                    const userAnswer = answers[q.questionId];
+                    const isAnswered = userAnswer && (Array.isArray(userAnswer) ? userAnswer.length > 0 : userAnswer !== '');
                     const isFlagged = flaggedQuestions.includes(i);
 
                     return (
                         <motion.button
-                            key={i}
+                            key={q.questionId}
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() => onNavigate(i)}
@@ -245,7 +241,7 @@ function QuestionNavigator({ totalQuestions, currentIndex, answers, flaggedQuest
 /**
  * SubmitConfirmModal - Confirm dialog before submitting quiz
  */
-function SubmitConfirmModal({ isOpen, onClose, onConfirm, answered, total, flagged }) {
+function SubmitConfirmModal({ isOpen, onClose, onConfirm, answered, total, flagged, submitting }) {
     if (!isOpen) return null;
 
     const unanswered = total - answered;
@@ -296,17 +292,22 @@ function SubmitConfirmModal({ isOpen, onClose, onConfirm, answered, total, flagg
                 )}
 
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="btn flex-1 btn-ghost rounded-xl font-bold">
+                    <button onClick={onClose} disabled={submitting} className="btn flex-1 btn-ghost rounded-xl font-bold">
                         Quay lại
                     </button>
                     <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={onConfirm}
+                        disabled={submitting}
                         className="btn flex-1 bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
                     >
-                        <Icon name="Send" size="sm" />
-                        Nộp bài
+                        {submitting ? (
+                            <span className="loading loading-spinner loading-sm" />
+                        ) : (
+                            <Icon name="Send" size="sm" />
+                        )}
+                        {submitting ? 'Đang nộp...' : 'Nộp bài'}
                     </motion.button>
                 </div>
             </motion.div>
@@ -316,70 +317,76 @@ function SubmitConfirmModal({ isOpen, onClose, onConfirm, answered, total, flagg
 
 /**
  * QuizTaking - Main quiz-taking component
- * Route: /tests/:id/take
+ * Route: /tests/:id/take?attemptId=xxx
  */
 export default function QuizTaking() {
     const { id } = useParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const attemptId = searchParams.get('attemptId');
 
-    // Find the test
-    const test = MOCK_PRACTICE_TESTS.find(t => t.id === id);
-    const questions = useMemo(() => MOCK_QUESTIONS.slice(0, test?.totalQuestions || 10), [test]);
+    // Load attempt data from API
+    const { testInfo, questions, loading, error, submitting, submitAttempt } = useQuizTaking(attemptId);
 
     // State
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [answers, setAnswers] = useState({});
+    const [answers, setAnswers] = useState({}); // { questionId: [optionId] | 'text' }
     const [flaggedQuestions, setFlaggedQuestions] = useState([]);
-    const [timeLeft, setTimeLeft] = useState((test?.timeLimitMinutes || 30) * 60);
+    const [timeLeft, setTimeLeft] = useState(null);
     const [showSubmitModal, setShowSubmitModal] = useState(false);
 
-    // Định nghĩa handleSubmit TRƯỚC useEffect để tránh lỗi used-before-defined
-    const handleSubmit = useCallback(() => {
-        let correctCount = 0;
-        let totalPoints = 0;
-        let earnedPoints = 0;
+    // Initialize timer when test data loads
+    useEffect(() => {
+        if (testInfo?.timeLimitSeconds && timeLeft === null) {
+            setTimeLeft(testInfo.timeLimitSeconds);
+        }
+    }, [testInfo, timeLeft]);
 
-        questions.forEach((q, idx) => {
-            totalPoints += q.points;
-            const userAnswer = answers[idx];
-            if (!userAnswer) return;
-
-            if (q.type === 'multiple_choice' || q.type === 'true_false') {
-                const correctOption = q.options.find(o => o.isCorrect);
-                if (correctOption && userAnswer === correctOption.id) {
-                    correctCount++;
-                    earnedPoints += q.points;
+    // Initialize answers from any previously saved answers
+    useEffect(() => {
+        if (questions.length > 0) {
+            const initialAnswers = {};
+            questions.forEach(q => {
+                if (q.userSelectedOptionIds?.length > 0) {
+                    initialAnswers[q.questionId] = q.userSelectedOptionIds;
+                } else if (q.userAnswerText) {
+                    initialAnswers[q.questionId] = q.userAnswerText;
                 }
-            } else if (q.type === 'fill_in_blank') {
-                if (q.acceptedAnswers?.some(a => a.toLowerCase() === userAnswer.toLowerCase())) {
-                    correctCount++;
-                    earnedPoints += q.points;
-                }
+            });
+            if (Object.keys(initialAnswers).length > 0) {
+                setAnswers(initialAnswers);
             }
-        });
+        }
+    }, [questions]);
 
-        const percentScore = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
-
-        navigate(`/tests/${id}/results`, {
-            state: {
-                test,
-                questions,
-                answers,
-                flaggedQuestions,
-                correctCount,
-                totalQuestions: questions.length,
-                earnedPoints,
-                totalPoints,
-                percentScore,
-                timeSpent: (test?.timeLimitMinutes || 30) * 60 - timeLeft,
+    // Build submit payload
+    const buildSubmitPayload = useCallback(() => {
+        return questions.map(q => {
+            const answer = answers[q.questionId];
+            if (Array.isArray(answer)) {
+                return { questionId: q.questionId, selectedOptionIds: answer };
+            } else if (typeof answer === 'string' && answer.trim()) {
+                return { questionId: q.questionId, answerText: answer };
             }
+            return { questionId: q.questionId, selectedOptionIds: [] };
         });
-    }, [answers, flaggedQuestions, id, navigate, questions, test, timeLeft]);
+    }, [answers, questions]);
+
+    // Submit handler
+    const handleSubmit = useCallback(async () => {
+        try {
+            const payload = buildSubmitPayload();
+            const result = await submitAttempt(payload);
+            navigate(`/tests/${id}/results/${attemptId}`, { state: { result } });
+        } catch (err) {
+            alert('Có lỗi khi nộp bài. Vui lòng thử lại.');
+        }
+    }, [attemptId, buildSubmitPayload, id, navigate, submitAttempt]);
 
     // Timer
     useEffect(() => {
-        if (timeLeft <= 0) {
-            handleSubmit();
+        if (timeLeft === null || timeLeft <= 0) {
+            if (timeLeft === 0) handleSubmit();
             return;
         }
         const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
@@ -402,8 +409,12 @@ export default function QuizTaking() {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [handleKeyPress]);
 
-    const handleAnswer = (value) => {
-        setAnswers(prev => ({ ...prev, [currentIndex]: value }));
+    // Answer handler for multiple choice
+    const handleAnswer = (questionId, value, isText = false) => {
+        setAnswers(prev => ({
+            ...prev,
+            [questionId]: isText ? value : [value], // wrap optionId in array for backend
+        }));
     };
 
     const handleToggleFlag = () => {
@@ -414,12 +425,27 @@ export default function QuizTaking() {
         );
     };
 
-    if (!test) {
+    // Loading state
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-base-200">
+                <div className="text-center">
+                    <span className="loading loading-spinner loading-lg text-blue-500 mb-4" />
+                    <p className="text-sm text-base-content/50 font-medium">Đang tải bài thi...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error / no attempt
+    if (error || !testInfo || !attemptId) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-base-200">
                 <div className="text-center">
                     <Icon name="FileX" size="3xl" className="text-base-content/30 mx-auto mb-4" />
-                    <h2 className="text-xl font-black text-base-content mb-2">Không tìm thấy bài thi</h2>
+                    <h2 className="text-xl font-black text-base-content mb-2">
+                        {error || 'Không tìm thấy bài thi'}
+                    </h2>
                     <button onClick={() => navigate('/tests')} className="btn btn-primary rounded-xl mt-4">
                         Về danh sách
                     </button>
@@ -429,16 +455,19 @@ export default function QuizTaking() {
     }
 
     const currentQuestion = questions[currentIndex];
-    const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '').length;
+    const answeredCount = Object.keys(answers).filter(k => {
+        const v = answers[k];
+        return v && (Array.isArray(v) ? v.length > 0 : v !== '');
+    }).length;
 
     return (
         <div className="min-h-screen bg-base-200 flex flex-col">
             {/* Header */}
             <QuizHeader
-                test={test}
+                test={testInfo}
                 currentIndex={currentIndex}
                 totalQuestions={questions.length}
-                timeLeft={timeLeft}
+                timeLeft={timeLeft || 0}
                 onSubmit={() => setShowSubmitModal(true)}
                 flaggedCount={flaggedQuestions.length}
             />
@@ -452,7 +481,7 @@ export default function QuizTaking() {
                             <QuestionCard
                                 question={currentQuestion}
                                 questionIndex={currentIndex}
-                                answer={answers[currentIndex]}
+                                answer={answers[currentQuestion.questionId]}
                                 onAnswer={handleAnswer}
                                 isFlagged={flaggedQuestions.includes(currentIndex)}
                                 onToggleFlag={handleToggleFlag}
@@ -511,7 +540,7 @@ export default function QuizTaking() {
                 {/* Side Panel - Question Navigator */}
                 <div className="hidden lg:block w-72 p-4 border-l border-base-300 bg-base-100/50 overflow-y-auto">
                     <QuestionNavigator
-                        totalQuestions={questions.length}
+                        questions={questions}
                         currentIndex={currentIndex}
                         answers={answers}
                         flaggedQuestions={flaggedQuestions}
@@ -528,8 +557,8 @@ export default function QuizTaking() {
                 answered={answeredCount}
                 total={questions.length}
                 flagged={flaggedQuestions.length}
+                submitting={submitting}
             />
         </div>
     );
 }
-

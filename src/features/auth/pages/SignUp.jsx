@@ -1,6 +1,6 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, BrainCircuit, Layers3, Lock, Mail, Sparkles, UserRoundPlus } from 'lucide-react';
+import { ArrowRight, BrainCircuit, Layers3, Lock, Mail, Sparkles, User, UserRoundPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/shared/api';
 import {
@@ -10,6 +10,7 @@ import {
     AuthShell,
     AuthStatusBanner,
 } from '@/features/auth/components';
+import { buildGoogleAuthUrl } from '@/features/auth/utils/googleAuthUrl';
 
 const signupFeatures = [
     {
@@ -35,9 +36,91 @@ const signupSummary = [
     { label: 'Xác minh email bảo mật', value: 'OTP 6 số' },
 ];
 
+// ── Helpers validate ──────────────────────────────────────────────────────────
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]+$/;
+
+// Kiểm tra độ mạnh mật khẩu: trả về { score: 0-4, label, color }
+function getPasswordStrength(password) {
+    if (!password) return null;
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+
+    const levels = [
+        { label: 'Rất yếu', color: '#ef4444' },
+        { label: 'Yếu', color: '#f97316' },
+        { label: 'Trung bình', color: '#eab308' },
+        { label: 'Mạnh', color: '#22c55e' },
+        { label: 'Rất mạnh', color: '#16a34a' },
+    ];
+    return { score, ...levels[score] };
+}
+
+function validateSignupField(name, value, formData) {
+    if (name === 'username') {
+        if (!value.trim()) return 'Tên đăng nhập không được để trống.';
+        if (value.trim().length < 3) return 'Tên đăng nhập phải có ít nhất 3 ký tự.';
+        if (value.trim().length > 30) return 'Tên đăng nhập không được quá 30 ký tự.';
+        if (!USERNAME_REGEX.test(value.trim())) return 'Tên đăng nhập chỉ được dùng chữ, số và dấu gạch dưới (_).';
+    }
+    if (name === 'email') {
+        if (!value.trim()) return 'Email không được để trống.';
+        if (!EMAIL_REGEX.test(value.trim())) return 'Email không đúng định dạng (vd: name@example.com).';
+    }
+    if (name === 'password') {
+        if (!value) return 'Mật khẩu không được để trống.';
+        if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự.';
+        if (value.length > 100) return 'Mật khẩu không được quá 100 ký tự.';
+    }
+    if (name === 'confirmPassword') {
+        if (!value) return 'Vui lòng nhập lại mật khẩu để xác nhận.';
+        if (value !== formData.password) return 'Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.';
+    }
+    return '';
+}
+
+// ── Component PasswordStrengthBar ─────────────────────────────────────────────
+function PasswordStrengthBar({ password }) {
+    const strength = getPasswordStrength(password);
+    if (!password || !strength) return null;
+    const segments = 4;
+
+    return (
+        <div style={{ marginTop: '6px', paddingLeft: '2px' }}>
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                {Array.from({ length: segments }).map((_, i) => (
+                    <div
+                        key={i}
+                        style={{
+                            height: '3px',
+                            flex: 1,
+                            borderRadius: '99px',
+                            background: i < strength.score ? strength.color : 'var(--apple-border, #e5e7eb)',
+                            transition: 'background 0.25s',
+                        }}
+                    />
+                ))}
+            </div>
+            <p style={{ fontSize: '0.7rem', color: strength.color, fontWeight: 600 }}>
+                Độ mạnh: {strength.label}
+                {strength.score < 2 && ' — hãy thêm chữ hoa, số hoặc ký tự đặc biệt'}
+            </p>
+        </div>
+    );
+}
+
 export default function SignUp() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+    });
+    const [fieldErrors, setFieldErrors] = useState({
         username: '',
         email: '',
         password: '',
@@ -48,35 +131,65 @@ export default function SignUp() {
     const [success, setSuccess] = useState('');
 
     const handleChange = (event) => {
-        setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+        const { name, value } = event.target;
+        setFormData((current) => ({ ...current, [name]: value }));
         setError('');
+        if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+
+        // Nếu đang sửa password thì re-validate confirmPassword live
+        if (name === 'password' && formData.confirmPassword) {
+            const confirmErr = value !== formData.confirmPassword ? 'Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.' : '';
+            setFieldErrors((prev) => ({ ...prev, password: '', confirmPassword: confirmErr }));
+        }
+    };
+
+    const handleBlur = (event) => {
+        const { name, value } = event.target;
+        setFieldErrors((prev) => ({
+            ...prev,
+            [name]: validateSignupField(name, value, formData),
+        }));
+    };
+
+    const runAllValidations = () => {
+        const errors = {
+            username: validateSignupField('username', formData.username, formData),
+            email: validateSignupField('email', formData.email, formData),
+            password: validateSignupField('password', formData.password, formData),
+            confirmPassword: validateSignupField('confirmPassword', formData.confirmPassword, formData),
+        };
+        setFieldErrors(errors);
+        return !Object.values(errors).some(Boolean);
     };
 
     const handleSignUp = async (event) => {
         event.preventDefault();
+        if (!runAllValidations()) return;
+
         setLoading(true);
         setError('');
         setSuccess('');
 
-        if (formData.password !== formData.confirmPassword) {
-            setError('Mật khẩu xác nhận không khớp.');
-            setLoading(false);
-            return;
-        }
-
         try {
             const data = await authApi.register({
-                username: formData.username,
-                email: formData.email,
+                username: formData.username.trim(),
+                email: formData.email.trim().toLowerCase(),
                 password: formData.password,
             });
 
-            setSuccess(data.message || 'Đăng ký thành công. Đang chuyển đến bước xác minh email...');
+            setSuccess(data.message || 'Đăng ký thành công! Đang chuyển đến bước xác minh email...');
             setTimeout(() => {
-                navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+                navigate(`/verify-email?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`);
             }, 1200);
         } catch (err) {
-            setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+            const msg = (err.response?.data?.message || '').toLowerCase();
+            if (msg.includes('email') && (msg.includes('exist') || msg.includes('tồn tại') || msg.includes('already'))) {
+                setFieldErrors((prev) => ({ ...prev, email: 'Email này đã được đăng ký. Hãy đăng nhập hoặc dùng email khác.' }));
+            } else if (msg.includes('username') && (msg.includes('exist') || msg.includes('tồn tại') || msg.includes('taken'))) {
+                setFieldErrors((prev) => ({ ...prev, username: 'Tên đăng nhập này đã được sử dụng. Vui lòng chọn tên khác.' }));
+            } else {
+                setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+            }
         } finally {
             setLoading(false);
         }
@@ -110,7 +223,7 @@ export default function SignUp() {
                     </div>
                 }
             >
-                <form className="space-y-5" onSubmit={handleSignUp}>
+                <form className="space-y-5" onSubmit={handleSignUp} noValidate>
                     <AuthStatusBanner variant="error" message={error} />
                     <AuthStatusBanner variant="success" message={success} />
 
@@ -119,10 +232,13 @@ export default function SignUp() {
                         name="username"
                         value={formData.username}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="username123"
                         autoComplete="username"
                         icon={UserRoundPlus}
                         disabled={loading}
+                        required
+                        error={fieldErrors.username}
                     />
 
                     <AuthField
@@ -131,34 +247,46 @@ export default function SignUp() {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="name@example.com"
                         autoComplete="email"
                         icon={Mail}
                         disabled={loading}
+                        required
+                        error={fieldErrors.email}
                     />
 
-                    <AuthField
-                        label="Mật khẩu"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="Tối thiểu 6 ký tự"
-                        autoComplete="new-password"
-                        icon={Lock}
-                        isPassword
-                        disabled={loading}
-                    />
+                    <div>
+                        <AuthField
+                            label="Mật khẩu"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            placeholder="Tối thiểu 6 ký tự"
+                            autoComplete="new-password"
+                            icon={Lock}
+                            isPassword
+                            disabled={loading}
+                            required
+                            error={fieldErrors.password}
+                        />
+                        {!fieldErrors.password && <PasswordStrengthBar password={formData.password} />}
+                    </div>
 
                     <AuthField
                         label="Xác nhận mật khẩu"
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="Nhập lại mật khẩu"
                         autoComplete="new-password"
                         icon={Lock}
                         isPassword
                         disabled={loading}
+                        required
+                        error={fieldErrors.confirmPassword}
                     />
 
                     <motion.button

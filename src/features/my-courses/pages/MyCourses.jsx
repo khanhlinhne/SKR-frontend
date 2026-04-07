@@ -149,16 +149,16 @@ function QuickResumeCard({ enrollment }) {
     const progressPercent = enrollment.progressPercent ?? 0;
 
     return (
-        <Link to={`/courses/${enrollment.courseId || enrollment.id}/learn`}>
+        <Link to={`/courses/${enrollment.courseId || enrollment.id}/learn`} className="block h-full">
             <motion.div
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="relative group cursor-pointer"
+                className="relative group cursor-pointer h-full"
             >
                 {/* Outer glow */}
                 <div className="absolute -inset-1 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-all duration-500" />
 
-                <div className="relative bg-base-100 rounded-2xl border border-base-300/50 overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)] transition-all duration-300">
-                    <div className="flex items-stretch">
+                <div className="relative bg-base-100 rounded-2xl border border-base-300/50 overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)] transition-all duration-300 h-full">
+                    <div className="flex items-stretch h-24">
                         {/* Image */}
                         <div className="relative w-28 sm:w-36 flex-shrink-0 overflow-hidden">
                             <img
@@ -179,7 +179,7 @@ function QuickResumeCard({ enrollment }) {
                             <h4 className="text-[13px] font-bold text-base-content line-clamp-1 mb-1 tracking-tight">
                                 {enrollment.title}
                             </h4>
-                            <p className="text-[11px] text-base-content/40 font-medium mb-2">
+                            <p className="text-[11px] text-base-content/40 font-medium mb-2 line-clamp-1">
                                 {enrollment.instructorName}
                             </p>
 
@@ -420,13 +420,13 @@ export default function MyCourses() {
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Content — single continuous flow */}
                 <motion.main
-                    className="flex-1 overflow-y-auto px-4 lg:px-6 py-4"
+                    className="flex-1 overflow-y-auto px-4 lg:px-8 py-6"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                 >
                     {/* Hero Section with Stats */}
-                    <motion.div variants={fadeInUp} className="mb-4">
+                    <motion.div variants={fadeInUp} className="mb-8">
                         <HeroSection stats={stats} userName={profile.name} />
                     </motion.div>
 
@@ -464,11 +464,26 @@ export default function MyCourses() {
                             initial="hidden"
                             animate="visible"
                         >
+                            {/* Toolbar */}
+                            <motion.div variants={fadeInUp} className="mb-6">
+                                <MyCoursesToolbar
+                                    searchQuery={searchQuery}
+                                    onSearchChange={setSearchQuery}
+                                    statusFilter={statusFilter}
+                                    onStatusChange={setStatusFilter}
+                                    sortBy={sortBy}
+                                    onSortChange={setSortBy}
+                                    viewMode={viewMode}
+                                    onViewChange={setViewMode}
+                                    totalCourses={displayedCourses.length}
+                                />
+                            </motion.div>
+
                             {/* Continue Learning (compact, only when default view) */}
                             {statusFilter === 'all' &&
                                 !searchQuery &&
                                 continueLearnCourses.length > 0 && (
-                                    <motion.div variants={fadeInUp} className="mb-4">
+                                    <motion.div variants={fadeInUp} className="mb-6">
                                         <div className="bg-gradient-to-br from-violet-500/[0.03] to-purple-500/[0.05] rounded-2xl border border-violet-500/10 p-4">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2">
@@ -494,21 +509,6 @@ export default function MyCourses() {
                                         </div>
                                     </motion.div>
                                 )}
-
-                            {/* Toolbar */}
-                            <motion.div variants={fadeInUp} className="mb-4">
-                                <MyCoursesToolbar
-                                    searchQuery={searchQuery}
-                                    onSearchChange={setSearchQuery}
-                                    statusFilter={statusFilter}
-                                    onStatusChange={setStatusFilter}
-                                    sortBy={sortBy}
-                                    onSortChange={setSortBy}
-                                    viewMode={viewMode}
-                                    onViewChange={setViewMode}
-                                    totalCourses={displayedCourses.length}
-                                />
-                            </motion.div>
 
                             {/* Course Grid / List */}
                             {displayedCourses.length > 0 ? (

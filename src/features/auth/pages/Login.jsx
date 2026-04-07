@@ -39,10 +39,26 @@ const loginSummary = [
     { label: 'Thời gian tạo bộ học liệu mới', value: '< 2 phút' },
 ];
 
+// ── Helpers validate ──────────────────────────────────────────────────────────
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateLoginField(name, value) {
+    if (name === 'email') {
+        if (!value.trim()) return 'Email không được để trống.';
+        if (!EMAIL_REGEX.test(value.trim())) return 'Email không đúng định dạng (vd: name@example.com).';
+    }
+    if (name === 'password') {
+        if (!value) return 'Mật khẩu không được để trống.';
+        if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự.';
+    }
+    return '';
+}
+
 export default function Login() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({ email: '', password: '' });
+    const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const redirectTarget = searchParams.get('redirect');
@@ -55,12 +71,30 @@ export default function Login() {
     }, [searchParams]);
 
     const handleChange = (event) => {
-        setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+        const { name, value } = event.target;
+        setFormData((current) => ({ ...current, [name]: value }));
         setError('');
+        if (fieldErrors[name]) setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    };
+
+    const handleBlur = (event) => {
+        const { name, value } = event.target;
+        setFieldErrors((prev) => ({ ...prev, [name]: validateLoginField(name, value) }));
+    };
+
+    const runAllValidations = () => {
+        const errors = {
+            email: validateLoginField('email', formData.email),
+            password: validateLoginField('password', formData.password),
+        };
+        setFieldErrors(errors);
+        return !Object.values(errors).some(Boolean);
     };
 
     const handleLogin = async (event) => {
         event.preventDefault();
+        if (!runAllValidations()) return;
+
         setLoading(true);
         setError('');
 
@@ -77,19 +111,25 @@ export default function Login() {
                 return;
             }
 
-            // Lưu token với thời hạn (mặc định 24h nếu server không trả expiresIn)
             setAccessToken(token, expiresIn || 24 * 60 * 60);
             if (data.data?.tokens?.refreshToken) {
                 setRefreshToken(data.data.tokens.refreshToken);
             }
-            // fetchMe gọi /user/profile để lấy profile đầy đủ (có roles)
             const user = await hydrateProfileAfterAuth();
-            console.log('[Login] user after hydrate:', user);
-            console.log('[Login] roles:', user?.roles);
-            console.log('[Login] hasAdminRole:', user?.roles?.includes('admin'));
             navigate(safeRedirectTarget || resolvePostLoginDestination(user, '/dashboard'));
         } catch (err) {
-            setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+            const msg = (err.response?.data?.message || '').toLowerCase();
+            if (msg.includes('password') || msg.includes('mật khẩu')) {
+                setFieldErrors((prev) => ({ ...prev, password: 'Mật khẩu không đúng. Vui lòng kiểm tra lại.' }));
+            } else if (msg.includes('email') || msg.includes('user') || msg.includes('tài khoản') || msg.includes('không tìm thấy')) {
+                setFieldErrors((prev) => ({ ...prev, email: 'Email không tồn tại trong hệ thống.' }));
+            } else if (msg.includes('verify') || msg.includes('xác minh') || msg.includes('verif')) {
+                setError('Tài khoản chưa được xác minh email. Vui lòng kiểm tra hộp thư và xác minh trước khi đăng nhập.');
+            } else if (msg.includes('block') || msg.includes('khóa') || msg.includes('banned')) {
+                setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ.');
+            } else {
+                setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+            }
         } finally {
             setLoading(false);
         }
@@ -118,7 +158,7 @@ export default function Login() {
                     </p>
                 }
             >
-                <form className="space-y-5" onSubmit={handleLogin}>
+                <form className="space-y-5" onSubmit={handleLogin} noValidate>
                     <AuthStatusBanner variant="error" message={error} />
 
                     <AuthField
@@ -127,10 +167,13 @@ export default function Login() {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="name@example.com"
                         autoComplete="email"
                         icon={Mail}
                         disabled={loading}
+                        required
+                        error={fieldErrors.email}
                     />
 
                     <AuthField
@@ -138,11 +181,14 @@ export default function Login() {
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
+                        onBlur={handleBlur}
                         placeholder="••••••••"
                         autoComplete="current-password"
                         icon={Lock}
                         isPassword
                         disabled={loading}
+                        required
+                        error={fieldErrors.password}
                     />
 
                     <div className="flex items-center justify-between gap-3 text-sm">
@@ -189,5 +235,3 @@ export default function Login() {
         </AuthShell>
     );
 }
-
-

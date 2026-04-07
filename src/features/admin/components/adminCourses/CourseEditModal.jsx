@@ -37,7 +37,7 @@ export default function CourseEditModal({ course, onClose, onSuccess }) {
         status: course.status || 'draft',
         isFree: course.isFree ?? false,
         priceAmount: course.price ?? 0,
-        originalPrice: course.originalPrice ?? 0,
+
         discountPercent: course.discountPercent ?? 0,
         discountValidUntil: course.discountValidUntil ? formatDate(course.discountValidUntil) : '',
     });
@@ -98,7 +98,7 @@ export default function CourseEditModal({ course, onClose, onSuccess }) {
                 status: formData.status,
                 isFree: formData.isFree,
                 priceAmount: Number(formData.priceAmount) || 0,
-                originalPrice: Number(formData.originalPrice) || 0,
+
                 discountPercent: Number(formData.discountPercent) || 0,
             };
 
@@ -288,39 +288,21 @@ export default function CourseEditModal({ course, onClose, onSuccess }) {
 
                         {!formData.isFree && (
                             <>
-                                {/* Price & Original Price */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="flex items-center gap-1 text-xs font-bold text-base-content/60 mb-1.5">
-                                            Giá bán
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={formData.priceAmount}
-                                                onChange={(e) => handleChange('priceAmount', e.target.value)}
-                                                placeholder="0"
-                                                className="w-full px-3 py-2 pr-8 rounded-lg bg-base-100 border border-base-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/30 transition-all"
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-base-content/40 font-medium">VND</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="flex items-center gap-1 text-xs font-bold text-base-content/60 mb-1.5">
-                                            Giá gốc
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={formData.originalPrice}
-                                                onChange={(e) => handleChange('originalPrice', e.target.value)}
-                                                placeholder="0"
-                                                className="w-full px-3 py-2 pr-8 rounded-lg bg-base-100 border border-base-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/30 transition-all"
-                                            />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-base-content/40 font-medium">VND</span>
-                                        </div>
+                                {/* Price */}
+                                <div>
+                                    <label className="flex items-center gap-1 text-xs font-bold text-base-content/60 mb-1.5">
+                                        Giá bán
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={formData.priceAmount}
+                                            onChange={(e) => handleChange('priceAmount', e.target.value)}
+                                            placeholder="0"
+                                            className="w-full px-3 py-2 pr-8 rounded-lg bg-base-100 border border-base-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none text-sm font-medium text-base-content placeholder:text-base-content/30 transition-all"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-base-content/40 font-medium">VND</span>
                                     </div>
                                 </div>
 

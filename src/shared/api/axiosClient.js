@@ -45,13 +45,20 @@ axiosClient.interceptors.response.use(
             switch (response.status) {
                 case 401: {
                     const url = response.config?.url || '';
+                    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
                     const isUserDataEndpoint = url.includes('/user/profile') || url.includes('/user/change-password');
+
+                    // If it's a login or register endpoint, do nothing and let the component handle the error
+                    if (isAuthEndpoint) {
+                        break;
+                    }
 
                     if (!isUserDataEndpoint) {
                         clearTokens();
                     }
 
-                    if (url.includes('/auth/login') || url.includes('/auth/register')) {
+                    // Only redirect if we are not already on the login page to avoid infinite loops
+                    if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
                         window.location.href = '/login';
                     }
                     break;
