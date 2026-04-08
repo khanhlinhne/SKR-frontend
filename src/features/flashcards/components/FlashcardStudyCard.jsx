@@ -4,6 +4,7 @@ export default function FlashcardStudyCard({
     card,
     isFlipped = false,
     onFlip,
+    cardHeightClass = 'h-80',
 }) {
     const difficultyConfig = {
         easy: { label: 'Dễ', class: 'badge-success' },
@@ -16,7 +17,7 @@ export default function FlashcardStudyCard({
     return (
         <div className="perspective-1000 mb-8">
             <motion.div
-                className="relative w-full h-80 cursor-pointer"
+                className={`relative w-full cursor-pointer ${cardHeightClass}`}
                 onClick={onFlip}
                 style={{ transformStyle: 'preserve-3d' }}
                 animate={{ rotateY: isFlipped ? 180 : 0 }}
@@ -35,8 +36,16 @@ export default function FlashcardStudyCard({
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="text-center"
+                        className="w-full text-center"
                     >
+                        {card.frontImageUrl && (
+                            <img
+                                src={card.frontImageUrl}
+                                alt="Flashcard front"
+                                className="mx-auto mb-4 h-40 w-full max-w-xl rounded-2xl border border-base-300 object-cover"
+                                loading="lazy"
+                            />
+                        )}
                         <p className="text-2xl font-bold text-base-content leading-relaxed">
                             {card.front}
                         </p>
@@ -54,8 +63,16 @@ export default function FlashcardStudyCard({
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="text-center"
+                        className="w-full text-center"
                     >
+                        {card.backImageUrl && (
+                            <img
+                                src={card.backImageUrl}
+                                alt="Flashcard back"
+                                className="mx-auto mb-4 h-40 w-full max-w-xl rounded-2xl border border-white/30 object-cover"
+                                loading="lazy"
+                            />
+                        )}
                         <p className="text-xl font-bold text-white leading-relaxed whitespace-pre-line">
                             {card.back}
                         </p>

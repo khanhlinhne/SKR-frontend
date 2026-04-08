@@ -126,7 +126,7 @@ export default function LearnProgressView({
 
     return (
         <motion.div
-            className="max-w-5xl mx-auto px-6 py-6 space-y-6"
+            className="w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10 space-y-6"
             variants={containerVariants}
             initial="hidden"
             animate="visible"

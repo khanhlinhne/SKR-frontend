@@ -159,6 +159,16 @@ export default function LearnVideoPlayer({
                     {lesson?.documents?.length > 0 && (
                         <p className="text-white/20 text-xs">Xem tài liệu bên dưới ↓</p>
                     )}
+                    {lesson?.flashcardSets?.length > 0 && (
+                        <div className="mt-3">
+                            <span
+                                className={`inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r ${gradient} px-4 py-2 text-xs font-bold text-white shadow-lg`}
+                            >
+                                <Play className="w-3.5 h-3.5" fill="white" />
+                                Học flashcard
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 

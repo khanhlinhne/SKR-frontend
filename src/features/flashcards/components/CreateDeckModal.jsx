@@ -1,14 +1,19 @@
 import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
+import { uploadApi } from '@/shared/api';
+import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
 
 const INITIAL_CARD_COUNT = 4;
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 function createEmptyCard(id) {
     return {
         id,
         front: '',
         back: '',
+        frontImageUrl: '',
+        backImageUrl: '',
     };
 }
 
@@ -16,33 +21,9 @@ function getInitialCards() {
     return Array.from({ length: INITIAL_CARD_COUNT }, (_, index) => createEmptyCard(index + 1));
 }
 
-function splitBulkLine(line) {
-    const patterns = [/\t/, /\s*::\s*/, /\s*\|\s*/, /\s+-\s*/, /\s+–\s+/, /\s+—\s+/, /\s*,\s*/];
-
-    for (const pattern of patterns) {
-        const parts = line
-            .split(pattern)
-            .map((part) => part.trim())
-            .filter(Boolean);
-
-        if (parts.length >= 2) {
-            return {
-                front: parts[0],
-                back: parts.slice(1).join(' ').trim(),
-            };
-        }
-    }
-
-    return null;
-}
-
-function parseBulkCardsInput(input) {
-    return input
-        .split(/\r?\n|;/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map(splitBulkLine)
-        .filter((card) => card?.front && card?.back);
+function extractUploadedImageUrl(response) {
+    const payload = response?.data?.data || response?.data || response || {};
+    return payload.imageUrl || payload.url || payload.secure_url || payload.fileUrl || payload.path || '';
 }
 
 export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subjects = [] }) {
@@ -52,7 +33,7 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
     const [description, setDescription] = useState('');
     const [visibility, setVisibility] = useState('private');
     const [cards, setCards] = useState(() => getInitialCards());
-    const [bulkImportText, setBulkImportText] = useState('');
+    const [uploadingSlots, setUploadingSlots] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState('');
 
@@ -66,7 +47,10 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
 
     const subjectOptions = Array.isArray(subjects) && subjects.length > 0 ? subjects : defaultSubjects;
     const validCards = cards.filter((card) => card.front.trim() && card.back.trim());
-    const halfFilledCards = cards.filter((card) => (card.front.trim() || card.back.trim()) && !(card.front.trim() && card.back.trim()));
+    const halfFilledCards = cards.filter(
+        (card) => (card.front.trim() || card.back.trim()) && !(card.front.trim() && card.back.trim()),
+    );
+    const hasUploadingImages = Object.values(uploadingSlots).some(Boolean);
 
     const resetForm = () => {
         nextCardIdRef.current = INITIAL_CARD_COUNT + 1;
@@ -75,7 +59,7 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
         setDescription('');
         setVisibility('private');
         setCards(getInitialCards());
-        setBulkImportText('');
+        setUploadingSlots({});
         setFormError('');
         setSubmitting(false);
     };
@@ -100,26 +84,47 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
         });
     };
 
-    const handleBulkImport = () => {
-        const parsedCards = parseBulkCardsInput(bulkImportText);
+    const setSlotUploading = (cardId, side, isUploading) => {
+        const slotKey = `${cardId}-${side}`;
+        setUploadingSlots((prev) => ({ ...prev, [slotKey]: isUploading }));
+    };
 
-        if (parsedCards.length === 0) {
-            setFormError('Chưa đọc được thẻ nào từ phần nhập nhanh. Hãy dùng tab, dấu phẩy, dấu gạch ngang hoặc :: để ngăn cách 2 mặt.');
+    const handleImageUpload = async (cardId, side, file) => {
+        if (!file) {
             return;
         }
 
-        setFormError('');
-        setCards((prevCards) => {
-            const filledCards = prevCards.filter((card) => card.front.trim() || card.back.trim());
-            const importedCards = parsedCards.map((card) => ({
-                id: nextCardIdRef.current++,
-                front: card.front,
-                back: card.back,
-            }));
+        if (!file.type?.startsWith('image/')) {
+            setFormError('Chỉ hỗ trợ tệp ảnh cho flashcard.');
+            return;
+        }
 
-            return [...filledCards, ...importedCards];
-        });
-        setBulkImportText('');
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+            setFormError('Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.');
+            return;
+        }
+
+        const imageField = side === 'front' ? 'frontImageUrl' : 'backImageUrl';
+
+        setFormError('');
+        setSlotUploading(cardId, side, true);
+        try {
+            const response = await uploadApi.uploadImage(file);
+            const imageUrl = resolveFlashcardImageUrl(extractUploadedImageUrl(response));
+            if (!imageUrl) {
+                throw new Error('Không nhận được URL ảnh từ máy chủ.');
+            }
+            updateCard(cardId, imageField, imageUrl);
+        } catch (error) {
+            setFormError(error?.response?.data?.message || error?.message || 'Không thể tải ảnh lên. Vui lòng thử lại.');
+        } finally {
+            setSlotUploading(cardId, side, false);
+        }
+    };
+
+    const clearCardImage = (cardId, side) => {
+        const imageField = side === 'front' ? 'frontImageUrl' : 'backImageUrl';
+        updateCard(cardId, imageField, '');
     };
 
     const handleClose = () => {
@@ -147,6 +152,11 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
             return;
         }
 
+        if (hasUploadingImages) {
+            setFormError('Ảnh đang tải lên. Vui lòng đợi hoàn tất trước khi tạo bộ thẻ.');
+            return;
+        }
+
         const selectedSubject = subjectOptions.find((option) => String(option.value) === String(subject));
         setSubmitting(true);
         setFormError('');
@@ -161,6 +171,8 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                 cards: validCards.map((card, index) => ({
                     frontText: card.front.trim(),
                     backText: card.back.trim(),
+                    frontImageUrl: resolveFlashcardImageUrl(card.frontImageUrl) || null,
+                    backImageUrl: resolveFlashcardImageUrl(card.backImageUrl) || null,
                     cardOrder: index,
                 })),
             });
@@ -314,31 +326,6 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                                 </div>
                             </div>
 
-                            <div className="rounded-3xl border border-dashed border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-violet-500/10 p-5">
-                                <div className="mb-3 flex items-center gap-2">
-                                    <Icon name="Upload" size="sm" className="text-blue-600" />
-                                    <h3 className="text-lg font-black text-base-content">Nhập nhanh giống Quizlet</h3>
-                                </div>
-                                <p className="mb-3 text-sm text-base-content/70">
-                                    Mỗi dòng là một thẻ. Dùng tab, dấu phẩy, dấu gạch ngang, dấu <code>::</code> hoặc <code>|</code> để ngăn cách hai mặt.
-                                </p>
-                                <textarea
-                                    rows={6}
-                                    placeholder={`React Hook\tCơ chế dùng state và lifecycle trong function component\nPromise - Đối tượng đại diện cho kết quả bất đồng bộ`}
-                                    className="textarea textarea-bordered w-full rounded-2xl bg-base-100"
-                                    value={bulkImportText}
-                                    onChange={(event) => setBulkImportText(event.target.value)}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleBulkImport}
-                                    className="btn btn-outline btn-primary mt-3 w-full rounded-2xl"
-                                >
-                                    <Icon name="Sparkles" size="sm" />
-                                    Đưa vào danh sách thẻ
-                                </button>
-                            </div>
-
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="rounded-2xl bg-base-200/70 p-4">
                                     <p className="text-xs font-bold uppercase tracking-wide text-base-content/50">Thẻ hợp lệ</p>
@@ -359,7 +346,7 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                                         Nhập ngắn gọn ở mặt trước và giải thích rõ ở mặt sau để học hiệu quả hơn.
                                     </p>
                                 </div>
-                                <button type="button" onClick={addCardRow} className="btn btn-outline rounded-2xl">
+                                <button type="button" onClick={addCardRow} className="btn btn-outline rounded-2xl" disabled={submitting}>
                                     <Icon name="Plus" size="sm" />
                                     Thêm thẻ
                                 </button>
@@ -395,6 +382,47 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                                                 placeholder="Thuật ngữ, câu hỏi, khái niệm..."
                                                 className="textarea textarea-bordered min-h-[110px] w-full rounded-2xl bg-base-100"
                                             />
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                <label htmlFor={`front-image-${card.id}`} className="btn btn-xs btn-outline rounded-xl">
+                                                    <Icon name="Upload" size="sm" />
+                                                    {uploadingSlots[`${card.id}-front`] ? 'Đang tải ảnh...' : 'Thêm ảnh mặt trước'}
+                                                </label>
+                                                <input
+                                                    id={`front-image-${card.id}`}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    disabled={submitting || uploadingSlots[`${card.id}-front`]}
+                                                    onChange={(event) => {
+                                                        const file = event.target.files?.[0];
+                                                        if (file) {
+                                                            void handleImageUpload(card.id, 'front', file);
+                                                        }
+                                                        event.target.value = '';
+                                                    }}
+                                                />
+                                                {card.frontImageUrl && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-xs btn-ghost rounded-xl"
+                                                        onClick={() => clearCardImage(card.id, 'front')}
+                                                        disabled={submitting}
+                                                    >
+                                                        <Icon name="X" size="sm" />
+                                                        Xóa ảnh
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {card.frontImageUrl && (
+                                                <div className="mt-2 rounded-2xl border border-base-300 bg-base-100 p-2">
+                                                    <img
+                                                        src={resolveFlashcardImageUrl(card.frontImageUrl)}
+                                                        alt={`Front ${index + 1}`}
+                                                        className="h-28 w-full rounded-xl object-cover"
+                                                        loading="lazy"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="form-control">
@@ -408,6 +436,47 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                                                 placeholder="Định nghĩa, đáp án, ví dụ hoặc ghi chú..."
                                                 className="textarea textarea-bordered min-h-[110px] w-full rounded-2xl bg-base-100"
                                             />
+                                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                                                <label htmlFor={`back-image-${card.id}`} className="btn btn-xs btn-outline rounded-xl">
+                                                    <Icon name="Upload" size="sm" />
+                                                    {uploadingSlots[`${card.id}-back`] ? 'Đang tải ảnh...' : 'Thêm ảnh mặt sau'}
+                                                </label>
+                                                <input
+                                                    id={`back-image-${card.id}`}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    disabled={submitting || uploadingSlots[`${card.id}-back`]}
+                                                    onChange={(event) => {
+                                                        const file = event.target.files?.[0];
+                                                        if (file) {
+                                                            void handleImageUpload(card.id, 'back', file);
+                                                        }
+                                                        event.target.value = '';
+                                                    }}
+                                                />
+                                                {card.backImageUrl && (
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-xs btn-ghost rounded-xl"
+                                                        onClick={() => clearCardImage(card.id, 'back')}
+                                                        disabled={submitting}
+                                                    >
+                                                        <Icon name="X" size="sm" />
+                                                        Xóa ảnh
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {card.backImageUrl && (
+                                                <div className="mt-2 rounded-2xl border border-base-300 bg-base-100 p-2">
+                                                    <img
+                                                        src={resolveFlashcardImageUrl(card.backImageUrl)}
+                                                        alt={`Back ${index + 1}`}
+                                                        className="h-28 w-full rounded-xl object-cover"
+                                                        loading="lazy"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="flex items-start justify-end">
@@ -416,6 +485,7 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                                                 onClick={() => removeCard(card.id)}
                                                 className="btn btn-ghost btn-sm btn-circle text-base-content/50 hover:text-error"
                                                 aria-label={`Xóa thẻ ${index + 1}`}
+                                                disabled={submitting}
                                             >
                                                 <Icon name="Trash2" size="sm" />
                                             </button>
@@ -424,7 +494,7 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                                 ))}
                             </div>
 
-                            <button type="button" onClick={addCardRow} className="btn btn-ghost mt-4 rounded-2xl">
+                            <button type="button" onClick={addCardRow} className="btn btn-ghost mt-4 rounded-2xl" disabled={submitting}>
                                 <Icon name="Plus" size="sm" />
                                 Thêm một dòng nữa
                             </button>
@@ -444,8 +514,8 @@ export default function CreateDeckModal({ isOpen = true, onClose, onCreate, subj
                             whileHover={{ scale: submitting ? 1 : 1.02 }}
                             whileTap={{ scale: submitting ? 1 : 0.98 }}
                             onClick={handleSubmit}
-                            disabled={submitting}
-                            className="btn border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white shadow-lg shadow-blue-600/20 rounded-2xl"
+                            disabled={submitting || hasUploadingImages}
+                            className="btn rounded-2xl border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white shadow-lg shadow-blue-600/20"
                         >
                             <Icon name="Sparkles" size="sm" />
                             {submitting ? 'Đang tạo bộ thẻ...' : 'Tạo bộ flashcard'}

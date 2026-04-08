@@ -19,6 +19,7 @@ export default function FlashcardDeckCard({
     onCopy,
     onShare,
     onDelete,
+    isDeleting = false,
     index = 0,
     variants,
 }) {
@@ -27,7 +28,15 @@ export default function FlashcardDeckCard({
         onEdit ? { label: 'Chỉnh sửa', icon: 'Edit3', action: onEdit } : null,
         onCopy ? { label: 'Sao chép', icon: 'Copy', action: onCopy } : null,
         onShare ? { label: 'Chia sẻ', icon: 'Share2', action: onShare } : null,
-        onDelete ? { label: 'Xóa', icon: 'Trash2', action: onDelete, className: 'text-error' } : null,
+        onDelete
+            ? {
+                  label: isDeleting ? 'Đang xóa...' : 'Xóa',
+                  icon: 'Trash2',
+                  action: isDeleting ? undefined : onDelete,
+                  className: 'text-error',
+                  disabled: isDeleting,
+              }
+            : null,
     ].filter(Boolean);
 
     return (
@@ -52,7 +61,9 @@ export default function FlashcardDeckCard({
 
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                    <div className={`w-14 h-14 rounded-2xl ${(DECK_COLOR_STYLES[deck.color] || DECK_COLOR_STYLES.blue).softBg} flex items-center justify-center text-3xl shadow-sm`}>
+                    <div
+                        className={`w-14 h-14 rounded-2xl ${(DECK_COLOR_STYLES[deck.color] || DECK_COLOR_STYLES.blue).softBg} flex items-center justify-center text-3xl shadow-sm`}
+                    >
                         {deck.icon}
                     </div>
                     <div>
@@ -63,15 +74,23 @@ export default function FlashcardDeckCard({
 
                 {menuItems.length > 0 && (
                     <div className="dropdown dropdown-end">
-                        <button className="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" className="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity">
                             <Icon name="MoreVertical" size="sm" />
                         </button>
                         <ul className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-xl w-48 border border-base-300">
                             {menuItems.map((item) => (
                                 <li key={item.label}>
-                                    <a className={item.className} onClick={item.action}>
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            item.action?.();
+                                        }}
+                                        disabled={item.disabled}
+                                        className={`${item.className || ''} ${item.disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    >
                                         <Icon name={item.icon} size="sm" /> {item.label}
-                                    </a>
+                                    </button>
                                 </li>
                             ))}
                         </ul>

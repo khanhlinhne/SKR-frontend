@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'motion/react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardSidebar } from '@/features/learner/components';
 import { createStudyReviewTransport } from '@/features/flashcards/utils/studyReviewTransport';
+import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
 import { flashcardApi, subjectApi } from '@/shared/api';
 import { mapWithConcurrency } from '@/shared/utils/mapWithConcurrency.js';
 import { isTokenValid } from '@/shared/utils/tokenManager';
@@ -155,11 +157,26 @@ function readCurrentUserId() {
     }
 }
 
+function normalizeComparableId(value) {
+    if (value == null) {
+        return '';
+    }
+
+    return String(value).trim().toLowerCase();
+}
+
+function isSameEntityId(left, right) {
+    const normalizedLeft = normalizeComparableId(left);
+    const normalizedRight = normalizeComparableId(right);
+
+    return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight);
+}
+
 function normalizeDeck(deck, index, currentUserId) {
     const totalCards = Number(deck.totalCards || 0);
     const mastered = Number(deck.masteredCount || deck.mastered || 0);
     const learning = Math.max(totalCards - mastered, 0);
-    const creatorId = deck.creatorId || deck.creator?.userId || null;
+    const creatorId = deck.creatorId || deck.creator?.userId || deck.creator?.id || deck.creator_id || null;
 
     return {
         id: deck.flashcardSetId || deck.id,
@@ -178,7 +195,7 @@ function normalizeDeck(deck, index, currentUserId) {
         visibility: deck.visibility || 'private',
         creatorId,
         creatorName: deck.creator?.displayName || deck.creator?.fullName || null,
-        isOwned: Boolean(currentUserId && creatorId === currentUserId),
+        isOwned: isSameEntityId(creatorId, currentUserId),
         raw: deck,
     };
 }
@@ -188,6 +205,12 @@ function normalizeCard(item, index) {
         id: item.flashcardItemId || item.id || `card-${index}`,
         front: item.frontText || item.front || '',
         back: item.backText || item.back || '',
+        frontImageUrl: resolveFlashcardImageUrl(
+            item.frontImageUrl || item.frontImage || item.frontMediaUrl || item.frontImagePath || '',
+        ),
+        backImageUrl: resolveFlashcardImageUrl(
+            item.backImageUrl || item.backImage || item.backMediaUrl || item.backImagePath || '',
+        ),
         difficulty: item.difficulty || 'medium',
     };
 }
@@ -210,6 +233,7 @@ function extractStudyPayload(response) {
 }
 
 export default function Flashcards() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [viewMode, setViewMode] = useState('grid');
     const [selectedDeck, setSelectedDeck] = useState(null);
     const [studyMode, setStudyMode] = useState(false);
@@ -235,6 +259,8 @@ export default function Flashcards() {
     const [manualSyncing, setManualSyncing] = useState(false);
     const [subjectOptions, setSubjectOptions] = useState([]);
     const [hasAnimated, setHasAnimated] = useState(false);
+    const [deletingDeckId, setDeletingDeckId] = useState(null);
+    const [deckDeleteCandidate, setDeckDeleteCandidate] = useState(null);
 
     const reviewTransportRef = useRef(null);
     const pendingDeckProgressRef = useRef(null);
@@ -242,6 +268,11 @@ export default function Flashcards() {
     const pendingProgressReviewCountRef = useRef(0);
     const progressSyncTimerRef = useRef(null);
     const lastProgressAppliedAtRef = useRef(0);
+    const deepLinkSignatureRef = useRef('');
+
+    const deepLinkDeckId = searchParams.get('deckId') || searchParams.get('deck');
+    const deepLinkAutoStudy = ['1', 'true', 'yes'].includes((searchParams.get('study') || '').toLowerCase());
+    const deepLinkSignature = `${normalizeComparableId(deepLinkDeckId)}:${deepLinkAutoStudy ? '1' : '0'}`;
 
     const fetchDecks = useCallback(async () => {
         try {
@@ -702,6 +733,76 @@ export default function Flashcards() {
         }
     };
 
+    useEffect(() => {
+        if (!deepLinkDeckId) {
+            deepLinkSignatureRef.current = '';
+            return;
+        }
+
+        if (loading || studyMode) {
+            return;
+        }
+
+        if (deepLinkSignatureRef.current === deepLinkSignature) {
+            return;
+        }
+        deepLinkSignatureRef.current = deepLinkSignature;
+
+        const openFromDeepLink = async () => {
+            const normalizedDeckId = normalizeComparableId(deepLinkDeckId);
+            if (!normalizedDeckId) {
+                return;
+            }
+
+            let targetDeck = decks.find((deck) => isSameEntityId(deck.id, normalizedDeckId)) || null;
+
+            if (!targetDeck) {
+                try {
+                    const response = await flashcardApi.getSetById(deepLinkDeckId);
+                    const payload = extractStudyPayload(response);
+                    if (!payload) {
+                        return;
+                    }
+
+                    targetDeck = normalizeDeck(payload, 0, readCurrentUserId());
+                    setDecks((prevDecks) =>
+                        prevDecks.some((deck) => isSameEntityId(deck.id, targetDeck.id))
+                            ? prevDecks
+                            : [targetDeck, ...prevDecks],
+                    );
+                } catch (err) {
+                    setError(err.response?.data?.message || err.message || 'Không thể mở bộ flashcard từ liên kết');
+                    return;
+                }
+            }
+
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('deckId');
+            nextParams.delete('deck');
+            nextParams.delete('study');
+            setSearchParams(nextParams, { replace: true });
+
+            if (deepLinkAutoStudy) {
+                await handleStartStudy(targetDeck);
+                return;
+            }
+
+            setSelectedDeck(targetDeck);
+        };
+
+        void openFromDeepLink();
+    }, [
+        deepLinkDeckId,
+        deepLinkAutoStudy,
+        deepLinkSignature,
+        loading,
+        studyMode,
+        decks,
+        searchParams,
+        setSearchParams,
+        handleStartStudy,
+    ]);
+
     const handleFlipCard = () => setIsFlipped((prev) => !prev);
 
     const handleNextCard = useCallback((result) => {
@@ -901,12 +1002,24 @@ export default function Flashcards() {
 
             await mapWithConcurrency(
                 cards,
-                async (card, index) =>
-                    flashcardApi.createItem(createdSetId, {
+                async (card, index) => {
+                    const basePayload = {
                         frontText: card.frontText.trim(),
                         backText: card.backText.trim(),
                         cardOrder: card.cardOrder ?? index,
-                    }),
+                    };
+                    const imagePayload = {
+                        ...basePayload,
+                        frontImageUrl: card.frontImageUrl || null,
+                        backImageUrl: card.backImageUrl || null,
+                        frontImage: card.frontImageUrl || null,
+                        backImage: card.backImageUrl || null,
+                        frontMediaUrl: card.frontImageUrl || null,
+                        backMediaUrl: card.backImageUrl || null,
+                    };
+
+                    return flashcardApi.createItem(createdSetId, imagePayload);
+                },
                 {
                     concurrency: CREATE_ITEM_CONCURRENCY,
                     retries: 1,
@@ -942,12 +1055,80 @@ export default function Flashcards() {
     };
 
     const handleDeleteDeck = async (deckId) => {
+        const requestDeckId = deckId == null ? '' : String(deckId).trim();
+        const normalizedDeckId = normalizeComparableId(requestDeckId);
+        if (!normalizedDeckId || deletingDeckId === normalizedDeckId) {
+            return;
+        }
+
+        const deckToDelete = decks.find((deck) => isSameEntityId(deck.id, normalizedDeckId));
+        const deleteLabel = deckToDelete?.name || 'bộ flashcard này';
+        const accepted = window.confirm(`Bạn có chắc muốn xóa "${deleteLabel}" không?`);
+        if (!accepted) {
+            return;
+        }
+
         try {
-            await flashcardApi.deleteSet(deckId);
+            setError(null);
+            setDeletingDeckId(normalizedDeckId);
+            await flashcardApi.deleteSet(requestDeckId);
+            setDecks((prevDecks) => prevDecks.filter((deck) => !isSameEntityId(deck.id, normalizedDeckId)));
+            setSelectedDeck((prevDeck) => (prevDeck && isSameEntityId(prevDeck.id, normalizedDeckId) ? null : prevDeck));
             await fetchDecks();
         } catch (err) {
             console.error('Failed to delete deck:', err);
             setError(err.response?.data?.message || err.message || 'Không thể xóa flashcard');
+        } finally {
+            setDeletingDeckId(null);
+        }
+    };
+
+    const openDeleteDeckConfirm = (deckId) => {
+        const requestDeckId = deckId == null ? '' : String(deckId).trim();
+        const normalizedDeckId = normalizeComparableId(requestDeckId);
+        if (!normalizedDeckId || deletingDeckId === normalizedDeckId) {
+            return;
+        }
+
+        const deckToDelete = decks.find((deck) => isSameEntityId(deck.id, normalizedDeckId));
+        setDeckDeleteCandidate({
+            id: requestDeckId,
+            name: deckToDelete?.name || 'bộ flashcard này',
+        });
+    };
+
+    const closeDeleteDeckConfirm = () => {
+        if (deletingDeckId) {
+            return;
+        }
+        setDeckDeleteCandidate(null);
+    };
+
+    const confirmDeleteDeck = async () => {
+        if (!deckDeleteCandidate?.id) {
+            setDeckDeleteCandidate(null);
+            return;
+        }
+
+        const requestDeckId = String(deckDeleteCandidate.id).trim();
+        const normalizedDeckId = normalizeComparableId(requestDeckId);
+        if (!normalizedDeckId || deletingDeckId === normalizedDeckId) {
+            return;
+        }
+
+        try {
+            setError(null);
+            setDeletingDeckId(normalizedDeckId);
+            await flashcardApi.deleteSet(requestDeckId);
+            setDecks((prevDecks) => prevDecks.filter((deck) => !isSameEntityId(deck.id, normalizedDeckId)));
+            setSelectedDeck((prevDeck) => (prevDeck && isSameEntityId(prevDeck.id, normalizedDeckId) ? null : prevDeck));
+            setDeckDeleteCandidate(null);
+            await fetchDecks();
+        } catch (err) {
+            console.error('Failed to delete deck:', err);
+            setError(err.response?.data?.message || err.message || 'Không thể xóa flashcard');
+        } finally {
+            setDeletingDeckId(null);
         }
     };
 
@@ -1107,7 +1288,8 @@ export default function Flashcards() {
                                         index={index}
                                         variants={cardVariants}
                                         onStartStudy={handleStartStudy}
-                                        onDelete={deck.isOwned ? () => handleDeleteDeck(deck.id) : undefined}
+                                        onDelete={deck.isOwned ? () => openDeleteDeckConfirm(deck.id) : undefined}
+                                        isDeleting={isSameEntityId(deck.id, deletingDeckId)}
                                     />
                                 ))}
                                 <AddDeckCard onClick={() => setShowCreateModal(true)} variants={cardVariants} />
@@ -1115,7 +1297,14 @@ export default function Flashcards() {
                         ) : (
                             <div key="list-view" className="space-y-3">
                                 {decks.map((deck) => (
-                                    <FlashcardDeckListItem key={deck.id} deck={deck} variants={cardVariants} onStartStudy={handleStartStudy} />
+                                    <FlashcardDeckListItem
+                                        key={deck.id}
+                                        deck={deck}
+                                        variants={cardVariants}
+                                        onStartStudy={handleStartStudy}
+                                        onDelete={deck.isOwned ? () => openDeleteDeckConfirm(deck.id) : undefined}
+                                        isDeleting={isSameEntityId(deck.id, deletingDeckId)}
+                                    />
                                 ))}
                             </div>
                         )
@@ -1125,6 +1314,50 @@ export default function Flashcards() {
                     <AISuggestions variants={cardVariants} />
                 </motion.main>
             </div>
+
+            {deckDeleteCandidate && (
+                <div className="modal modal-open modal-bottom sm:modal-middle" style={{ zIndex: 140 }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="modal-box rounded-3xl border border-base-300 shadow-2xl max-w-lg"
+                    >
+                        <div className="flex items-start gap-4">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/15 to-violet-500/20 text-3xl">
+                                🦉
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-xs font-bold uppercase tracking-wide text-blue-600">Xác nhận xóa</p>
+                                <h3 className="mt-1 text-xl font-black text-base-content">Bạn muốn xóa bộ này không?</h3>
+                                <p className="mt-2 text-sm text-base-content/70">
+                                    Bộ <span className="font-bold text-base-content">"{deckDeleteCandidate.name}"</span> sẽ bị xóa khỏi danh sách của bạn.
+                                </p>
+                                <p className="mt-1 text-xs text-base-content/55">Con cú nhắc nhẹ: hành động này không thể hoàn tác.</p>
+                            </div>
+                        </div>
+
+                        <div className="modal-action mt-6">
+                            <button
+                                type="button"
+                                onClick={closeDeleteDeckConfirm}
+                                className="btn btn-ghost rounded-xl font-bold"
+                                disabled={Boolean(deletingDeckId)}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteDeck}
+                                className="btn rounded-xl border-none bg-gradient-to-r from-red-500 to-rose-600 font-bold text-white"
+                                disabled={Boolean(deletingDeckId)}
+                            >
+                                {deletingDeckId ? '🦉 Đang xóa...' : 'Xóa bộ flashcard'}
+                            </button>
+                        </div>
+                    </motion.div>
+                    <div className="modal-backdrop bg-black/45" onClick={closeDeleteDeckConfirm} />
+                </div>
+            )}
 
             {showCreateModal && (
                 <CreateDeckModal

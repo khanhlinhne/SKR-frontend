@@ -13,7 +13,9 @@ const DECK_COLOR_STYLES = {
 export default function FlashcardDeckListItem({
     deck,
     onStartStudy,
+    onDelete,
     onMenuClick,
+    isDeleting = false,
     variants,
 }) {
     const progressPercent = deck.totalCards > 0 ? (deck.mastered / deck.totalCards) * 100 : 0;
@@ -24,7 +26,9 @@ export default function FlashcardDeckListItem({
             whileHover={{ x: 5 }}
             className="bg-base-100 rounded-2xl p-4 shadow border border-base-300 flex items-center gap-4 group cursor-pointer hover:border-blue-500/30 transition-all"
         >
-            <div className={`w-12 h-12 rounded-xl ${(DECK_COLOR_STYLES[deck.color] || DECK_COLOR_STYLES.blue).softBg} flex items-center justify-center text-2xl flex-shrink-0`}>
+            <div
+                className={`w-12 h-12 rounded-xl ${(DECK_COLOR_STYLES[deck.color] || DECK_COLOR_STYLES.blue).softBg} flex items-center justify-center text-2xl flex-shrink-0`}
+            >
                 {deck.icon}
             </div>
 
@@ -77,9 +81,31 @@ export default function FlashcardDeckListItem({
                     <Icon name="Play" size="sm" />
                     Học
                 </motion.button>
+
+                {onDelete && (
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            if (!isDeleting) {
+                                onDelete();
+                            }
+                        }}
+                        disabled={isDeleting}
+                        className="btn btn-ghost btn-sm btn-circle text-error hover:bg-error/10"
+                        title={isDeleting ? 'Đang xóa...' : 'Xóa bộ flashcard'}
+                    >
+                        <Icon name="Trash2" size="sm" />
+                    </button>
+                )}
+
                 {onMenuClick && (
                     <button
-                        onClick={onMenuClick}
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onMenuClick();
+                        }}
                         className="btn btn-ghost btn-sm btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                         <Icon name="MoreVertical" size="sm" />
