@@ -1,18 +1,18 @@
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
+import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 
 /**
  * FlashcardsHeader - Header component for flashcards page
  */
-export default function FlashcardsHeader({ onCreateNew, user }) {
-    const defaultUser = {
-        name: 'Đoàn Thế Anh',
-        isPremium: true,
-        avatar: 'https://i.pravatar.cc/150?img=33',
+export default function FlashcardsHeader({ onCreateNew }) {
+    const { profile } = useCurrentUserProfile();
+    const userData = {
+        name: profile.name || 'Người dùng',
+        isPremium: profile.isPremium,
+        avatar: profile.avatarUrl,
         notifications: 3,
     };
-
-    const userData = user || defaultUser;
 
     return (
         <motion.header
@@ -68,7 +68,13 @@ export default function FlashcardsHeader({ onCreateNew, user }) {
                         </div>
                         <div className="avatar">
                             <div className="w-10 h-10 rounded-full ring ring-blue-500 ring-offset-2 ring-offset-base-100">
-                                <img src={userData.avatar} alt="User" />
+                                {userData.avatar ? (
+                                    <img src={userData.avatar} alt={userData.name} className="h-10 w-10 object-cover" />
+                                ) : (
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-base-200 text-xs font-black text-base-content">
+                                        {getUserInitials(userData.name)}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

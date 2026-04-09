@@ -7,6 +7,7 @@ import {
     ChevronRight,
     BookOpen
 } from 'lucide-react';
+import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 
 /**
  * LearnHeader - Top bar for the learning page
@@ -17,6 +18,9 @@ import {
  * @param {number}  progress     - Overall course progress (0–100)
  */
 export default function LearnHeader({ course, lessonTitle, progress = 0 }) {
+    const { profile } = useCurrentUserProfile();
+    const displayName = profile.name || 'Người dùng';
+
     return (
         <motion.header
             initial={{ y: -60, opacity: 0 }}
@@ -85,14 +89,22 @@ export default function LearnHeader({ course, lessonTitle, progress = 0 }) {
                     </div>
                     <div className="flex items-center gap-2 pl-3 border-l border-base-300">
                         <div className="text-right hidden lg:block">
-                            <p className="font-bold text-xs text-base-content">Đoàn Thế Anh</p>
-                            <p className="text-[10px] text-orange-500 font-bold flex items-center justify-end gap-0.5">
-                                <Star className="w-2.5 h-2.5 fill-orange-500" /> Premium
-                            </p>
+                            <p className="font-bold text-xs text-base-content">{displayName}</p>
+                            {profile.isPremium && (
+                                <p className="text-[10px] text-orange-500 font-bold flex items-center justify-end gap-0.5">
+                                    <Star className="w-2.5 h-2.5 fill-orange-500" /> Premium
+                                </p>
+                            )}
                         </div>
                         <div className="avatar">
                             <div className="w-8 h-8 rounded-full ring-2 ring-blue-500 ring-offset-1 ring-offset-base-100">
-                                <img src="https://i.pravatar.cc/150?img=33" alt="User" />
+                                {profile.avatarUrl ? (
+                                    <img src={profile.avatarUrl} alt={displayName} className="h-8 w-8 object-cover" />
+                                ) : (
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-base-200 text-[10px] font-black text-base-content">
+                                        {getUserInitials(displayName)}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

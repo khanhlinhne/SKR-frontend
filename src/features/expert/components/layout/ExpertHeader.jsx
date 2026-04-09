@@ -1,25 +1,17 @@
 import { motion } from 'motion/react';
 import { Search, Bell, Sun, Moon } from 'lucide-react';
 import { useState } from 'react';
-
-function getStoredExpert() {
-    try {
-        const stored = JSON.parse(localStorage.getItem('user'));
-        if (!stored) return { name: 'Expert', email: '' };
-        return {
-            name: stored.name || stored.username || 'Expert',
-            email: stored.email || '',
-            avatar: stored.avatar || null,
-        };
-    } catch {
-        return { name: 'Expert', email: '' };
-    }
-}
+import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 
 export default function ExpertHeader() {
     const [searchQuery, setSearchQuery] = useState('');
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-    const [expert] = useState(getStoredExpert);
+    const { profile } = useCurrentUserProfile();
+    const expert = {
+        name: profile.name || 'Expert',
+        email: profile.email || '',
+        avatar: profile.avatarUrl || null,
+    };
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'synthwave' : 'light';
@@ -89,10 +81,17 @@ export default function ExpertHeader() {
                         </div>
                         <div className="avatar">
                             <div className="w-9 h-9 rounded-full ring-2 ring-violet-500 ring-offset-2 ring-offset-base-100">
-                                <img
-                                    src={expert.avatar || 'https://i.pravatar.cc/150?img=32'}
-                                    alt={expert.name}
-                                />
+                                {expert.avatar ? (
+                                    <img
+                                        src={expert.avatar}
+                                        alt={expert.name}
+                                        className="h-9 w-9 object-cover"
+                                    />
+                                ) : (
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-base-200 text-xs font-black text-base-content">
+                                        {getUserInitials(expert.name)}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

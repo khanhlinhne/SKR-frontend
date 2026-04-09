@@ -18,6 +18,7 @@ import {
     MOCK_ORDERS,
     formatCurrency
 } from '@/features/orders/components';
+import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 
 /**
  * Orders Page — Lịch sử đơn hàng
@@ -216,6 +217,9 @@ export default function Orders() {
  * OrdersHeader — Header riêng cho trang Orders
  */
 function OrdersHeader() {
+    const { profile } = useCurrentUserProfile();
+    const displayName = profile.name || 'Người dùng';
+
     return (
         <motion.header
             initial={{ y: -100 }}
@@ -256,15 +260,23 @@ function OrdersHeader() {
                     {/* User Profile */}
                     <div className="flex items-center gap-3 pl-4 border-l border-base-300">
                         <div className="text-right hidden sm:block">
-                            <p className="font-bold text-sm text-base-content">Đoàn Thế Anh</p>
-                            <div className="flex items-center justify-end gap-1">
-                                <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
-                                <p className="text-xs text-orange-500 font-bold">Premium User</p>
-                            </div>
+                            <p className="font-bold text-sm text-base-content">{displayName}</p>
+                            {profile.isPremium && (
+                                <div className="flex items-center justify-end gap-1">
+                                    <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
+                                    <p className="text-xs text-orange-500 font-bold">Premium User</p>
+                                </div>
+                            )}
                         </div>
                         <div className="avatar">
                             <div className="w-10 h-10 rounded-full ring ring-blue-500 ring-offset-2 ring-offset-base-100">
-                                <img src="https://i.pravatar.cc/150?img=33" alt="User" />
+                                {profile.avatarUrl ? (
+                                    <img src={profile.avatarUrl} alt={displayName} className="h-10 w-10 object-cover" />
+                                ) : (
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-base-200 text-xs font-black text-base-content">
+                                        {getUserInitials(displayName)}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

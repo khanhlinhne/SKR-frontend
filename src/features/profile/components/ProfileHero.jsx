@@ -48,7 +48,7 @@ export default function ProfileHero({
 
     const handleAvatarChange = (event) => {
         const file = event.target.files?.[0];
-        if (file) {
+        if (file && onAvatarSelect) {
             onAvatarSelect(file);
         }
         event.target.value = '';

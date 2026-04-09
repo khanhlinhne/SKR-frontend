@@ -30,7 +30,7 @@ import {
     MyCoursesToolbar,
 } from '@/features/my-courses/components';
 import { enrollmentApi } from '@/shared/api';
-import { useCurrentUserProfile } from '@/shared/user/useCurrentUserProfile';
+import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 import { OwlLoader } from '@/shared/ui/common';
 
 // ─── Helper: map API enrollment item to component format ──
@@ -216,7 +216,7 @@ function QuickResumeCard({ enrollment }) {
 
 // ─── Hero Section ─────────────────────────────────────────
 
-function HeroSection({ stats, userName = 'Người dùng' }) {
+function HeroSection({ stats, userName = 'Người dùng', avatarUrl = '', isPremium = false }) {
     const overallProgress = stats.totalCourses > 0
         ? Math.round(((stats.completed + stats.inProgress * 0.5) / stats.totalCourses) * 100)
         : 0;
@@ -277,18 +277,26 @@ function HeroSection({ stats, userName = 'Người dùng' }) {
                         <div className="flex items-center gap-2.5 pl-2 ml-1 border-l border-white/10">
                             <div className="text-right hidden sm:block">
                                 <p className="font-semibold text-xs text-white/90 leading-tight">{userName}</p>
-                                <div className="flex items-center justify-end gap-1">
-                                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                                    <span className="text-[10px] text-amber-400 font-semibold">Premium</span>
-                                </div>
+                                {isPremium && (
+                                    <div className="flex items-center justify-end gap-1">
+                                        <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                                        <span className="text-[10px] text-amber-400 font-semibold">Premium</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="relative">
                                 <div className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-white/20 ring-offset-2 ring-offset-transparent">
-                                    <img
-                                        src="https://i.pravatar.cc/150?img=33"
-                                        alt="User"
-                                        className="w-full h-full object-cover"
-                                    />
+                                    {avatarUrl ? (
+                                        <img
+                                            src={avatarUrl}
+                                            alt={userName}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-white/10 text-[11px] font-black text-white">
+                                            {getUserInitials(userName)}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-900" />
                             </div>
@@ -427,7 +435,12 @@ export default function MyCourses() {
                 >
                     {/* Hero Section with Stats */}
                     <motion.div variants={fadeInUp} className="mb-8">
-                        <HeroSection stats={stats} userName={profile.name} />
+                        <HeroSection
+                            stats={stats}
+                            userName={profile.name}
+                            avatarUrl={profile.avatarUrl}
+                            isPremium={profile.isPremium}
+                        />
                     </motion.div>
 
                     {/* Loading */}

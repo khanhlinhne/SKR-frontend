@@ -30,14 +30,14 @@ export const cardVariants = {
 };
 
 export const DEFAULT_USER_DATA = {
-    name: 'Đoàn Thế Anh',
-    email: 'anh.nguyen@skr.edu.vn',
-    phone: '+84 912 345 678',
-    location: 'Hà Nội, Việt Nam',
-    bio: 'Sinh viên năm 3 ngành Công nghệ thông tin. Đam mê học AI và Machine Learning.',
+    name: 'Người dùng SKR',
+    email: '',
+    phone: '',
+    location: '',
+    bio: 'Thêm giới thiệu ngắn để các trang học tập hiển thị hồ sơ của bạn đầy đủ hơn.',
     avatarUrl: '',
-    joinDate: 'tháng 1 năm 2024',
-    isPremium: true,
+    joinDate: 'gần đây',
+    isPremium: false,
 };
 
 export const USER_STATS = {
