@@ -69,8 +69,8 @@ const courseApi = {
     // ══════════════════════════════════════════════
     //  LESSON CONTENT
     // ══════════════════════════════════════════════
-    getLessonContent(courseId, chapterId, lessonId) {
-        return axiosClient.get(`/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/content`);
+    getLessonContent(courseId, chapterId, lessonId, config) {
+        return axiosClient.get(`/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/content`, config);
     },
 
     // Videos

@@ -15,7 +15,6 @@ import {
     Loader2,
     ExternalLink,
     Eye,
-    Sparkles,
     X,
 } from 'lucide-react';
 import DocumentPreviewContent from '@/features/expert/components/DocumentPreviewContent';
@@ -94,11 +93,6 @@ export default function LearnLessonContent({
                         {hasQuestions && (
                             <span className="text-[11px] text-amber-500 font-semibold">
                                 {lesson.questions.length} câu hỏi
-                            </span>
-                        )}
-                        {hasFlashcards && (
-                            <span className="text-[11px] text-indigo-500 font-semibold">
-                                {lesson.flashcardSets.length} bộ flashcard
                             </span>
                         )}
                     </div>
@@ -180,13 +174,11 @@ export default function LearnLessonContent({
 function ContentTabs({ lesson, gradient, loadingContent }) {
     const hasDocuments = lesson?.documents?.length > 0;
     const hasQuestions = lesson?.questions?.length > 0;
-    const hasFlashcards = lesson?.flashcardSets?.length > 0;
 
     const tabs = [
         { id: 'description', label: 'Mô tả', icon: FileText },
         { id: 'resources', label: `Tài liệu${hasDocuments ? ` (${lesson.documents.length})` : ''}`, icon: Download },
         { id: 'questions', label: `Câu hỏi${hasQuestions ? ` (${lesson.questions.length})` : ''}`, icon: HelpCircle },
-        { id: 'flashcards', label: `Flashcard${hasFlashcards ? ` (${lesson.flashcardSets.length})` : ''}`, icon: Sparkles },
         { id: 'notes', label: 'Ghi chú', icon: NotebookPen },
     ];
 
@@ -233,7 +225,6 @@ function ContentTabs({ lesson, gradient, loadingContent }) {
                         {activeTab === 'description' && <DescriptionTab lesson={lesson} />}
                         {activeTab === 'resources' && <ResourcesTab documents={lesson?.documents || []} />}
                         {activeTab === 'questions' && <QuestionsTab questions={lesson?.questions || []} gradient={gradient} />}
-                        {activeTab === 'flashcards' && <LessonFlashcardsTab flashcardSets={lesson?.flashcardSets || []} />}
                         {activeTab === 'notes' && <NotesTab />}
                     </>
                 )}
@@ -272,11 +263,6 @@ function DescriptionTab({ lesson }) {
                 {lesson?.questions?.length > 0 && (
                     <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-[11px] font-bold text-amber-600">
                         ❓ {lesson.questions.length} Câu hỏi
-                    </span>
-                )}
-                {lesson?.flashcardSets?.length > 0 && (
-                    <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-[11px] font-bold text-indigo-600">
-                        ✨ {lesson.flashcardSets.length} Bộ flashcard
                     </span>
                 )}
             </div>
@@ -446,187 +432,6 @@ function ResourcesTab({ documents }) {
                 </div>
             )}
         </>
-    );
-}
-
-function FlashcardsTab({ flashcardSets }) {
-    if (!flashcardSets || flashcardSets.length === 0) {
-        return (
-            <div className="text-center py-8">
-                <Sparkles className="w-10 h-10 text-base-content/20 mx-auto mb-2" />
-                <p className="text-sm text-base-content/40 font-medium">Chưa có bộ flashcard cho bài học này</p>
-            </div>
-        );
-    }
-
-    return (
-        <div className="space-y-3">
-            {flashcardSets.map((set, index) => {
-                const setId = set.flashcardSetId || set.id;
-                if (!setId) return null;
-
-                return (
-                    <div key={setId} className="flex items-center gap-3 rounded-xl border border-base-300 bg-base-200/30 px-4 py-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-500/12 text-indigo-600 flex items-center justify-center flex-shrink-0">
-                            <Sparkles className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-base-content truncate">
-                                {set.setTitle || set.title || `Bộ flashcard ${index + 1}`}
-                            </p>
-                            <p className="text-[11px] text-base-content/50">
-                                {set.totalCards || 0} thẻ • {set.visibility || 'premium_only'} • {set.status || 'active'}
-                            </p>
-                        </div>
-                        <Link
-                            to={`/flashcards?deckId=${encodeURIComponent(setId)}&study=1`}
-                            className="btn btn-sm rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 border-none text-white font-bold"
-                        >
-                            Học ngay
-                        </Link>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
-
-function LessonFlashcardsTab({ flashcardSets }) {
-    const [activeSetId, setActiveSetId] = useState(null);
-    const [currentCardIndex, setCurrentCardIndex] = useState(0);
-    const [revealed, setRevealed] = useState(false);
-
-    if (!flashcardSets || flashcardSets.length === 0) {
-        return (
-            <div className="text-center py-8">
-                <Sparkles className="w-10 h-10 text-base-content/20 mx-auto mb-2" />
-                <p className="text-sm text-base-content/40 font-medium">Chua co bo flashcard cho bai hoc nay</p>
-            </div>
-        );
-    }
-
-    const activeSet =
-        flashcardSets.find((set) => (set.flashcardSetId || set.id) === activeSetId)
-        || flashcardSets[0];
-    const activeItems = Array.isArray(activeSet?.items) ? activeSet.items : [];
-    const activeCard = activeItems[currentCardIndex] || null;
-
-    const handleSelectSet = (setId) => {
-        setActiveSetId(setId);
-        setCurrentCardIndex(0);
-        setRevealed(false);
-    };
-
-    const handlePrevCard = () => {
-        if (activeItems.length === 0) return;
-        setCurrentCardIndex((prev) => (prev - 1 + activeItems.length) % activeItems.length);
-        setRevealed(false);
-    };
-
-    const handleNextCard = () => {
-        if (activeItems.length === 0) return;
-        setCurrentCardIndex((prev) => (prev + 1) % activeItems.length);
-        setRevealed(false);
-    };
-
-    return (
-        <div className="space-y-4">
-            <div className="grid gap-3 lg:grid-cols-[320px_minmax(0,1fr)]">
-                <div className="space-y-3">
-                    {flashcardSets.map((set, index) => {
-                        const setId = set.flashcardSetId || set.id;
-                        if (!setId) return null;
-
-                        const isActive = (activeSet?.flashcardSetId || activeSet?.id) === setId;
-
-                        return (
-                            <button
-                                key={setId}
-                                type="button"
-                                onClick={() => handleSelectSet(setId)}
-                                className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
-                                    isActive
-                                        ? 'border-indigo-400 bg-indigo-50/70 shadow-sm'
-                                        : 'border-base-300 bg-base-200/30 hover:bg-base-200/60'
-                                }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl bg-indigo-500/12 text-indigo-600 flex items-center justify-center flex-shrink-0">
-                                        <Sparkles className="w-4 h-4" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-base-content truncate">
-                                            {set.setTitle || set.title || `Bo flashcard ${index + 1}`}
-                                        </p>
-                                        <p className="text-[11px] text-base-content/50">
-                                            {set.totalCards || 0} the
-                                        </p>
-                                    </div>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-4 sm:p-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">Hoc trong khoa hoc</p>
-                            <h4 className="mt-1 text-lg font-black text-base-content">
-                                {activeSet?.setTitle || activeSet?.title || 'Bo flashcard'}
-                            </h4>
-                            <p className="text-xs text-base-content/55">
-                                {activeItems.length > 0
-                                    ? `The ${currentCardIndex + 1}/${activeItems.length}`
-                                    : 'Bo nay chua co the de hoc'}
-                            </p>
-                        </div>
-                        {activeItems.length > 0 && (
-                            <div className="flex items-center gap-2">
-                                <button type="button" onClick={handlePrevCard} className="btn btn-sm rounded-xl border-base-300 bg-base-100 font-bold">
-                                    Truoc
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setRevealed((prev) => !prev)}
-                                    className="btn btn-sm rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 border-none text-white font-bold"
-                                >
-                                    {revealed ? 'An dap an' : 'Xem dap an'}
-                                </button>
-                                <button type="button" onClick={handleNextCard} className="btn btn-sm rounded-xl border-base-300 bg-base-100 font-bold">
-                                    Tiep
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {activeCard ? (
-                        <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                            <div className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-500">Mat truoc</p>
-                                <p className="mt-3 text-base font-semibold leading-relaxed text-base-content whitespace-pre-line">
-                                    {activeCard.frontText || 'Chua co noi dung'}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl border border-violet-200 bg-white p-4 shadow-sm">
-                                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-violet-500">Mat sau</p>
-                                <p className={`mt-3 text-base leading-relaxed whitespace-pre-line transition-opacity ${
-                                    revealed ? 'opacity-100 text-base-content' : 'opacity-30 text-base-content/40'
-                                }`}>
-                                    {revealed ? activeCard.backText || 'Chua co noi dung' : 'Nhan "Xem dap an" de hien noi dung mat sau'}
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="mt-4 rounded-2xl border border-dashed border-base-300 bg-white/70 p-6 text-center">
-                            <p className="text-sm font-medium text-base-content/50">
-                                Giang vien chua them the cho bo flashcard nay.
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
     );
 }
 

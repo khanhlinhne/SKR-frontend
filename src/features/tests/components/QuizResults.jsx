@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'motion/react';
+import { OwlLoader } from '@/shared/ui/common';
 import Icon from '@/shared/ui/icons/Icon';
 import { DIFFICULTY_CONFIG, formatTime, getScoreColor, getScoreGrade } from './utils';
 import { useQuizResult, useQuizReview } from '@/features/tests/hooks/useQuiz';
@@ -262,10 +263,11 @@ export default function QuizResults() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-base-200">
-                <div className="text-center">
-                    <span className="loading loading-spinner loading-lg text-blue-500 mb-4" />
-                    <p className="text-sm text-base-content/50 font-medium">Đang tải kết quả...</p>
-                </div>
+                <OwlLoader
+                    message="Đang tải kết quả..."
+                    subMessage="SKR đang chấm điểm và tổng hợp phân tích chi tiết cho lần làm bài này."
+                    className="py-8"
+                />
             </div>
         );
     }

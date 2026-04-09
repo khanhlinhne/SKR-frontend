@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
-import { StatCard, ViewToggle } from '@/shared/ui/common';
+import { OwlLoader, StatCard, ViewToggle } from '@/shared/ui/common';
 import {
     TestCard,
     TestListItem,
@@ -146,10 +146,11 @@ export default function Tests() {
                     {/* Loading State */}
                     {loading && (
                         <div className="flex items-center justify-center py-16">
-                            <div className="text-center">
-                                <span className="loading loading-spinner loading-lg text-blue-500 mb-4" />
-                                <p className="text-sm text-base-content/50 font-medium">Đang tải danh sách bài thi...</p>
-                            </div>
+                            <OwlLoader
+                                message="Đang tải danh sách bài thi..."
+                                subMessage="SKR đang tổng hợp đề thi, độ khó và số lượt làm gần đây cho bạn."
+                                className="py-6"
+                            />
                         </div>
                     )}
 

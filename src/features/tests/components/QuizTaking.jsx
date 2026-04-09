@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
+import { OwlLoader } from '@/shared/ui/common';
 import { formatTime, DIFFICULTY_CONFIG } from './utils';
 import { useQuizTaking } from '@/features/tests/hooks/useQuiz';
 
@@ -429,10 +430,11 @@ export default function QuizTaking() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-base-200">
-                <div className="text-center">
-                    <span className="loading loading-spinner loading-lg text-blue-500 mb-4" />
-                    <p className="text-sm text-base-content/50 font-medium">Đang tải bài thi...</p>
-                </div>
+                <OwlLoader
+                    message="Đang chuẩn bị bài thi..."
+                    subMessage="SKR đang tải câu hỏi, bộ đáp án và đồng hồ làm bài trước khi bạn bắt đầu."
+                    className="py-8"
+                />
             </div>
         );
     }

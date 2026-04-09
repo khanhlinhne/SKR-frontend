@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { ExpertLayout } from '@/features/expert/components';
 import courseApi from '@/shared/api/courseApi';
+import { OwlLoader } from '@/shared/ui/common';
 import {
     BookOpen,
     Search,
@@ -18,7 +19,6 @@ import {
     GraduationCap,
     FolderOpen,
     AlertCircle,
-    Loader2,
     RefreshCw,
     Star,
     TrendingUp,
@@ -511,10 +511,11 @@ export default function ExpertCurriculum() {
                 {/* Course Grid */}
                 {loading ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="text-center space-y-3">
-                            <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto" />
-                            <p className="text-sm text-base-content/50 font-medium">Đang tải khóa học...</p>
-                        </div>
+                        <OwlLoader
+                            message="Đang tải chương trình học..."
+                            subMessage="SKR đang lấy danh sách khóa học và cấu trúc nội dung để bạn tiếp tục biên soạn."
+                            className="py-8"
+                        />
                     </div>
                 ) : (
                     <motion.div

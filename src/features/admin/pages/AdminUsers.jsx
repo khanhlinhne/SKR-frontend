@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { AnimatePresence } from 'motion/react';
 import { AdminLayout } from '@/features/admin/components';
-import { Search, UserPlus, UsersRound, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { OwlLoader } from '@/shared/ui/common';
+import { Search, UserPlus, UsersRound, AlertCircle, RefreshCw } from 'lucide-react';
 import {
     containerVariants,
     cardVariants,
@@ -150,8 +151,11 @@ export default function AdminUsers() {
                 <motion.div variants={cardVariants} className="bg-base-100 rounded-2xl shadow-xl border border-base-300 overflow-hidden">
                     {loading && users.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-3" />
-                            <p className="text-sm text-base-content/50 font-bold">Đang tải danh sách người dùng...</p>
+                            <OwlLoader
+                                message="Đang tải danh sách người dùng..."
+                                subMessage="SKR đang đồng bộ tài khoản, vai trò và trạng thái để bạn quản trị dễ hơn."
+                                className="py-4"
+                            />
                         </div>
                     ) : (
                         <div className="overflow-x-auto">

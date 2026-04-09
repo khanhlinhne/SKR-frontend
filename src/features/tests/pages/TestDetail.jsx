@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
+import { OwlLoader } from '@/shared/ui/common';
 import Icon from '@/shared/ui/icons/Icon';
 import {
     DIFFICULTY_CONFIG,
@@ -34,10 +35,11 @@ export default function TestDetail() {
             <div className="flex h-screen bg-base-200 overflow-hidden">
                 <DashboardSidebar />
                 <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <span className="loading loading-spinner loading-lg text-blue-500 mb-4" />
-                        <p className="text-sm text-base-content/50 font-medium">Đang tải bài thi...</p>
-                    </div>
+                    <OwlLoader
+                        message="Đang tải bài thi..."
+                        subMessage="SKR đang chuẩn bị thông tin đề, thời gian làm bài và lịch sử lần thử của bạn."
+                        className="py-8"
+                    />
                 </div>
             </div>
         );

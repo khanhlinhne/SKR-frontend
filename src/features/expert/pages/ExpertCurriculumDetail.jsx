@@ -7,6 +7,7 @@ import { flashcardApi, uploadApi } from '@/shared/api';
 import AddQuestionModal from '@/features/expert/components/AddQuestionModal';
 import DocumentPreviewContent from '@/features/expert/components/DocumentPreviewContent';
 import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
+import { OwlLoader } from '@/shared/ui/common';
 import {
     Plus,
     GripVertical,
@@ -67,8 +68,6 @@ const getLessonFlashcardSets = (content) => (
             ? content.flashcards
             : []
 );
-const getFlashcardSetId = (set) => set?.flashcardSetId || set?.id || null;
-const getFlashcardItemId = (item) => item?.flashcardItemId || item?.id || null;
 const MAX_FLASHCARD_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 function createFlashcardDraft(id) {
@@ -323,12 +322,12 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
         if (!file) return;
 
         if (!file.type?.startsWith('image/')) {
-            setFormError('Chi ho tro tep anh cho flashcard.');
+            setFormError('Chỉ hỗ trợ tệp ảnh cho flashcard.');
             return;
         }
 
         if (file.size > MAX_FLASHCARD_IMAGE_SIZE_BYTES) {
-            setFormError('Anh qua lon. Vui long chon anh duoi 5MB.');
+            setFormError('Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.');
             return;
         }
 
@@ -340,11 +339,11 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
             const response = await uploadApi.uploadImage(file);
             const imageUrl = resolveFlashcardImageUrl(extractUploadedImageUrl(response));
             if (!imageUrl) {
-                throw new Error('Khong nhan duoc URL anh tu may chu.');
+                throw new Error('Cú chưa nhận được URL ảnh từ máy chủ.');
             }
             updateCard(cardId, imageField, imageUrl);
         } catch (error) {
-            setFormError(error?.response?.data?.message || error?.message || 'Khong the tai anh len. Vui long thu lai.');
+            setFormError(error?.response?.data?.message || error?.message || 'Cú chưa tải được ảnh lên. Bạn thử lại nhé.');
         } finally {
             setSlotUploading(cardId, side, false);
         }
@@ -363,7 +362,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
         });
 
         if (halfFilled.length > 0) {
-            setFormError('Moi the can co du mat truoc va mat sau. Hay dien du hoac xoa dong dang nhap do.');
+            setFormError('Mỗi thẻ cần đủ cả mặt trước và mặt sau. Bạn hãy điền đủ hoặc xóa dòng còn dang dở.');
             return null;
         }
 
@@ -378,12 +377,12 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
             }));
 
         if (validCards.length === 0) {
-            setFormError('Hay nhap it nhat mot the hoan chinh truoc khi luu.');
+            setFormError('Hãy nhập ít nhất một thẻ hoàn chỉnh trước khi lưu.');
             return null;
         }
 
         if (Object.values(uploadingSlots).some(Boolean)) {
-            setFormError('Anh dang tai len. Vui long doi hoan tat truoc khi luu.');
+            setFormError('Ảnh vẫn đang tải lên. Cú cần bạn chờ hoàn tất trước khi lưu.');
             return null;
         }
 
@@ -461,7 +460,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                 <div className="grid gap-4 xl:grid-cols-2">
                                     <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
                                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-indigo-500">
-                                            Mat truoc <span className="text-red-500">*</span>
+                                            Mặt trước <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
                                             value={card.frontText}
@@ -474,7 +473,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
                                             <label className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50">
                                                 <Upload className="w-4 h-4" />
-                                                Tai anh mat truoc
+                                                Tải ảnh mặt trước
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -489,7 +488,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                             {uploadingSlots[`${card.id}-front`] && (
                                                 <span className="inline-flex items-center gap-1 text-xs text-base-content/50">
                                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    Dang tai anh...
+                                                    Cú đang tải ảnh...
                                                 </span>
                                             )}
                                             {card.frontImageUrl && (
@@ -498,7 +497,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                                     onClick={() => clearCardImage(card.id, 'front')}
                                                     className="btn btn-ghost btn-xs rounded-full text-red-500"
                                                 >
-                                                    Xoa anh
+                                                    Xóa ảnh
                                                 </button>
                                             )}
                                         </div>
@@ -512,19 +511,19 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                     </div>
                                     <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
                                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-violet-500">
-                                            Mat sau <span className="text-red-500">*</span>
+                                            Mặt sau <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
                                             value={card.backText}
                                             onChange={(e) => updateCard(card.id, 'backText', e.target.value)}
-                                            placeholder="Giai thich ngan gon, ghi nho chinh hoac dap an..."
+                                            placeholder="Giải thích ngắn gọn, ghi nhớ chính hoặc đáp án..."
                                             className="textarea textarea-bordered min-h-[150px] w-full rounded-2xl border-violet-100 bg-violet-50/30 text-sm font-medium resize-none focus:border-violet-300 focus:outline-none"
                                             rows={6}
                                         />
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
                                             <label className="btn btn-sm rounded-xl border-violet-200 bg-white font-bold text-violet-600 hover:bg-violet-50">
                                                 <Upload className="w-4 h-4" />
-                                                Tai anh mat sau
+                                                Tải ảnh mặt sau
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -539,7 +538,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                             {uploadingSlots[`${card.id}-back`] && (
                                                 <span className="inline-flex items-center gap-1 text-xs text-base-content/50">
                                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    Dang tai anh...
+                                                    Cú đang tải ảnh...
                                                 </span>
                                             )}
                                             {card.backImageUrl && (
@@ -548,7 +547,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                                     onClick={() => clearCardImage(card.id, 'back')}
                                                     className="btn btn-ghost btn-xs rounded-full text-red-500"
                                                 >
-                                                    Xoa anh
+                                                    Xóa ảnh
                                                 </button>
                                             )}
                                         </div>
@@ -571,10 +570,10 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                     )}
                     <div className="modal-action items-center justify-between">
                         <div className="text-xs text-base-content/45">
-                            {nextOrder != null ? `The tiep theo: ${nextOrder + 1}` : 'Co the them nhieu the lien tiep'}
+                            {nextOrder != null ? `Thẻ tiếp theo: ${nextOrder + 1}` : 'Bạn có thể thêm nhiều thẻ liên tiếp'}
                         </div>
                         <div className="flex items-center gap-2">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Huy</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
                         <button
                             type="button"
                             onClick={handleSubmitAndContinue}
@@ -582,7 +581,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                             className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            Luu va them tiep
+                            Lưu và thêm tiếp
                         </button>
                         <button
                             type="submit"
@@ -590,13 +589,91 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                             className="btn btn-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            Luu cac the
+                            Lưu các thẻ
                         </button>
                         </div>
                     </div>
                 </form>
             </motion.div>
             <div className="modal-backdrop bg-black/40" onClick={onClose} />
+        </div>
+    );
+}
+
+function OwlConfirmDialog({ dialog, onCancel, onConfirm }) {
+    if (!dialog) return null;
+
+    const toneStyles = dialog.tone === 'danger'
+        ? {
+            chip: 'bg-red-500/10 text-red-600 ring-red-500/20',
+            button: 'from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600',
+            accent: 'from-amber-100 via-orange-50 to-red-100',
+        }
+        : {
+            chip: 'bg-violet-500/10 text-violet-600 ring-violet-500/20',
+            button: 'from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700',
+            accent: 'from-violet-100 via-fuchsia-50 to-blue-100',
+        };
+
+    return (
+        <div className="modal modal-open modal-bottom sm:modal-middle" style={{ zIndex: 140 }}>
+            <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 24 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 12 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="modal-box max-w-lg overflow-hidden rounded-[2rem] border border-base-300 bg-base-100 p-0 shadow-2xl"
+            >
+                <div className={`h-1 w-full bg-gradient-to-r ${toneStyles.button}`} />
+                <div className="p-6">
+                    <div className="flex items-start gap-4">
+                        <div className={`relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br ${toneStyles.accent} shadow-lg ring-1 ring-base-300`}>
+                            <span className="text-3xl leading-none">🦉</span>
+                            <div className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-base-100 shadow-md ring-1 ring-base-200">
+                                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                            </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ring-1 ${toneStyles.chip}`}>
+                                {dialog.badge || 'Cú nhắc bạn xác nhận'}
+                            </span>
+                            <h3 className="mt-3 text-xl font-black leading-tight text-base-content">
+                                {dialog.title}
+                            </h3>
+                            {dialog.description && (
+                                <p className="mt-2 text-sm leading-relaxed text-base-content/65">
+                                    {dialog.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {dialog.hint && (
+                        <div className="mt-5 rounded-2xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm text-base-content/55">
+                            {dialog.hint}
+                        </div>
+                    )}
+
+                    <div className="modal-action mt-6 flex items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="btn btn-sm rounded-xl border-base-300 bg-base-100 font-bold text-base-content/70 hover:bg-base-200"
+                        >
+                            {dialog.cancelLabel || 'Giữ lại'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onConfirm}
+                            className={`btn btn-sm border-none rounded-xl bg-gradient-to-r font-bold text-white shadow-lg ${toneStyles.button}`}
+                        >
+                            {dialog.confirmLabel || 'Xác nhận'}
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+            <div className="modal-backdrop bg-black/50 backdrop-blur-sm" onClick={onCancel} />
         </div>
     );
 }
@@ -619,6 +696,7 @@ export default function ExpertCurriculumDetail() {
     const [showAddChapter, setShowAddChapter] = useState(false);
     const [showAddLesson, setShowAddLesson] = useState(null); // chapterId or null
     const [toast, setToast] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
 
     // Lesson content states
     const [selectedLesson, setSelectedLesson] = useState(null); // {chapterId, lessonId}
@@ -628,21 +706,81 @@ export default function ExpertCurriculumDetail() {
     const [showAddDocument, setShowAddDocument] = useState(null);
     const [showAddQuestion, setShowAddQuestion] = useState(null);
     const [showAddFlashcardCard, setShowAddFlashcardCard] = useState(null);
-    const [creatingFlashcardLessonKey, setCreatingFlashcardLessonKey] = useState(null);
     const [lessonTypeOverrides, setLessonTypeOverrides] = useState({});
-    const [flashcardItemsBySet, setFlashcardItemsBySet] = useState({});
-    const [loadingFlashcardItems, setLoadingFlashcardItems] = useState(false);
-    const [previewingFlashcardSetId, setPreviewingFlashcardSetId] = useState(null);
 
     // Preview states
     const [previewVideo, setPreviewVideo] = useState(null);
     const [previewDocument, setPreviewDocument] = useState(null);
     const [previewQuestion, setPreviewQuestion] = useState(null);
+    const toastTimeoutRef = useRef(null);
+    const confirmResolverRef = useRef(null);
 
     // ===== TOAST HELPER =====
-    const showToast = useCallback((message, type = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
+    const showToast = useCallback((payload, type = 'success') => {
+        const toastPayload = typeof payload === 'string'
+            ? { message: payload, type }
+            : { ...payload, type: payload?.type || type };
+        const resolvedType = toastPayload.type || type;
+        const resolvedTitle = toastPayload.title || (
+            resolvedType === 'error'
+                ? 'Cú chưa xử lý được thao tác này'
+                : 'Cú đã cập nhật giáo trình'
+        );
+
+        if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current);
+        }
+
+        setToast({
+            ...toastPayload,
+            type: resolvedType,
+            title: resolvedTitle,
+            message: toastPayload.message || '',
+        });
+
+        toastTimeoutRef.current = setTimeout(() => {
+            setToast(null);
+            toastTimeoutRef.current = null;
+        }, 4200);
+    }, []);
+
+    const dismissToast = useCallback(() => {
+        if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current);
+            toastTimeoutRef.current = null;
+        }
+        setToast(null);
+    }, []);
+
+    const requestConfirmation = useCallback((options) => (
+        new Promise((resolve) => {
+            confirmResolverRef.current = resolve;
+            setConfirmDialog({
+                tone: 'danger',
+                cancelLabel: 'Giữ lại',
+                confirmLabel: 'Xác nhận',
+                hint: 'Thay đổi này sẽ áp dụng ngay lên giáo trình bạn đang biên soạn.',
+                ...options,
+            });
+        })
+    ), []);
+
+    const resolveConfirmation = useCallback((result) => {
+        setConfirmDialog(null);
+        if (confirmResolverRef.current) {
+            confirmResolverRef.current(result);
+            confirmResolverRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => () => {
+        if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current);
+        }
+        if (confirmResolverRef.current) {
+            confirmResolverRef.current(false);
+            confirmResolverRef.current = null;
+        }
     }, []);
 
     const getLessonById = useCallback((chapterId, lessonId) => (
@@ -673,34 +811,6 @@ export default function ExpertCurriculumDetail() {
 
         return 'video';
     }, [lessonTypeOverrides]);
-
-    const loadFlashcardItemsForSets = useCallback(async (sets) => {
-        const validSets = (sets || []).filter((set) => getFlashcardSetId(set));
-
-        if (validSets.length === 0) {
-            setFlashcardItemsBySet({});
-            return;
-        }
-
-        setLoadingFlashcardItems(true);
-        try {
-            const entries = await Promise.all(
-                validSets.map(async (set) => {
-                    const setId = getFlashcardSetId(set);
-                    const response = await flashcardApi.getItems(setId, { limit: 200 });
-                    const items = response?.data?.items || response?.data || response?.items || response || [];
-                    return [setId, Array.isArray(items) ? items : []];
-                }),
-            );
-
-            setFlashcardItemsBySet(Object.fromEntries(entries));
-        } catch (err) {
-            console.error('[CurriculumDetail] failed to load flashcard items:', err);
-            setFlashcardItemsBySet({});
-        } finally {
-            setLoadingFlashcardItems(false);
-        }
-    }, []);
 
     // ===== FETCH DATA =====
     const fetchCourseData = useCallback(async () => {
@@ -763,11 +873,17 @@ export default function ExpertCurriculumDetail() {
                 displayOrder: chapters.length,
             };
             await courseApi.createChapter(courseId, payload);
-            showToast(`\u0110\u00e3 th\u00eam ch\u01b0\u01a1ng "${form.chapterName}"`);
+            showToast({
+                title: 'Đã thêm chương mới',
+                message: `Chương "${form.chapterName}" đã sẵn sàng để bạn thêm bài giảng.`,
+            });
             setShowAddChapter(false);
             await fetchCourseData();
         } catch (err) {
-            showToast(err.response?.data?.message || '\u0054h\u00eam ch\u01b0\u01a1ng th\u1ea5t b\u1ea1i', 'error');
+            showToast({
+                title: 'Chưa thể thêm chương',
+                message: err.response?.data?.message || 'Cú chưa tạo được chương mới. Bạn thử lại sau ít phút nhé.',
+            }, 'error');
         } finally {
             setSaving(false);
         }
@@ -776,40 +892,47 @@ export default function ExpertCurriculumDetail() {
     // ===== DELETE CHAPTER =====
     const handleDeleteChapter = async (chapter) => {
         const chId = chapter.chapterId || chapter.id;
-        if (!window.confirm(`\u0058\u00f3a ch\u01b0\u01a1ng "${chapter.chapterName}"? T\u1ea5t c\u1ea3 b\u00e0i gi\u1ea3ng trong ch\u01b0\u01a1ng s\u1ebd b\u1ecb x\u00f3a.`)) return;
+        const confirmed = await requestConfirmation({
+            badge: 'Xóa chương',
+            title: `Xóa chương "${chapter.chapterName}"?`,
+            description: 'Cú nhắc trước: toàn bộ bài giảng nằm trong chương này cũng sẽ được gỡ khỏi giáo trình.',
+            confirmLabel: 'Xóa chương',
+            cancelLabel: 'Giữ chương này',
+        });
+        if (!confirmed) return;
 
         setSaving(true);
         try {
             await courseApi.deleteChapter(courseId, chId);
-            showToast(`\u0110\u00e3 x\u00f3a ch\u01b0\u01a1ng "${chapter.chapterName}"`);
+            showToast({
+                title: 'Đã xóa chương',
+                message: `Chương "${chapter.chapterName}" đã được gỡ khỏi giáo trình.`,
+            });
             setChapters(prev => prev.filter(c => (c.chapterId || c.id) !== chId));
         } catch (err) {
-            showToast(err.response?.data?.message || '\u0058\u00f3a ch\u01b0\u01a1ng th\u1ea5t b\u1ea1i', 'error');
+            showToast({
+                title: 'Chưa thể xóa chương',
+                message: err.response?.data?.message || 'Cú chưa gỡ được chương này. Bạn thử lại sau nhé.',
+            }, 'error');
         } finally {
             setSaving(false);
         }
     };
 
     // ===== ADD LESSON =====
-    const createFlashcardSetForLesson = useCallback(async ({ chapterId, lessonId, lessonName }) => {
-        const lessonKey = `${chapterId}-${lessonId}`;
-        setCreatingFlashcardLessonKey(lessonKey);
-        try {
-            const response = await flashcardApi.createSet({
-                setTitle: `${lessonName} - Flashcard`,
-                setDescription: `\u0042\u1ed9 flashcard cho b\u00e0i gi\u1ea3ng "${lessonName}"`,
-                lessonId,
-                courseId,
-                visibility: 'premium_only',
-                status: 'active',
-                tags: ['lesson-flashcard'],
-            });
+    const createFlashcardSetForLesson = useCallback(async ({ lessonId, lessonName }) => {
+        const response = await flashcardApi.createSet({
+            setTitle: `${lessonName} - Flashcard`,
+            setDescription: `\u0042\u1ed9 flashcard cho b\u00e0i gi\u1ea3ng "${lessonName}"`,
+            lessonId,
+            courseId,
+            visibility: 'premium_only',
+            status: 'active',
+            tags: ['lesson-flashcard'],
+        });
 
-            const payload = response?.data?.data || response?.data || response;
-            return payload?.flashcardSetId || payload?.id || null;
-        } finally {
-            setCreatingFlashcardLessonKey(prev => (prev === lessonKey ? null : prev));
-        }
+        const payload = response?.data?.data || response?.data || response;
+        return payload?.flashcardSetId || payload?.id || null;
     }, [courseId]);
 
     const handleAddLesson = async (form) => {
@@ -861,16 +984,22 @@ export default function ExpertCurriculumDetail() {
                         lessonId: createdLessonId,
                         lessonName: form.lessonName,
                     });
-                    showToast(`\u0110\u00e3 th\u00eam b\u00e0i "${form.lessonName}" v\u00e0 t\u1ea1o b\u1ed9 flashcard`);
+                    showToast({
+                        title: 'Đã thêm bài giảng mới',
+                        message: `Bài "${form.lessonName}" đã được tạo kèm một bộ flashcard.`,
+                    });
                 } catch (flashcardErr) {
-                    showToast(
-                        flashcardErr.response?.data?.message
-                        || '\u0110\u00e3 t\u1ea1o b\u00e0i gi\u1ea3ng nh\u01b0ng ch\u01b0a t\u1ea1o \u0111\u01b0\u1ee3c b\u1ed9 flashcard t\u1ef1 \u0111\u1ed9ng',
-                        'error',
-                    );
+                    showToast({
+                        title: 'Bài giảng đã được tạo',
+                        message: flashcardErr.response?.data?.message
+                            || 'Cú đã tạo bài giảng nhưng chưa dựng được bộ flashcard tự động. Bạn có thể thêm lại sau.',
+                    }, 'error');
                 }
             } else {
-                showToast(`\u0110\u00e3 th\u00eam b\u00e0i "${form.lessonName}"`);
+                showToast({
+                    title: 'Đã thêm bài giảng mới',
+                    message: `Bài "${form.lessonName}" đã xuất hiện trong chương trình học.`,
+                });
             }
 
             setShowAddLesson(null);
@@ -880,7 +1009,10 @@ export default function ExpertCurriculumDetail() {
                 await loadLessonContent(chapterId, createdLessonId, optimisticLesson);
             }
         } catch (err) {
-            showToast(err.response?.data?.message || '\u0054h\u00eam b\u00e0i gi\u1ea3ng th\u1ea5t b\u1ea1i', 'error');
+            showToast({
+                title: 'Chưa thể thêm bài giảng',
+                message: err.response?.data?.message || 'Cú chưa tạo được bài giảng mới. Bạn thử lại sau ít phút nhé.',
+            }, 'error');
         } finally {
             setSaving(false);
         }
@@ -889,12 +1021,22 @@ export default function ExpertCurriculumDetail() {
     // ===== DELETE LESSON =====
     const handleDeleteLesson = async (chapterId, lesson) => {
         const lsId = lesson.lessonId || lesson.id;
-        if (!window.confirm(`\u0058\u00f3a b\u00e0i "${lesson.lessonName}"?`)) return;
+        const confirmed = await requestConfirmation({
+            badge: 'Xóa bài giảng',
+            title: `Xóa bài "${lesson.lessonName}"?`,
+            description: 'Bài giảng này sẽ bị gỡ khỏi chương hiện tại. Nếu cần, bạn sẽ phải tạo lại từ đầu.',
+            confirmLabel: 'Xóa bài giảng',
+            cancelLabel: 'Giữ bài này',
+        });
+        if (!confirmed) return;
 
         setSaving(true);
         try {
             await courseApi.deleteLesson(courseId, chapterId, lsId);
-            showToast(`\u0110\u00e3 x\u00f3a b\u00e0i "${lesson.lessonName}"`);
+            showToast({
+                title: 'Đã xóa bài giảng',
+                message: `Bài "${lesson.lessonName}" đã được gỡ khỏi chương trình học.`,
+            });
             setLessonTypeOverrides((prev) => {
                 if (!prev[lsId]) return prev;
                 const next = { ...prev };
@@ -912,10 +1054,12 @@ export default function ExpertCurriculumDetail() {
             if (selectedLesson?.chapterId === chapterId && selectedLesson?.lessonId === lsId) {
                 setSelectedLesson(null);
                 setLessonContent(null);
-                setFlashcardItemsBySet({});
             }
         } catch (err) {
-            showToast(err.response?.data?.message || '\u0058\u00f3a b\u00e0i th\u1ea5t b\u1ea1i', 'error');
+            showToast({
+                title: 'Chưa thể xóa bài giảng',
+                message: err.response?.data?.message || 'Cú chưa gỡ được bài này. Bạn thử lại thêm lần nữa nhé.',
+            }, 'error');
         } finally {
             setSaving(false);
         }
@@ -936,9 +1080,15 @@ export default function ExpertCurriculumDetail() {
             setChapters(prev => prev.map(ch =>
                 (ch.chapterId || ch.id) === chId ? { ...ch, chapterName: editValue.trim() } : ch
             ));
-            showToast('\u0110\u00e3 c\u1eadp nh\u1eadt t\u00ean ch\u01b0\u01a1ng');
+            showToast({
+                title: 'Đã đổi tên chương',
+                message: 'Tên chương đã được cập nhật theo nội dung mới.',
+            });
         } catch (err) {
-            showToast(err.response?.data?.message || '\u0043\u1eadp nh\u1eadt th\u1ea5t b\u1ea1i', 'error');
+            showToast({
+                title: 'Chưa thể đổi tên chương',
+                message: err.response?.data?.message || 'Cú chưa lưu được tên chương mới. Bạn thử lại nhé.',
+            }, 'error');
         } finally {
             setSaving(false);
             setEditingTitle(null);
@@ -961,9 +1111,15 @@ export default function ExpertCurriculumDetail() {
                     ),
                 };
             }));
-            showToast('\u0110\u00e3 c\u1eadp nh\u1eadt t\u00ean b\u00e0i gi\u1ea3ng');
+            showToast({
+                title: 'Đã đổi tên bài giảng',
+                message: 'Tên bài giảng mới đã được lưu vào chương trình học.',
+            });
         } catch (err) {
-            showToast(err.response?.data?.message || '\u0043\u1eadp nh\u1eadt th\u1ea5t b\u1ea1i', 'error');
+            showToast({
+                title: 'Chưa thể đổi tên bài giảng',
+                message: err.response?.data?.message || 'Cú chưa lưu được tên bài giảng mới. Bạn thử lại nhé.',
+            }, 'error');
         } finally {
             setSaving(false);
             setEditingTitle(null);
@@ -996,7 +1152,10 @@ export default function ExpertCurriculumDetail() {
                 lessonId,
                 lessonName: lesson?.lessonName || lesson?.title || '\u0042\u00e0i h\u1ecdc',
             });
-            showToast('\u0110\u00e3 t\u1ea1o b\u1ed9 flashcard cho b\u00e0i gi\u1ea3ng');
+            showToast({
+                title: 'Đã tạo bộ flashcard',
+                message: 'Bài giảng này đã có bộ flashcard để bạn tiếp tục biên soạn.',
+            });
             setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'flashcard' }));
             await loadLessonContent(chapterId, lessonId, {
                 ...lesson,
@@ -1005,7 +1164,10 @@ export default function ExpertCurriculumDetail() {
             });
             await fetchCourseData();
         } catch (err) {
-            showToast(err.response?.data?.message || '\u004b\u0068\u00f4ng th\u1ec3 t\u1ea1o b\u1ed9 flashcard cho b\u00e0i gi\u1ea3ng', 'error');
+            showToast({
+                title: 'Chưa thể tạo bộ flashcard',
+                message: err.response?.data?.message || 'Cú chưa dựng được bộ flashcard cho bài giảng này.',
+            }, 'error');
         }
     };
 
@@ -1029,7 +1191,6 @@ export default function ExpertCurriculumDetail() {
                 ...content,
                 lessonType: flashcardSets.length > 0 ? 'flashcard' : resolvedLessonType,
             });
-            await loadFlashcardItemsForSets(flashcardSets);
         } catch {
             setLessonContent({
                 lessonType: resolvedLessonType,
@@ -1038,7 +1199,6 @@ export default function ExpertCurriculumDetail() {
                 questions: [],
                 flashcardSets: [],
             });
-            setFlashcardItemsBySet({});
         } finally {
             setLoadingContent(false);
         }
@@ -1050,7 +1210,6 @@ export default function ExpertCurriculumDetail() {
         if (currentKey === key) {
             setSelectedLesson(null);
             setLessonContent(null);
-            setFlashcardItemsBySet({});
             return;
         }
 
@@ -1062,21 +1221,44 @@ export default function ExpertCurriculumDetail() {
         setSaving(true);
         try {
             await courseApi.addVideo(courseId, chapterId, lessonId, form);
-            showToast('\u0110\u00e3 th\u00eam video');
+            showToast({
+                title: 'Đã thêm video',
+                message: 'Video mới đã được gắn vào bài giảng.',
+            });
             setShowAddVideo(null);
             await loadLessonContent(chapterId, lessonId);
-        } catch (err) { showToast(err.response?.data?.message || '\u0054h\u00eam video th\u1ea5t b\u1ea1i', 'error'); }
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể thêm video',
+                message: err.response?.data?.message || 'Cú chưa thêm được video vào bài giảng.',
+            }, 'error');
+        }
         finally { setSaving(false); }
     };
 
     const handleDeleteVideo = async (chapterId, lessonId, videoId) => {
-        if (!window.confirm('\u0058\u00f3a video n\u00e0y?')) return;
+        const confirmed = await requestConfirmation({
+            badge: 'Xóa video',
+            title: 'Xóa video này?',
+            description: 'Video sẽ biến mất khỏi bài giảng hiện tại và học viên sẽ không còn xem được nội dung này.',
+            confirmLabel: 'Xóa video',
+            cancelLabel: 'Giữ video',
+        });
+        if (!confirmed) return;
         setSaving(true);
         try {
             await courseApi.deleteVideo(courseId, chapterId, lessonId, videoId);
-            showToast('\u0110\u00e3 x\u00f3a video');
+            showToast({
+                title: 'Đã xóa video',
+                message: 'Video đã được gỡ khỏi bài giảng.',
+            });
             await loadLessonContent(chapterId, lessonId);
-        } catch (err) { showToast(err.response?.data?.message || '\u0058\u00f3a th\u1ea5t b\u1ea1i', 'error'); }
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể xóa video',
+                message: err.response?.data?.message || 'Cú chưa gỡ được video này khỏi bài giảng.',
+            }, 'error');
+        }
         finally { setSaving(false); }
     };
 
@@ -1088,12 +1270,18 @@ export default function ExpertCurriculumDetail() {
         const hasFile = form.file instanceof File;
 
         if (!documentTitle) {
-            showToast('\u0056ui l\u00f2ng nh\u1eadp ti\u00eau \u0111\u1ec1 t\u00e0i li\u1ec7u', 'error');
+            showToast({
+                title: 'Thiếu tiêu đề tài liệu',
+                message: 'Cú cần tên tài liệu trước khi thêm vào bài giảng.',
+            }, 'error');
             return;
         }
 
         if (!hasFile && !fileUrl) {
-            showToast('\u0056ui l\u00f2ng ch\u1ecdn file t\u1ea3i l\u00ean ho\u1eb7c nh\u1eadp URL t\u00e0i li\u1ec7u', 'error');
+            showToast({
+                title: 'Thiếu nguồn tài liệu',
+                message: 'Bạn hãy chọn file tải lên hoặc dán URL tài liệu để cú tiếp tục.',
+            }, 'error');
             return;
         }
 
@@ -1119,21 +1307,44 @@ export default function ExpertCurriculumDetail() {
                 });
             }
 
-            showToast('\u0110\u00e3 th\u00eam t\u00e0i li\u1ec7u');
+            showToast({
+                title: 'Đã thêm tài liệu',
+                message: `Tài liệu "${documentTitle}" đã được gắn vào bài giảng.`,
+            });
             setShowAddDocument(null);
             await loadLessonContent(chapterId, lessonId);
-        } catch (err) { showToast(err.response?.data?.message || '\u0054h\u00eam t\u00e0i li\u1ec7u th\u1ea5t b\u1ea1i', 'error'); }
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể thêm tài liệu',
+                message: err.response?.data?.message || 'Cú chưa thêm được tài liệu vào bài giảng.',
+            }, 'error');
+        }
         finally { setSaving(false); }
     };
 
     const handleDeleteDocument = async (chapterId, lessonId, docId) => {
-        if (!window.confirm('\u0058\u00f3a t\u00e0i li\u1ec7u n\u00e0y?')) return;
+        const confirmed = await requestConfirmation({
+            badge: 'Xóa tài liệu',
+            title: 'Xóa tài liệu này?',
+            description: 'Tài liệu sẽ bị gỡ khỏi bài giảng và học viên sẽ không còn truy cập được từ nội dung này.',
+            confirmLabel: 'Xóa tài liệu',
+            cancelLabel: 'Giữ tài liệu',
+        });
+        if (!confirmed) return;
         setSaving(true);
         try {
             await courseApi.deleteDocument(courseId, chapterId, lessonId, docId);
-            showToast('\u0110\u00e3 x\u00f3a t\u00e0i li\u1ec7u');
+            showToast({
+                title: 'Đã xóa tài liệu',
+                message: 'Tài liệu đã được gỡ khỏi bài giảng.',
+            });
             await loadLessonContent(chapterId, lessonId);
-        } catch (err) { showToast(err.response?.data?.message || '\u0058\u00f3a th\u1ea5t b\u1ea1i', 'error'); }
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể xóa tài liệu',
+                message: err.response?.data?.message || 'Cú chưa gỡ được tài liệu này khỏi bài giảng.',
+            }, 'error');
+        }
         finally { setSaving(false); }
     };
 
@@ -1142,21 +1353,44 @@ export default function ExpertCurriculumDetail() {
         setSaving(true);
         try {
             await courseApi.addQuestion(courseId, chapterId, lessonId, form);
-            showToast('\u0110\u00e3 th\u00eam c\u00e2u h\u1ecfi');
+            showToast({
+                title: 'Đã thêm câu hỏi',
+                message: 'Câu hỏi mới đã được thêm vào bài giảng.',
+            });
             setShowAddQuestion(null);
             await loadLessonContent(chapterId, lessonId);
-        } catch (err) { showToast(err.response?.data?.message || '\u0054h\u00eam c\u00e2u h\u1ecfi th\u1ea5t b\u1ea1i', 'error'); }
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể thêm câu hỏi',
+                message: err.response?.data?.message || 'Cú chưa thêm được câu hỏi vào bài giảng.',
+            }, 'error');
+        }
         finally { setSaving(false); }
     };
 
     const handleDeleteQuestion = async (chapterId, lessonId, qId) => {
-        if (!window.confirm('\u0058\u00f3a c\u00e2u h\u1ecfi n\u00e0y?')) return;
+        const confirmed = await requestConfirmation({
+            badge: 'Xóa câu hỏi',
+            title: 'Xóa câu hỏi này?',
+            description: 'Câu hỏi sẽ bị gỡ khỏi bài giảng và không còn xuất hiện trong phần luyện tập của học viên.',
+            confirmLabel: 'Xóa câu hỏi',
+            cancelLabel: 'Giữ câu hỏi',
+        });
+        if (!confirmed) return;
         setSaving(true);
         try {
             await courseApi.deleteQuestion(courseId, chapterId, lessonId, qId);
-            showToast('\u0110\u00e3 x\u00f3a c\u00e2u h\u1ecfi');
+            showToast({
+                title: 'Đã xóa câu hỏi',
+                message: 'Câu hỏi đã được gỡ khỏi bài giảng.',
+            });
             await loadLessonContent(chapterId, lessonId);
-        } catch (err) { showToast(err.response?.data?.message || '\u0058\u00f3a th\u1ea5t b\u1ea1i', 'error'); }
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể xóa câu hỏi',
+                message: err.response?.data?.message || 'Cú chưa gỡ được câu hỏi này khỏi bài giảng.',
+            }, 'error');
+        }
         finally { setSaving(false); }
     };
 
@@ -1170,7 +1404,12 @@ export default function ExpertCurriculumDetail() {
         setSaving(true);
         try {
             await Promise.all(payloadItems.map((item) => flashcardApi.createItem(setId, item)));
-            showToast(payloadItems.length > 1 ? `Da them ${payloadItems.length} the flashcard` : 'Da them the flashcard');
+            showToast({
+                title: 'Đã thêm thẻ flashcard',
+                message: payloadItems.length > 1
+                    ? `Cú vừa thêm ${payloadItems.length} thẻ mới vào bộ flashcard.`
+                    : 'Cú vừa thêm 1 thẻ mới vào bộ flashcard.',
+            });
             setShowAddFlashcardCard((prev) => {
                 if (!options.keepOpen || !prev) {
                     return null;
@@ -1188,31 +1427,10 @@ export default function ExpertCurriculumDetail() {
             });
             await fetchCourseData();
         } catch (err) {
-            showToast(err.response?.data?.message || 'Khong the them the flashcard', 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleDeleteFlashcardCard = async (chapterId, lessonId, setId, itemId) => {
-        if (!setId || !itemId) {
-            return;
-        }
-
-        if (!window.confirm('Xoa the flashcard nay?')) return;
-
-        setSaving(true);
-        try {
-            await flashcardApi.deleteItem(setId, itemId);
-            showToast('Da xoa the flashcard');
-            await loadLessonContent(chapterId, lessonId, {
-                ...getLessonById(chapterId, lessonId),
-                lessonType: 'flashcard',
-                type: 'flashcard',
-            });
-            await fetchCourseData();
-        } catch (err) {
-            showToast(err.response?.data?.message || 'Khong the xoa the flashcard', 'error');
+            showToast({
+                title: 'Chưa thể thêm thẻ flashcard',
+                message: err.response?.data?.message || 'Cú chưa thêm được thẻ flashcard vào bộ này.',
+            }, 'error');
         } finally {
             setSaving(false);
         }
@@ -1233,10 +1451,11 @@ export default function ExpertCurriculumDetail() {
         return (
             <ExpertLayout>
                 <div className="flex items-center justify-center py-32">
-                    <div className="text-center space-y-3">
-                        <Loader2 className="w-8 h-8 text-violet-500 animate-spin mx-auto" />
-                        <p className="text-sm text-base-content/50 font-medium">{'\u0110ang t\u1ea3i ch\u01b0\u01a1ng tr\u00ecnh h\u1ecdc...'}</p>
-                    </div>
+                    <OwlLoader
+                        message="Đang tải chi tiết chương trình..."
+                        subMessage="SKR đang mở chương, bài học và tài nguyên hiện có của khóa học này."
+                        className="py-8"
+                    />
                 </div>
             </ExpertLayout>
         );
@@ -1459,8 +1678,6 @@ export default function ExpertCurriculumDetail() {
                                                     const isFlashcardLesson = resolvedLessonType === 'flashcard';
                                                     const ltConfig = lessonTypeConfig[resolvedLessonType] || lessonTypeConfig.video;
                                                     const LessonIcon = ltConfig.icon;
-                                                    const lessonFlashcards = isCurrentLessonSelected ? getLessonFlashcardSets(lessonContent) : [];
-                                                    const isCreatingLessonFlashcard = creatingFlashcardLessonKey === `${chId}-${lsId}`;
 
                                                     return (
                                                         <div key={lsId}>
@@ -1506,7 +1723,11 @@ export default function ExpertCurriculumDetail() {
                                                             <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}} transition={{duration:0.25}} className="overflow-hidden">
                                                                 <div className="ml-11 mr-3 mb-2 mt-1 p-3 rounded-xl bg-base-200/50 border border-base-300 space-y-3">
                                                                     {loadingContent ? (
-                                                                        <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-violet-500" /><span className="ml-2 text-xs text-base-content/50">{'\u0110ang t\u1ea3i n\u1ed9i dung...'}</span></div>
+                                                                        <div className="flex items-center justify-center gap-2 py-4 text-xs font-medium text-base-content/55">
+                                                                            <span className="text-lg leading-none">🦉</span>
+                                                                            <Loader2 className="w-4 h-4 animate-spin text-violet-500" />
+                                                                            <span>Cú đang mở nội dung bài học...</span>
+                                                                        </div>
                                                                     ) : (
                                                                         <>
                                                                         {!isFlashcardLesson && (
@@ -1590,130 +1811,6 @@ export default function ExpertCurriculumDetail() {
 
                                                                             </>
                                                                         )}
-
-                                                                        {/* Flashcards */}
-                                                                        <div>
-                                                                            <div className="flex items-center justify-between mb-1.5">
-                                                                                <span className="text-xs font-black text-indigo-600 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />Flashcard ({lessonFlashcards.length})</span>
-                                                                                {lessonFlashcards.length === 0 && (
-                                                                                    <button
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        void handleCreateLessonFlashcardSet(chId, lesson);
-                                                                                    }}
-                                                                                    className="btn btn-xs btn-ghost text-indigo-600 gap-1 rounded-lg"
-                                                                                    disabled={isCreatingLessonFlashcard}
-                                                                                >
-                                                                                    {isCreatingLessonFlashcard ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                                                                                    {isCreatingLessonFlashcard ? '\u0110ang t\u1ea1o' : '\u0054h\u00eam'}
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                            {lessonFlashcards.map((set) => {
-                                                                                const setId = getFlashcardSetId(set);
-                                                                                const setItems = setId ? (flashcardItemsBySet[setId] || []) : [];
-                                                                                const isPreviewOpen = previewingFlashcardSetId === setId;
-                                                                                if (!setId) return null;
-
-                                                                                return (
-                                                                                    <div key={setId} className="rounded-lg border border-base-300 bg-base-100 mb-1 p-2">
-                                                                                        <div className="flex items-center gap-2">
-                                                                                            <Sparkles className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                                                                                            <div className="flex-1 min-w-0">
-                                                                                                <p className="text-xs font-bold truncate">{set.setTitle || set.title || '\u0042\u1ed9 flashcard'}</p>
-                                                                                                <p className="text-[10px] text-base-content/40">
-                                                                                                    {set.totalCards || 0} th\u1ebb \u2022 {set.visibility || 'premium_only'} \u2022 {set.status || 'active'}
-                                                                                                </p>
-                                                                                            </div>
-                                                                                            <button
-                                                                                                onClick={(e) => {
-                                                                                                    e.stopPropagation();
-                                                                                                    setShowAddFlashcardCard({
-                                                                                                        chapterId: chId,
-                                                                                                        lessonId: lsId,
-                                                                                                        setId,
-                                                                                                        setTitle: set.setTitle || set.title || '\u0042\u1ed9 flashcard',
-                                                                                                        nextOrder: setItems.length,
-                                                                                                    });
-                                                                                                }}
-                                                                                                className="btn btn-ghost btn-xs rounded-lg text-indigo-600"
-                                                                                                title="\u0054h\u00eam th\u1ebb"
-                                                                                            >
-                                                                                                <Plus className="w-3 h-3" />
-                                                                                                {'\u0054h\u00eam th\u1ebb'}
-                                                                                            </button>
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                onClick={(e) => {
-                                                                                                    e.stopPropagation();
-                                                                                                    setPreviewingFlashcardSetId((prev) => (prev === setId ? null : setId));
-                                                                                                }}
-                                                                                                className="btn btn-ghost btn-xs rounded-lg text-indigo-600"
-                                                                                                title={'Xem tr\u01b0\u1edbc n\u1ed9i dung'}
-                                                                                            >
-                                                                                                <Eye className="w-3 h-3" />
-                                                                                                {isPreviewOpen ? '\u1ea8n xem tr\u01b0\u1edbc' : 'Xem tr\u01b0\u1edbc n\u1ed9i dung'}
-                                                                                            </button>
-                                                                                        </div>
-                                                                                        {isPreviewOpen && (
-                                                                                            <div className="ml-6 mt-2 space-y-2">
-                                                                                                {loadingFlashcardItems ? (
-                                                                                                    <div className="flex items-center gap-2 text-[11px] text-base-content/50">
-                                                                                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-                                                                                                        {'\u0110ang t\u1ea3i danh s\u00e1ch th\u1ebb...'}
-                                                                                                    </div>
-                                                                                                ) : setItems.length > 0 ? (
-                                                                                                    setItems.map((item, itemIdx) => {
-                                                                                                        const itemId = getFlashcardItemId(item);
-                                                                                                        return (
-                                                                                                            <div key={itemId || `${setId}-${itemIdx}`} className="grid gap-3 rounded-xl border border-base-300 bg-base-200/40 px-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                                                                                                                <div className="min-w-0">
-                                                                                                                    <p className="text-[10px] font-black uppercase tracking-wide text-indigo-600">{'\u004d\u1eb7t tr\u01b0\u1edbc'}</p>
-                                                                                                                    <p className="text-xs text-base-content break-words">{item.frontText || '\u0043h\u01b0a c\u00f3 n\u1ed9i dung'}</p>
-                                                                                                                    {item.frontImageUrl && (
-                                                                                                                        <img
-                                                                                                                            src={resolveFlashcardImageUrl(item.frontImageUrl)}
-                                                                                                                            alt={`Flashcard front ${itemIdx + 1}`}
-                                                                                                                            className="mt-2 h-24 w-full rounded-xl border border-base-300 object-cover"
-                                                                                                                        />
-                                                                                                                    )}
-                                                                                                                </div>
-                                                                                                                <div className="min-w-0">
-                                                                                                                    <p className="text-[10px] font-black uppercase tracking-wide text-violet-600">{'\u004d\u1eb7t sau'}</p>
-                                                                                                                    <p className="text-xs text-base-content/80 break-words">{item.backText || '\u0043h\u01b0a c\u00f3 n\u1ed9i dung'}</p>
-                                                                                                                    {item.backImageUrl && (
-                                                                                                                        <img
-                                                                                                                            src={resolveFlashcardImageUrl(item.backImageUrl)}
-                                                                                                                            alt={`Flashcard back ${itemIdx + 1}`}
-                                                                                                                            className="mt-2 h-24 w-full rounded-xl border border-base-300 object-cover"
-                                                                                                                        />
-                                                                                                                    )}
-                                                                                                                </div>
-                                                                                                                <div className="flex items-start justify-end">
-                                                                                                                    <button
-                                                                                                                        onClick={() => handleDeleteFlashcardCard(chId, lsId, setId, itemId)}
-                                                                                                                        className="btn btn-ghost btn-xs btn-circle text-red-500"
-                                                                                                                        disabled={saving || !itemId}
-                                                                                                                        title="\u0058\u00f3a th\u1ebb"
-                                                                                                                    >
-                                                                                                                        <Trash2 className="w-3 h-3" />
-                                                                                                                    </button>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        );
-                                                                                                    })
-                                                                                                ) : (
-                                                                                                    <p className="text-[10px] text-base-content/30 italic">
-                                                                                                        {isFlashcardLesson ? '\u0042\u00e0i gi\u1ea3ng n\u00e0y ch\u01b0a c\u00f3 th\u1ebb n\u00e0o. Nh\u1ea5n Th\u00eam th\u1ebb \u0111\u1ec3 nh\u1eadp m\u1eb7t tr\u01b0\u1edbc v\u00e0 m\u1eb7t sau.' : '\u0042\u1ed9 flashcard n\u00e0y ch\u01b0a c\u00f3 th\u1ebb n\u00e0o'}
-                                                                                                    </p>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                            {lessonFlashcards.length === 0 && <p className="text-[10px] text-base-content/30 italic">{'\u0043h\u01b0a c\u00f3 b\u1ed9 flashcard'}</p>}
-                                                                        </div>
                                                                     </>
                                                                 )}
                                                             </div>
@@ -2055,6 +2152,17 @@ export default function ExpertCurriculumDetail() {
             )}
             </AnimatePresence>
 
+            {/* Confirm Dialog */}
+            <AnimatePresence>
+                {confirmDialog && (
+                    <OwlConfirmDialog
+                        dialog={confirmDialog}
+                        onCancel={() => resolveConfirmation(false)}
+                        onConfirm={() => resolveConfirmation(true)}
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Toast */}
             <AnimatePresence>
                 {toast && (
@@ -2062,18 +2170,46 @@ export default function ExpertCurriculumDetail() {
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        className="fixed bottom-6 right-6 z-50"
+                        className="fixed bottom-6 right-6 z-50 max-w-sm"
                     >
-                        <div className={`alert shadow-2xl rounded-2xl border-none font-bold text-sm max-w-sm ${
+                        <div className={`relative overflow-hidden rounded-[1.75rem] border shadow-2xl ${
                             toast.type === 'error'
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
+                                ? 'border-red-400/20 bg-gradient-to-br from-red-500 via-rose-500 to-orange-500 text-white'
+                                : 'border-violet-400/20 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-indigo-600 text-white'
                         }`}>
-                            {toast.type === 'error'
-                                ? <AlertCircle className="w-5 h-5" />
-                                : <Check className="w-5 h-5" />
-                            }
-                            <span>{toast.message}</span>
+                            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+                            <div className="relative flex items-start gap-3 p-4">
+                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 shadow-lg backdrop-blur">
+                                    <span className="text-2xl leading-none">🦉</span>
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-black leading-tight">{toast.title}</p>
+                                            <p className="mt-1 text-sm leading-relaxed text-white/85">
+                                                {toast.message}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={dismissToast}
+                                            className="btn btn-ghost btn-xs btn-circle border-none text-white/80 hover:bg-white/10 hover:text-white"
+                                            aria-label="Đóng thông báo"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-white/75">
+                                        {toast.type === 'error'
+                                            ? <AlertCircle className="w-3.5 h-3.5" />
+                                            : <Check className="w-3.5 h-3.5" />
+                                        }
+                                        <span>{toast.type === 'error' ? 'Cần kiểm tra lại' : 'Đã cập nhật thành công'}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 )}

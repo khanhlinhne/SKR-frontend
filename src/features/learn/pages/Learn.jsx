@@ -10,6 +10,7 @@ import {
 } from '@/features/learn/components';
 import { FlashcardStudyCard, StudyControls, StudyHeader, KeyboardHints } from '@/features/flashcards/components';
 import { courseApi } from '@/shared/api';
+import { OwlLoader } from '@/shared/ui/common';
 
 const VALID_LESSON_TYPES = new Set(['video', 'document', 'flashcard', 'quiz']);
 
@@ -66,6 +67,60 @@ function normalizeLessonFlashcardItems(lesson) {
     });
 
     return items.filter((item) => item.front || item.back);
+}
+
+function buildLessonKey(chapterId, lessonId) {
+    if (!chapterId || !lessonId) return '';
+    return `${chapterId}:${lessonId}`;
+}
+
+function getLessonLoadingCopy(lesson = {}) {
+    const lessonTitle = typeof lesson?.title === 'string' && lesson.title.trim()
+        ? lesson.title.trim()
+        : 'bài học này';
+
+    switch (resolveLessonType(lesson)) {
+        case 'flashcard':
+            return {
+                message: `Đang mở flashcard "${lessonTitle}"...`,
+                subMessage: 'Cú đang xếp bộ thẻ, vị trí thẻ hiện tại và nhịp ôn tập để bạn tiếp tục không bị lệch mạch.',
+            };
+        case 'document':
+            return {
+                message: `Đang mở tài liệu "${lessonTitle}"...`,
+                subMessage: 'Cú đang đồng bộ tài liệu, mô tả bài học và ghi chú liên quan trước khi hiển thị nội dung mới.',
+            };
+        case 'quiz':
+            return {
+                message: `Đang mở bài luyện tập "${lessonTitle}"...`,
+                subMessage: 'Cú đang chuẩn bị câu hỏi, đáp án và tiến độ ôn tập để bạn chuyển bài mượt hơn.',
+            };
+        case 'video':
+            return {
+                message: `Đang mở bài giảng "${lessonTitle}"...`,
+                subMessage: 'Cú đang đồng bộ video, tài liệu đính kèm và tiến độ hiện tại để mở đúng bài học bạn vừa chọn.',
+            };
+        default:
+            return {
+                message: `Đang mở "${lessonTitle}"...`,
+                subMessage: 'Cú đang cập nhật nội dung bài học mới để giao diện và dữ liệu hiển thị đồng bộ.',
+            };
+    }
+}
+
+function LessonTransitionState({ lesson, gradient = 'from-blue-500 to-violet-500' }) {
+    const { message, subMessage } = getLessonLoadingCopy(lesson);
+
+    return (
+        <div className="overflow-hidden rounded-3xl border border-base-300 bg-base-100 shadow-2xl">
+            <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
+            <OwlLoader
+                message={message}
+                subMessage={subMessage}
+                className="min-h-[calc(100vh-16rem)] px-6 py-10"
+            />
+        </div>
+    );
 }
 
 function FlashcardLessonPlayer({ lesson, loadingContent = false }) {
@@ -167,6 +222,7 @@ export default function Learn() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [lessonContent, setLessonContent] = useState(null);
+    const [lessonContentKey, setLessonContentKey] = useState('');
     const [loadingContent, setLoadingContent] = useState(false);
 
     // Active lesson state
@@ -250,58 +306,87 @@ export default function Learn() {
     // Derived data
     const currentChapter = chapters[activeChapter];
     const currentLesson = currentChapter?.lessons[activeLesson];
+    const currentLessonKey = buildLessonKey(currentChapter?.chapterId, currentLesson?.lessonId);
 
     // Fetch lesson content when active lesson changes
     useEffect(() => {
+        let ignore = false;
+        const controller = new AbortController();
+
         const fetchLessonContent = async () => {
-            if (!currentChapter?.chapterId || !currentLesson?.lessonId || !id) {
+            if (!currentLessonKey || !id) {
                 setLessonContent(null);
+                setLessonContentKey('');
+                setLoadingContent(false);
                 return;
             }
 
             try {
                 setLoadingContent(true);
+                setLessonContent(null);
+                setLessonContentKey('');
                 const response = await courseApi.getLessonContent(
                     id,
                     currentChapter.chapterId,
-                    currentLesson.lessonId
+                    currentLesson.lessonId,
+                    { signal: controller.signal }
                 );
+                if (ignore) return;
                 setLessonContent(response.data);
+                setLessonContentKey(currentLessonKey);
             } catch (err) {
+                if (ignore || err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') {
+                    return;
+                }
                 console.error('Error fetching lesson content:', err);
                 setLessonContent(null);
+                setLessonContentKey(currentLessonKey);
             } finally {
-                setLoadingContent(false);
+                if (!ignore) {
+                    setLoadingContent(false);
+                }
             }
         };
 
         fetchLessonContent();
-    }, [id, currentChapter?.chapterId, currentLesson?.lessonId]);
+
+        return () => {
+            ignore = true;
+            controller.abort();
+        };
+    }, [currentChapter?.chapterId, currentLesson?.lessonId, currentLessonKey, id]);
+
+    const syncedLessonContent = lessonContentKey === currentLessonKey
+        ? lessonContent
+        : null;
+
+    const shouldShowLessonLoader = Boolean(currentLessonKey)
+        && (loadingContent || lessonContentKey !== currentLessonKey);
 
     // Merge lesson content into current lesson for child components
     const enrichedLesson = useMemo(() => {
         if (!currentLesson) return null;
-        const flashcardSets = lessonContent?.flashcardSets || lessonContent?.flashcards || [];
+        const flashcardSets = syncedLessonContent?.flashcardSets || syncedLessonContent?.flashcards || [];
         const type = resolveLessonType({
             ...currentLesson,
-            lessonType: lessonContent?.lessonType ?? currentLesson.lessonType ?? currentLesson.type,
-            totalVideos: lessonContent?.videos?.length ?? currentLesson.totalVideos,
-            totalDocuments: lessonContent?.documents?.length ?? currentLesson.totalDocuments,
-            totalQuestions: lessonContent?.questions?.length ?? currentLesson.totalQuestions,
+            lessonType: syncedLessonContent?.lessonType ?? currentLesson.lessonType ?? currentLesson.type,
+            totalVideos: syncedLessonContent?.videos?.length ?? currentLesson.totalVideos,
+            totalDocuments: syncedLessonContent?.documents?.length ?? currentLesson.totalDocuments,
+            totalQuestions: syncedLessonContent?.questions?.length ?? currentLesson.totalQuestions,
             totalFlashcardSets: flashcardSets.length || currentLesson.totalFlashcardSets,
         });
 
         return {
             ...currentLesson,
-            lessonType: lessonContent?.lessonType ?? currentLesson.lessonType ?? currentLesson.type,
+            lessonType: syncedLessonContent?.lessonType ?? currentLesson.lessonType ?? currentLesson.type,
             type,
-            videos: lessonContent?.videos || [],
-            documents: lessonContent?.documents || [],
-            questions: lessonContent?.questions || [],
+            videos: syncedLessonContent?.videos || [],
+            documents: syncedLessonContent?.documents || [],
+            questions: syncedLessonContent?.questions || [],
             flashcardSets,
-            description: lessonContent?.lessonDescription || currentLesson.description,
+            description: syncedLessonContent?.lessonDescription || currentLesson.description,
         };
-    }, [currentLesson, lessonContent]);
+    }, [currentLesson, syncedLessonContent]);
 
     const isFlashcardLessonView = enrichedLesson?.type === 'flashcard';
 
@@ -327,10 +412,13 @@ export default function Learn() {
 
     // Handlers
     const handleLessonSelect = useCallback((chIdx, lIdx) => {
+        if (chIdx === activeChapter && lIdx === activeLesson) {
+            return;
+        }
         setActiveChapter(chIdx);
         setActiveLesson(lIdx);
         setIsPlaying(false);
-    }, []);
+    }, [activeChapter, activeLesson]);
 
     const handleTogglePlay = useCallback(() => {
         setIsPlaying(prev => !prev);
@@ -362,10 +450,11 @@ export default function Learn() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen bg-base-200">
-                <div className="text-center">
-                    <Loader2 className="w-10 h-10 text-violet-500 mx-auto mb-3 animate-spin" />
-                    <p className="text-sm text-base-content/60 font-medium">Đang tải khóa học...</p>
-                </div>
+                <OwlLoader
+                    message="Đang tải không gian học tập..."
+                    subMessage="SKR đang ghép video, tài liệu và tiến độ của bạn để mở đúng bài học hiện tại."
+                    className="py-8"
+                />
             </div>
         );
     }
@@ -447,35 +536,44 @@ export default function Learn() {
                         />
                     ) : (
                         <div className="w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-                            {/* Video Player */}
-                            {isFlashcardLessonView ? (
-                                <FlashcardLessonPlayer
-                                    lesson={enrichedLesson}
-                                    loadingContent={loadingContent}
+                            {shouldShowLessonLoader ? (
+                                <LessonTransitionState
+                                    lesson={currentLesson}
+                                    gradient={courseDisplay.gradient}
                                 />
                             ) : (
-                                <LearnVideoPlayer
-                                    lesson={enrichedLesson}
-                                    gradient={courseDisplay.gradient}
-                                    isPlaying={isPlaying}
-                                    onTogglePlay={handleTogglePlay}
-                                    loadingContent={loadingContent}
-                                />
-                            )}
+                                <>
+                                    {/* Video Player */}
+                                    {isFlashcardLessonView ? (
+                                        <FlashcardLessonPlayer
+                                            lesson={enrichedLesson}
+                                            loadingContent={loadingContent}
+                                        />
+                                    ) : (
+                                        <LearnVideoPlayer
+                                            lesson={enrichedLesson}
+                                            gradient={courseDisplay.gradient}
+                                            isPlaying={isPlaying}
+                                            onTogglePlay={handleTogglePlay}
+                                            loadingContent={loadingContent}
+                                        />
+                                    )}
 
-                            {!isFlashcardLessonView && (
-                                <LearnLessonContent
-                                    lesson={enrichedLesson}
-                                    chapter={currentChapter}
-                                    nextLesson={nextLesson}
-                                    expertName={expert?.name}
-                                    expertAvatar={expert?.avatar}
-                                    gradient={courseDisplay.gradient}
-                                    onNext={handleNext}
-                                    onComplete={handleComplete}
-                                    isCompleted={!!completedLessons[`${activeChapter}-${activeLesson}`]}
-                                    loadingContent={loadingContent}
-                                />
+                                    {!isFlashcardLessonView && (
+                                        <LearnLessonContent
+                                            lesson={enrichedLesson}
+                                            chapter={currentChapter}
+                                            nextLesson={nextLesson}
+                                            expertName={expert?.name}
+                                            expertAvatar={expert?.avatar}
+                                            gradient={courseDisplay.gradient}
+                                            onNext={handleNext}
+                                            onComplete={handleComplete}
+                                            isCompleted={!!completedLessons[`${activeChapter}-${activeLesson}`]}
+                                            loadingContent={loadingContent}
+                                        />
+                                    )}
+                                </>
                             )}
                         </div>
                     )}

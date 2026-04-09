@@ -6,6 +6,7 @@ import {
     Globe, EyeOff, RefreshCw, Loader2, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { AdminLayout } from '@/features/admin/components';
+import { OwlLoader } from '@/shared/ui/common';
 import {
     BusinessKPICards,
     RevenueChart,
@@ -128,8 +129,11 @@ export default function AdminCourseDetail() {
         return (
             <AdminLayout>
                 <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                    <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mb-4" />
-                    <p className="text-base-content/50 font-medium">Đang tải thông tin khóa học...</p>
+                    <OwlLoader
+                        message="Đang tải thông tin khóa học..."
+                        subMessage="SKR đang lấy số liệu vận hành, doanh thu và thông tin phụ trách của khóa học."
+                        className="py-8"
+                    />
                 </div>
             </AdminLayout>
         );

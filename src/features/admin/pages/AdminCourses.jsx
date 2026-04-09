@@ -5,6 +5,7 @@ import { AdminLayout } from '@/features/admin/components';
 import adminApi from '@/shared/api/adminApi';
 import CourseEditModal from '@/features/admin/components/adminCourses/CourseEditModal';
 import CourseCreateModal from '@/features/admin/components/adminCourses/CourseCreateModal';
+import { OwlLoader } from '@/shared/ui/common';
 import {
     Search,
     Plus,
@@ -747,8 +748,11 @@ export default function AdminCourses() {
                         variants={fadeInUp}
                         className="flex flex-col items-center justify-center py-20"
                     >
-                        <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
-                        <p className="text-base-content/50 font-medium">Đang tải danh sách khóa học...</p>
+                        <OwlLoader
+                            message="Đang tải danh sách khóa học..."
+                            subMessage="SKR đang tổng hợp trạng thái xuất bản, doanh thu và chỉ số của từng khóa học."
+                            className="py-4"
+                        />
                     </motion.div>
                 )}
 
