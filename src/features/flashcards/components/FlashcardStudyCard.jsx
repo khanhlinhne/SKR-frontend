@@ -42,7 +42,7 @@ export default function FlashcardStudyCard({
                             <img
                                 src={card.frontImageUrl}
                                 alt="Flashcard front"
-                                className="mx-auto mb-4 h-40 w-full max-w-xl rounded-2xl border border-base-300 object-cover"
+                                className="mx-auto mb-4 max-h-72 w-full max-w-xl rounded-2xl border border-base-300 bg-base-200/40 object-contain object-center"
                                 loading="lazy"
                             />
                         )}
@@ -69,7 +69,7 @@ export default function FlashcardStudyCard({
                             <img
                                 src={card.backImageUrl}
                                 alt="Flashcard back"
-                                className="mx-auto mb-4 h-40 w-full max-w-xl rounded-2xl border border-white/30 object-cover"
+                                className="mx-auto mb-4 max-h-72 w-full max-w-xl rounded-2xl border border-white/30 bg-white/10 object-contain object-center"
                                 loading="lazy"
                             />
                         )}

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ExpertLayout } from '@/features/expert/components';
 import courseApi from '@/shared/api/courseApi';
-import { flashcardApi, uploadApi } from '@/shared/api';
+import { flashcardApi, geminiApi, uploadApi } from '@/shared/api';
 import AddQuestionModal from '@/features/expert/components/AddQuestionModal';
 import DocumentPreviewContent from '@/features/expert/components/DocumentPreviewContent';
 import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
@@ -68,17 +68,46 @@ const getLessonFlashcardSets = (content) => (
             ? content.flashcards
             : []
 );
+const getFlashcardSetItems = (set) => (
+    Array.isArray(set?.items)
+        ? set.items
+        : Array.isArray(set?.flashcardItems)
+            ? set.flashcardItems
+            : Array.isArray(set?.cards)
+                ? set.cards
+                : []
+);
 const MAX_FLASHCARD_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 
 function createFlashcardDraft(id) {
     return {
         id,
+        itemId: null,
+        cardOrder: null,
         frontText: '',
         backText: '',
         frontImageUrl: '',
         backImageUrl: '',
     };
 }
+
+function createFlashcardDraftFromItem(item, fallbackId = 1) {
+    return {
+        id: fallbackId,
+        itemId: item?.flashcardItemId || item?.id || null,
+        cardOrder: item?.cardOrder ?? item?.order ?? item?.displayOrder ?? null,
+        frontText: item?.frontText || item?.front || '',
+        backText: item?.backText || item?.back || '',
+        frontImageUrl: resolveFlashcardImageUrl(
+            item?.frontImageUrl || item?.frontImage || item?.frontMediaUrl || item?.frontImagePath || '',
+        ),
+        backImageUrl: resolveFlashcardImageUrl(
+            item?.backImageUrl || item?.backImage || item?.backMediaUrl || item?.backImagePath || '',
+        ),
+    };
+}
+
+const DEFAULT_FLASHCARD_DRAFTS = [createFlashcardDraft(1)];
 
 function extractUploadedImageUrl(response) {
     const payload = response?.data?.data || response?.data || response || {};
@@ -279,22 +308,45 @@ function AddLessonModal({ open, onClose, onSubmit, loading, chapterName }) {
     );
 }
 
-function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nextOrder }) {
-    const nextDraftIdRef = useRef(2);
-    const [cards, setCards] = useState(() => [createFlashcardDraft(1)]);
+function AddFlashcardCardModal({
+    open,
+    onClose,
+    onSubmit,
+    loading,
+    setTitle,
+    nextOrder,
+    mode = 'create',
+    initialCards = [],
+}) {
+    const normalizedInitialCards = initialCards.length > 0 ? initialCards : DEFAULT_FLASHCARD_DRAFTS;
+    const nextDraftIdRef = useRef(normalizedInitialCards.length + 1);
+    const [cards, setCards] = useState(() => normalizedInitialCards);
     const [uploadingSlots, setUploadingSlots] = useState({});
     const [formError, setFormError] = useState('');
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiCardCount, setAiCardCount] = useState(5);
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const isEditMode = mode === 'edit';
 
     useEffect(() => {
         if (open) {
-            nextDraftIdRef.current = 2;
-            setCards([createFlashcardDraft(1)]);
+            nextDraftIdRef.current = normalizedInitialCards.length + 1;
+            setCards(normalizedInitialCards);
             setUploadingSlots({});
             setFormError('');
+            setAiCardCount(5);
+            setAiPrompt(setTitle ? setTitle.replace(/\s*-\s*Flashcard\s*$/i, '').trim() : '');
         }
-    }, [open]);
+    }, [normalizedInitialCards, open, setTitle]);
 
     if (!open) return null;
+
+    const isDraftEmpty = (card) => (
+        !card.frontText.trim()
+        && !card.backText.trim()
+        && !card.frontImageUrl
+        && !card.backImageUrl
+    );
 
     const updateCard = (cardId, field, value) => {
         setCards((prev) => prev.map((card) => (card.id === cardId ? { ...card, [field]: value } : card)));
@@ -369,11 +421,12 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
         const validCards = cards
             .filter((card) => (card.frontText.trim() || card.frontImageUrl) && (card.backText.trim() || card.backImageUrl))
             .map((card, index) => ({
+                ...(card.itemId ? { itemId: card.itemId } : {}),
                 frontText: card.frontText.trim(),
                 backText: card.backText.trim(),
                 frontImageUrl: resolveFlashcardImageUrl(card.frontImageUrl) || null,
                 backImageUrl: resolveFlashcardImageUrl(card.backImageUrl) || null,
-                cardOrder: (nextOrder ?? 0) + index,
+                cardOrder: card.cardOrder ?? ((nextOrder ?? 0) + index),
             }));
 
         if (validCards.length === 0) {
@@ -388,6 +441,51 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
 
         setFormError('');
         return validCards;
+    };
+
+    const handleGenerateWithAI = async () => {
+        const trimmedPrompt = aiPrompt.trim();
+        const fallbackPrompt = setTitle ? setTitle.replace(/\s*-\s*Flashcard\s*$/i, '').trim() : '';
+        const sourceText = trimmedPrompt || fallbackPrompt;
+
+        if (!sourceText) {
+            setFormError('Hay nhap chu de, doan ghi chu hoac dan noi dung bai hoc de Gemini tao flashcard.');
+            return;
+        }
+
+        if (Object.values(uploadingSlots).some(Boolean)) {
+            setFormError('Anh van dang tai len. Hay doi xong roi moi dung Gemini de tranh lech du lieu.');
+            return;
+        }
+
+        setAiGenerating(true);
+        setFormError('');
+        try {
+            const generatedCards = await geminiApi.generateFlashcards({
+                sourceText,
+                count: aiCardCount,
+                contextTitle: setTitle || '',
+            });
+
+            setCards((prev) => {
+                let nextId = nextDraftIdRef.current;
+                const shouldReplaceInitialBlank = prev.length === 1 && isDraftEmpty(prev[0]);
+                const generatedDrafts = generatedCards.map((card, index) => ({
+                    id: shouldReplaceInitialBlank && index === 0 ? prev[0].id : nextId++,
+                    frontText: card.frontText,
+                    backText: card.backText,
+                    frontImageUrl: '',
+                    backImageUrl: '',
+                }));
+
+                nextDraftIdRef.current = nextId;
+                return shouldReplaceInitialBlank ? generatedDrafts : [...prev, ...generatedDrafts];
+            });
+        } catch (error) {
+            setFormError(error?.message || 'Gemini chua tao duoc noi dung flashcard. Ban thu lai voi mo ta cu the hon.');
+        } finally {
+            setAiGenerating(false);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -420,9 +518,11 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                         <Sparkles className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0">
-                        <h3 className="font-black text-xl text-base-content">Them the flashcard</h3>
+                        <h3 className="font-black text-xl text-base-content">{isEditMode ? 'Chinh sua the flashcard' : 'Them the flashcard'}</h3>
                         <p className="mt-1 text-sm text-base-content/55">
-                            Nhap nhanh mat truoc va mat sau de tao nhieu the lien tiep cho bai hoc.
+                            {isEditMode
+                                ? 'Cap nhat lai noi dung mat truoc, mat sau va hinh anh cua the nay.'
+                                : 'Nhap nhanh mat truoc va mat sau de tao nhieu the lien tiep cho bai hoc.'}
                         </p>
                         {setTitle && (
                             <p className="mt-2 text-xs text-base-content/50">
@@ -431,16 +531,60 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                         )}
                     </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={addCard}
-                        className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Them the
-                    </button>
+                    {!isEditMode && (
+                        <button
+                            type="button"
+                            onClick={addCard}
+                            className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Them the
+                        </button>
+                    )}
                 </div>
                 <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                    {!isEditMode && (
+                        <div className="rounded-[28px] border border-indigo-100 bg-gradient-to-r from-indigo-50/90 via-violet-50/60 to-white p-4 shadow-sm">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-black text-base-content">Tao noi dung bang Gemini</p>
+                                    <p className="mt-1 text-xs text-base-content/55">
+                                        Dan chu de, doan ghi chu hoac noi dung bai hoc. Gemini se tao bo the tieng Viet de ban chinh sua va luu ngay trong modal nay.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 self-start">
+                                    <label className="text-xs font-bold text-base-content/55">So the</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={12}
+                                        value={aiCardCount}
+                                        onChange={(e) => setAiCardCount(Math.max(1, Math.min(12, Number(e.target.value) || 1)))}
+                                        className="input input-sm w-20 rounded-xl border-indigo-200 bg-white font-bold text-indigo-600"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleGenerateWithAI}
+                                        disabled={aiGenerating}
+                                        className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-indigo-600 to-violet-600 font-bold text-white shadow-lg shadow-indigo-500/20"
+                                    >
+                                        {aiGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {aiGenerating ? 'Dang tao...' : 'Tao bang Gemini'}
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                                placeholder="VD: Tao 5 the flashcard ve JSX trong React, tap trung vao khai niem, cu phap va khi nao nen dung..."
+                                className="textarea textarea-bordered mt-4 min-h-[120px] w-full rounded-2xl border-indigo-100 bg-white/90 text-sm font-medium resize-none focus:border-indigo-300 focus:outline-none"
+                                rows={4}
+                            />
+                            <p className="mt-2 text-[11px] font-medium text-base-content/45">
+                                Neu ben duoi da co the nhap tay, ket qua moi se duoc them tiep vao cuoi danh sach thay vi ghi de.
+                            </p>
+                        </div>
+                    )}
                     <div className="max-h-[62vh] space-y-4 overflow-y-auto pr-1">
                         {cards.map((card, index) => (
                             <div key={card.id} className="rounded-[28px] border border-base-300/80 bg-white/95 p-4 shadow-sm">
@@ -449,13 +593,15 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                         <Sparkles className="w-3.5 h-3.5" />
                                         The {index + 1}
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeCard(card.id)}
-                                        className="btn btn-ghost btn-xs rounded-full text-base-content/50 hover:text-red-500"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {!isEditMode && (
+                                        <button
+                                            type="button"
+                                            onClick={() => removeCard(card.id)}
+                                            className="btn btn-ghost btn-xs rounded-full text-base-content/50 hover:text-red-500"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="grid gap-4 xl:grid-cols-2">
                                     <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
@@ -505,7 +651,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                             <img
                                                 src={resolveFlashcardImageUrl(card.frontImageUrl)}
                                                 alt={`Front preview ${index + 1}`}
-                                                className="mt-3 h-32 w-full rounded-2xl border border-base-300 object-cover"
+                                                className="mt-3 max-h-72 w-full rounded-2xl border border-base-300 bg-base-200/40 object-contain object-center"
                                             />
                                         )}
                                     </div>
@@ -555,7 +701,7 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                                             <img
                                                 src={resolveFlashcardImageUrl(card.backImageUrl)}
                                                 alt={`Back preview ${index + 1}`}
-                                                className="mt-3 h-32 w-full rounded-2xl border border-base-300 object-cover"
+                                                className="mt-3 max-h-72 w-full rounded-2xl border border-base-300 bg-base-200/40 object-contain object-center"
                                             />
                                         )}
                                     </div>
@@ -570,26 +716,32 @@ function AddFlashcardCardModal({ open, onClose, onSubmit, loading, setTitle, nex
                     )}
                     <div className="modal-action items-center justify-between">
                         <div className="text-xs text-base-content/45">
-                            {nextOrder != null ? `Thẻ tiếp theo: ${nextOrder + 1}` : 'Bạn có thể thêm nhiều thẻ liên tiếp'}
+                            {isEditMode
+                                ? 'Cập nhật trực tiếp thẻ đang chọn trong bộ flashcard'
+                                : nextOrder != null
+                                    ? `Thẻ tiếp theo: ${nextOrder + 1}`
+                                    : 'Bạn có thể thêm nhiều thẻ liên tiếp'}
                         </div>
                         <div className="flex items-center gap-2">
                         <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
-                        <button
-                            type="button"
-                            onClick={handleSubmitAndContinue}
-                            disabled={loading}
-                            className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
-                        >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            Lưu và thêm tiếp
-                        </button>
+                        {!isEditMode && (
+                            <button
+                                type="button"
+                                onClick={handleSubmitAndContinue}
+                                disabled={loading}
+                                className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
+                            >
+                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                Lưu và thêm tiếp
+                            </button>
+                        )}
                         <button
                             type="submit"
                             disabled={loading}
                             className="btn btn-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            Lưu các thẻ
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isEditMode ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                            {isEditMode ? 'Lưu thay đổi' : 'Lưu các thẻ'}
                         </button>
                         </div>
                     </div>
@@ -1140,6 +1292,50 @@ export default function ExpertCurriculumDetail() {
 
     const totalLessons = chapters.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0);
 
+    const hydrateLessonFlashcardSets = useCallback(async (sets = []) => {
+        if (!Array.isArray(sets) || sets.length === 0) {
+            return [];
+        }
+
+        const hydratedSets = await Promise.all(sets.map(async (set) => {
+            const existingItems = getFlashcardSetItems(set);
+            if (existingItems.length > 0) {
+                return {
+                    ...set,
+                    items: existingItems,
+                };
+            }
+
+            const setId = set?.flashcardSetId || set?.id;
+            if (!setId) {
+                return {
+                    ...set,
+                    items: existingItems,
+                };
+            }
+
+            try {
+                const detailResponse = await flashcardApi.getSetById(setId);
+                const detailPayload = detailResponse?.data || detailResponse || {};
+                const detailItems = getFlashcardSetItems(detailPayload);
+
+                return {
+                    ...set,
+                    ...detailPayload,
+                    items: detailItems,
+                };
+            } catch (err) {
+                console.error('Failed to hydrate flashcard set details:', err);
+                return {
+                    ...set,
+                    items: existingItems,
+                };
+            }
+        }));
+
+        return hydratedSets;
+    }, []);
+
     const handleCreateLessonFlashcardSet = async (chapterId, lesson) => {
         const lessonId = lesson?.lessonId || lesson?.id;
         if (!lessonId) {
@@ -1181,7 +1377,7 @@ export default function ExpertCurriculumDetail() {
         try {
             const res = await courseApi.getLessonContent(courseId, chapterId, lessonId);
             const content = res?.data || res;
-            const flashcardSets = getLessonFlashcardSets(content);
+            const flashcardSets = await hydrateLessonFlashcardSets(getLessonFlashcardSets(content));
 
             if (resolvedLessonType === 'flashcard' || flashcardSets.length > 0) {
                 setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'flashcard' }));
@@ -1189,6 +1385,7 @@ export default function ExpertCurriculumDetail() {
 
             setLessonContent({
                 ...content,
+                flashcardSets,
                 lessonType: flashcardSets.length > 0 ? 'flashcard' : resolvedLessonType,
             });
         } catch {
@@ -1394,32 +1591,54 @@ export default function ExpertCurriculumDetail() {
         finally { setSaving(false); }
     };
 
-    const handleAddFlashcardCard = async (form, options = {}) => {
+    const handleSaveFlashcardCard = async (form, options = {}) => {
         if (!showAddFlashcardCard?.setId) {
             return;
         }
 
-        const { chapterId, lessonId, setId } = showAddFlashcardCard;
+        const { chapterId, lessonId, setId, mode } = showAddFlashcardCard;
         const payloadItems = Array.isArray(form) ? form : [form];
         setSaving(true);
         try {
-            await Promise.all(payloadItems.map((item) => flashcardApi.createItem(setId, item)));
-            showToast({
-                title: 'Đã thêm thẻ flashcard',
-                message: payloadItems.length > 1
-                    ? `Cú vừa thêm ${payloadItems.length} thẻ mới vào bộ flashcard.`
-                    : 'Cú vừa thêm 1 thẻ mới vào bộ flashcard.',
-            });
-            setShowAddFlashcardCard((prev) => {
-                if (!options.keepOpen || !prev) {
-                    return null;
+            if (mode === 'edit') {
+                const [item] = payloadItems;
+                if (!item?.itemId) {
+                    throw new Error('Không tìm thấy thẻ flashcard cần cập nhật.');
                 }
 
-                return {
-                    ...prev,
-                    nextOrder: (prev.nextOrder ?? 0) + payloadItems.length,
-                };
-            });
+                await flashcardApi.updateItem(setId, item.itemId, {
+                    frontText: item.frontText,
+                    backText: item.backText,
+                    front: item.frontText,
+                    back: item.backText,
+                    frontImageUrl: item.frontImageUrl,
+                    backImageUrl: item.backImageUrl,
+                    cardOrder: item.cardOrder,
+                });
+                showToast({
+                    title: 'Đã cập nhật thẻ flashcard',
+                    message: 'Nội dung thẻ đã được lưu lại trong bộ flashcard.',
+                });
+                setShowAddFlashcardCard(null);
+            } else {
+                await Promise.all(payloadItems.map((item) => flashcardApi.createItem(setId, item)));
+                showToast({
+                    title: 'Đã thêm thẻ flashcard',
+                    message: payloadItems.length > 1
+                        ? `Cú vừa thêm ${payloadItems.length} thẻ mới vào bộ flashcard.`
+                        : 'Cú vừa thêm 1 thẻ mới vào bộ flashcard.',
+                });
+                setShowAddFlashcardCard((prev) => {
+                    if (!options.keepOpen || !prev) {
+                        return null;
+                    }
+
+                    return {
+                        ...prev,
+                        nextOrder: (prev.nextOrder ?? 0) + payloadItems.length,
+                    };
+                });
+            }
             await loadLessonContent(chapterId, lessonId, {
                 ...getLessonById(chapterId, lessonId),
                 lessonType: 'flashcard',
@@ -1430,6 +1649,39 @@ export default function ExpertCurriculumDetail() {
             showToast({
                 title: 'Chưa thể thêm thẻ flashcard',
                 message: err.response?.data?.message || 'Cú chưa thêm được thẻ flashcard vào bộ này.',
+            }, 'error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteFlashcardItem = async ({ chapterId, lessonId, setId, itemId }) => {
+        const confirmed = await requestConfirmation({
+            badge: 'Xóa thẻ',
+            title: 'Xóa thẻ flashcard này?',
+            description: 'Mặt trước, mặt sau và ảnh của thẻ này sẽ bị gỡ khỏi bộ flashcard hiện tại.',
+            confirmLabel: 'Xóa thẻ',
+            cancelLabel: 'Giữ lại',
+        });
+        if (!confirmed) return;
+
+        setSaving(true);
+        try {
+            await flashcardApi.deleteItem(setId, itemId);
+            showToast({
+                title: 'Đã xóa thẻ flashcard',
+                message: 'Thẻ đã được gỡ khỏi bộ flashcard.',
+            });
+            await loadLessonContent(chapterId, lessonId, {
+                ...getLessonById(chapterId, lessonId),
+                lessonType: 'flashcard',
+                type: 'flashcard',
+            });
+            await fetchCourseData();
+        } catch (err) {
+            showToast({
+                title: 'Chưa thể xóa thẻ flashcard',
+                message: err.response?.data?.message || 'Cú chưa xóa được thẻ flashcard này.',
             }, 'error');
         } finally {
             setSaving(false);
@@ -1676,6 +1928,9 @@ export default function ExpertCurriculumDetail() {
                                                         isCurrentLessonSelected ? lessonContent : null,
                                                     );
                                                     const isFlashcardLesson = resolvedLessonType === 'flashcard';
+                                                    const lessonFlashcardSets = isCurrentLessonSelected
+                                                        ? getLessonFlashcardSets(lessonContent)
+                                                        : [];
                                                     const ltConfig = lessonTypeConfig[resolvedLessonType] || lessonTypeConfig.video;
                                                     const LessonIcon = ltConfig.icon;
 
@@ -1811,6 +2066,174 @@ export default function ExpertCurriculumDetail() {
 
                                                                             </>
                                                                         )}
+                                                                        {isFlashcardLesson && (
+                                                                            <div>
+                                                                                <div className="mb-1.5 flex items-center justify-between">
+                                                                                    <span className="flex items-center gap-1 text-xs font-black text-indigo-600">
+                                                                                        <Sparkles className="h-3.5 w-3.5" />
+                                                                                        {'Flashcard'} ({lessonFlashcardSets.length})
+                                                                                    </span>
+                                                                                    {lessonFlashcardSets.length === 0 && (
+                                                                                        <button
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                void handleCreateLessonFlashcardSet(chId, lesson);
+                                                                                            }}
+                                                                                            className="btn btn-xs btn-ghost gap-1 rounded-lg text-indigo-600"
+                                                                                        >
+                                                                                            <Plus className="h-3 w-3" />
+                                                                                            {'T\u1ea1o b\u1ed9'}
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+
+                                                                                {lessonFlashcardSets.length === 0 ? (
+                                                                                    <div className="rounded-xl border border-dashed border-indigo-500/20 bg-base-100 px-3 py-4 text-center">
+                                                                                        <p className="text-xs font-bold text-base-content/70">{'B\u00e0i n\u00e0y ch\u01b0a c\u00f3 b\u1ed9 flashcard n\u00e0o'}</p>
+                                                                                        <p className="mt-1 text-[11px] text-base-content/45">{'T\u1ea1o m\u1ed9t b\u1ed9 tr\u01b0\u1edbc, sau \u0111\u00f3 th\u00eam c\u00e1c th\u1ebb m\u1eb7t tr\u01b0\u1edbc v\u00e0 m\u1eb7t sau.'}</p>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="space-y-3">
+                                                                                        {lessonFlashcardSets.map((set, setIndex) => {
+                                                                                            const setId = set?.flashcardSetId || set?.id || `flashcard-set-${setIndex}`;
+                                                                                            const setTitle = set?.setTitle || set?.title || `${lesson.lessonName} - Flashcard`;
+                                                                                            const setItems = getFlashcardSetItems(set).filter((item) => (
+                                                                                                item?.frontText
+                                                                                                || item?.front
+                                                                                                || item?.backText
+                                                                                                || item?.back
+                                                                                                || item?.frontImageUrl
+                                                                                                || item?.frontImage
+                                                                                                || item?.backImageUrl
+                                                                                                || item?.backImage
+                                                                                            ));
+                                                                                            const totalCards = Number(set?.totalCards || set?.itemCount || setItems.length || 0);
+
+                                                                                            return (
+                                                                                                <div key={setId} className="rounded-xl border border-base-300 bg-base-100 p-3">
+                                                                                                    <div className="flex items-center justify-between gap-2">
+                                                                                                        <div className="min-w-0">
+                                                                                                            <p className="truncate text-xs font-black text-base-content">{setTitle}</p>
+                                                                                                            <p className="text-[10px] font-medium text-base-content/45">
+                                                                                                                {totalCards} {totalCards === 1 ? 'thẻ' : 'thẻ'}
+                                                                                                            </p>
+                                                                                                        </div>
+                                                                                                        <button
+                                                                                                            onClick={(e) => {
+                                                                                                                e.stopPropagation();
+                                                                                                                setShowAddFlashcardCard({
+                                                                                                                    mode: 'create',
+                                                                                                                    chapterId: chId,
+                                                                                                                    lessonId: lsId,
+                                                                                                                    setId,
+                                                                                                                    setTitle,
+                                                                                                                    nextOrder: setItems.length,
+                                                                                                                });
+                                                                                                            }}
+                                                                                                            className="btn btn-xs btn-ghost gap-1 rounded-lg text-indigo-600"
+                                                                                                        >
+                                                                                                            <Plus className="h-3 w-3" />
+                                                                                                            {'Th\u00eam th\u1ebb'}
+                                                                                                        </button>
+                                                                                                    </div>
+
+                                                                                                    {setItems.length === 0 ? (
+                                                                                                        <p className="mt-2 text-[10px] italic text-base-content/35">{'B\u1ed9 n\u00e0y ch\u01b0a c\u00f3 th\u1ebb n\u00e0o.'}</p>
+                                                                                                    ) : (
+                                                                                                        <div className="mt-3 space-y-2">
+                                                                                                            {setItems.map((item, itemIndex) => {
+                                                                                                                const itemId = item?.flashcardItemId || item?.id || null;
+                                                                                                                const frontText = item?.frontText || item?.front || '';
+                                                                                                                const backText = item?.backText || item?.back || '';
+                                                                                                                const frontImageUrl = resolveFlashcardImageUrl(
+                                                                                                                    item?.frontImageUrl || item?.frontImage || item?.frontMediaUrl || item?.frontImagePath || '',
+                                                                                                                );
+                                                                                                                const backImageUrl = resolveFlashcardImageUrl(
+                                                                                                                    item?.backImageUrl || item?.backImage || item?.backMediaUrl || item?.backImagePath || '',
+                                                                                                                );
+
+                                                                                                                return (
+                                                                                                                    <div key={itemId || `${setId}-${itemIndex}`} className="rounded-xl border border-base-300 bg-base-200/35 p-3">
+                                                                                                                        <div className="mb-3 flex items-center justify-between gap-2">
+                                                                                                                            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/40">
+                                                                                                                                {`The ${itemIndex + 1}`}
+                                                                                                                            </span>
+                                                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                                                <button
+                                                                                                                                    type="button"
+                                                                                                                                    onClick={(e) => {
+                                                                                                                                        e.stopPropagation();
+                                                                                                                                        setShowAddFlashcardCard({
+                                                                                                                                            mode: 'edit',
+                                                                                                                                            chapterId: chId,
+                                                                                                                                            lessonId: lsId,
+                                                                                                                                            setId,
+                                                                                                                                            setTitle,
+                                                                                                                                            itemId,
+                                                                                                                                            initialCards: [createFlashcardDraftFromItem(item)],
+                                                                                                                                        });
+                                                                                                                                    }}
+                                                                                                                                    disabled={!itemId}
+                                                                                                                                    className="btn btn-xs btn-ghost gap-1 rounded-lg text-base-content/60 hover:text-indigo-600 disabled:bg-transparent"
+                                                                                                                               >
+                                                                                                                                    <Pencil className="h-3 w-3" />
+                                                                                                                                    Sua
+                                                                                                                                </button>
+                                                                                                                                <button
+                                                                                                                                    type="button"
+                                                                                                                                    onClick={(e) => {
+                                                                                                                                        e.stopPropagation();
+                                                                                                                                        void handleDeleteFlashcardItem({
+                                                                                                                                            chapterId: chId,
+                                                                                                                                            lessonId: lsId,
+                                                                                                                                            setId,
+                                                                                                                                            itemId,
+                                                                                                                                        });
+                                                                                                                                    }}
+                                                                                                                                    disabled={!itemId || saving}
+                                                                                                                                    className="btn btn-xs btn-ghost gap-1 rounded-lg text-base-content/60 hover:text-red-500 disabled:bg-transparent"
+                                                                                                                                >
+                                                                                                                                    <Trash2 className="h-3 w-3" />
+                                                                                                                                    Xoa
+                                                                                                                                </button>
+                                                                                                                            </div>
+                                                                                                                        </div>
+                                                                                                                        <div className="grid gap-3 lg:grid-cols-2">
+                                                                                                                            <div className="space-y-2">
+                                                                                                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'M\u1eb7t tr\u01b0\u1edbc'}</p>
+                                                                                                                                {frontImageUrl && (
+                                                                                                                                    <img
+                                                                                                                                        src={frontImageUrl}
+                                                                                                                                        alt="Flashcard front"
+                                                                                                                                        className="max-h-80 w-full rounded-lg border border-base-300 bg-base-200/40 object-contain object-center"
+                                                                                                                                    />
+                                                                                                                                )}
+                                                                                                                                <p className="text-xs font-medium text-base-content/80">{frontText || 'Kh\u00f4ng c\u00f3 n\u1ed9i dung ch\u1eef'}</p>
+                                                                                                                            </div>
+                                                                                                                            <div className="space-y-2">
+                                                                                                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'M\u1eb7t sau'}</p>
+                                                                                                                                {backImageUrl && (
+                                                                                                                                    <img
+                                                                                                                                        src={backImageUrl}
+                                                                                                                                        alt="Flashcard back"
+                                                                                                                                        className="max-h-80 w-full rounded-lg border border-base-300 bg-base-200/40 object-contain object-center"
+                                                                                                                                    />
+                                                                                                                                )}
+                                                                                                                                <p className="text-xs font-medium text-base-content/80">{backText || 'Kh\u00f4ng c\u00f3 n\u1ed9i dung ch\u1eef'}</p>
+                                                                                                                            </div>
+                                                                                                                        </div>
+                                                                                                                    </div>
+                                                                                                                );
+                                                                                                            })}
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                     </>
                                                                 )}
                                                             </div>
@@ -1871,10 +2294,12 @@ export default function ExpertCurriculumDetail() {
             <AddFlashcardCardModal
                 open={!!showAddFlashcardCard}
                 onClose={() => setShowAddFlashcardCard(null)}
-                onSubmit={handleAddFlashcardCard}
+                onSubmit={handleSaveFlashcardCard}
                 loading={saving}
                 setTitle={showAddFlashcardCard?.setTitle || ''}
                 nextOrder={showAddFlashcardCard?.nextOrder}
+                mode={showAddFlashcardCard?.mode || 'create'}
+                initialCards={showAddFlashcardCard?.initialCards || []}
             />
 
             {/* Add Video Modal */}

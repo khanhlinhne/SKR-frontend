@@ -9,4 +9,5 @@ export { default as adminApi } from "./adminApi";
 export { default as flashcardApi } from "./flashcardApi";
 export { default as uploadApi } from "./uploadApi";
 export { default as enrollmentApi } from "./enrollmentApi";
+export { default as geminiApi } from "./geminiApi";
 
