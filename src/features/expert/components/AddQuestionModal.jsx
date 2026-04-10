@@ -1,20 +1,38 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Plus, Trash2, Loader2, CheckCircle2, X } from 'lucide-react';
 
 const EMPTY_OPTION = { optionText: '', isCorrect: false };
+
+function createInitialOptions() {
+    return [
+        { optionText: '', isCorrect: true },
+        { optionText: '', isCorrect: false },
+        { optionText: '', isCorrect: false },
+        { optionText: '', isCorrect: false },
+    ];
+}
 
 export default function AddQuestionModal({ open, onClose, onSubmit, loading }) {
     const [questionText, setQuestionText] = useState('');
     const [questionType, setQuestionType] = useState('multiple_choice');
     const [difficultyLevel, setDifficultyLevel] = useState('medium');
     const [questionExplanation, setQuestionExplanation] = useState('');
-    const [options, setOptions] = useState([
-        { optionText: '', isCorrect: true },
-        { optionText: '', isCorrect: false },
-        { optionText: '', isCorrect: false },
-        { optionText: '', isCorrect: false },
-    ]);
+    const [options, setOptions] = useState(createInitialOptions);
+
+    const resetForm = () => {
+        setQuestionText('');
+        setQuestionType('multiple_choice');
+        setDifficultyLevel('medium');
+        setQuestionExplanation('');
+        setOptions(createInitialOptions());
+    };
+
+    useEffect(() => {
+        if (open) {
+            resetForm();
+        }
+    }, [open]);
 
     const addOption = () => setOptions([...options, { ...EMPTY_OPTION }]);
     const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
@@ -27,10 +45,7 @@ export default function AddQuestionModal({ open, onClose, onSubmit, loading }) {
         setOptions(next);
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!questionText.trim()) return;
-        onSubmit({
+    const buildPayload = () => ({
             questionText: questionText.trim(),
             questionType,
             difficultyLevel,
@@ -41,6 +56,17 @@ export default function AddQuestionModal({ open, onClose, onSubmit, loading }) {
                 optionOrder: i,
             })),
         });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!questionText.trim()) return;
+        onSubmit(buildPayload(), { keepOpen: false });
+    };
+
+    const handleSubmitAndContinue = () => {
+        if (!questionText.trim()) return;
+        onSubmit(buildPayload(), { keepOpen: true });
+        resetForm();
     };
 
     if (!open) return null;
@@ -144,6 +170,9 @@ export default function AddQuestionModal({ open, onClose, onSubmit, loading }) {
 
                     <div className="modal-action">
                         <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
+                        <button type="button" onClick={handleSubmitAndContinue} disabled={loading} className="btn btn-sm rounded-xl border-amber-200 bg-white font-bold text-amber-600 hover:bg-amber-50 gap-1.5">
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Lưu và thêm tiếp
+                        </button>
                         <button type="submit" disabled={loading} className="btn btn-sm bg-gradient-to-r from-amber-600 to-orange-600 text-white border-none rounded-xl font-bold gap-1.5">
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Thêm câu hỏi
                         </button>

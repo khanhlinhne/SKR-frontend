@@ -7,6 +7,7 @@ import {
     LearnLessonContent,
     LearnHeader,
     LearnProgressView,
+    LearnQuizFlow,
 } from '@/features/learn/components';
 import { FlashcardStudyCard, StudyControls, StudyHeader, KeyboardHints } from '@/features/flashcards/components';
 import { courseApi } from '@/shared/api';
@@ -18,6 +19,17 @@ function toNonNegativeCount(value) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed < 0) return 0;
     return parsed;
+}
+
+function resolveLessonTimeLimitMinutes(lesson = {}) {
+    const parsed = Number(
+        lesson?.timeLimitMinutes
+        ?? lesson?.estimatedDurationMinutes
+        ?? lesson?.durationMinutes
+        ?? 0
+    );
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return Math.round(parsed);
 }
 
 function resolveLessonType(lesson = {}) {
@@ -231,6 +243,9 @@ export default function Learn() {
     const [isPlaying, setIsPlaying] = useState(false);
     const [viewMode, setViewMode] = useState('learn'); // 'learn' | 'progress'
     const [completedLessons, setCompletedLessons] = useState({});
+    const [quizView, setQuizView] = useState('detail');
+    const [quizResult, setQuizResult] = useState(null);
+    const [quizAttemptSeed, setQuizAttemptSeed] = useState(0);
 
     // Fetch course detail from API
     useEffect(() => {
@@ -271,6 +286,7 @@ export default function Learn() {
                         lessonType: l.lessonType,
                         type: resolveLessonType(l),
                         durationMinutes: l.estimatedDurationMinutes || 0,
+                        timeLimitMinutes: resolveLessonTimeLimitMinutes(l),
                         totalVideos: toNonNegativeCount(l.totalVideos),
                         totalDocuments: toNonNegativeCount(l.totalDocuments),
                         totalQuestions: toNonNegativeCount(l.totalQuestions),
@@ -307,6 +323,7 @@ export default function Learn() {
     const currentChapter = chapters[activeChapter];
     const currentLesson = currentChapter?.lessons[activeLesson];
     const currentLessonKey = buildLessonKey(currentChapter?.chapterId, currentLesson?.lessonId);
+    const currentLessonCompletionKey = `${activeChapter}-${activeLesson}`;
 
     // Fetch lesson content when active lesson changes
     useEffect(() => {
@@ -380,6 +397,14 @@ export default function Learn() {
             ...currentLesson,
             lessonType: syncedLessonContent?.lessonType ?? currentLesson.lessonType ?? currentLesson.type,
             type,
+            durationMinutes: resolveLessonTimeLimitMinutes({
+                estimatedDurationMinutes: syncedLessonContent?.estimatedDurationMinutes,
+                durationMinutes: currentLesson.durationMinutes,
+            }),
+            timeLimitMinutes: resolveLessonTimeLimitMinutes({
+                ...currentLesson,
+                ...syncedLessonContent,
+            }),
             videos: syncedLessonContent?.videos || [],
             documents: syncedLessonContent?.documents || [],
             questions: syncedLessonContent?.questions || [],
@@ -389,6 +414,14 @@ export default function Learn() {
     }, [currentLesson, syncedLessonContent]);
 
     const isFlashcardLessonView = enrichedLesson?.type === 'flashcard';
+    const isQuizLessonView = enrichedLesson?.type === 'quiz';
+    const isCurrentLessonCompleted = !!completedLessons[currentLessonCompletionKey];
+
+    useEffect(() => {
+        setQuizView('detail');
+        setQuizResult(null);
+        setQuizAttemptSeed(0);
+    }, [currentLessonKey]);
 
     // Find next lesson
     const nextLesson = useMemo(() => {
@@ -424,7 +457,7 @@ export default function Learn() {
         setIsPlaying(prev => !prev);
     }, []);
 
-    const handleComplete = useCallback(() => {
+    const handleToggleComplete = useCallback(() => {
         const key = `${activeChapter}-${activeLesson}`;
         setCompletedLessons(prev => {
             if (prev[key]) {
@@ -435,6 +468,47 @@ export default function Learn() {
             return { ...prev, [key]: true };
         });
     }, [activeChapter, activeLesson]);
+
+    const handleMarkComplete = useCallback(() => {
+        const key = `${activeChapter}-${activeLesson}`;
+        setCompletedLessons(prev => (prev[key] ? prev : { ...prev, [key]: true }));
+    }, [activeChapter, activeLesson]);
+
+    const handleQuizStart = useCallback(() => {
+        setQuizResult(null);
+        setQuizAttemptSeed(prev => prev + 1);
+        setQuizView('taking');
+    }, []);
+
+    const handleQuizSubmit = useCallback((result) => {
+        setQuizResult(result);
+        setQuizView('results');
+        if (!isCurrentLessonCompleted) {
+            handleMarkComplete();
+        }
+    }, [handleMarkComplete, isCurrentLessonCompleted]);
+
+    const handleQuizRetry = useCallback(() => {
+        setQuizResult(null);
+        setQuizAttemptSeed(prev => prev + 1);
+        setQuizView('taking');
+    }, []);
+
+    const handleQuizShowReview = useCallback(() => {
+        if (quizResult) {
+            setQuizView('review');
+        }
+    }, [quizResult]);
+
+    const handleQuizBackToResults = useCallback(() => {
+        if (quizResult) {
+            setQuizView('results');
+        }
+    }, [quizResult]);
+
+    const handleQuizBackToDetail = useCallback(() => {
+        setQuizView('detail');
+    }, []);
 
     const handleNext = useCallback(() => {
         if (activeLesson < (currentChapter?.lessons.length || 0) - 1) {
@@ -549,6 +623,25 @@ export default function Learn() {
                                             lesson={enrichedLesson}
                                             loadingContent={loadingContent}
                                         />
+                                    ) : isQuizLessonView ? (
+                                        <LearnQuizFlow
+                                            lesson={enrichedLesson}
+                                            chapter={currentChapter}
+                                            nextLesson={nextLesson}
+                                            gradient={courseDisplay.gradient}
+                                            mode={quizView}
+                                            result={quizResult}
+                                            attemptSeed={quizAttemptSeed}
+                                            onStart={handleQuizStart}
+                                            onSubmit={handleQuizSubmit}
+                                            onRetry={handleQuizRetry}
+                                            onShowReview={handleQuizShowReview}
+                                            onBackToResults={handleQuizBackToResults}
+                                            onBackToDetail={handleQuizBackToDetail}
+                                            onNext={handleNext}
+                                            isCompleted={isCurrentLessonCompleted}
+                                            loadingContent={loadingContent}
+                                        />
                                     ) : (
                                         <LearnVideoPlayer
                                             lesson={enrichedLesson}
@@ -559,7 +652,7 @@ export default function Learn() {
                                         />
                                     )}
 
-                                    {!isFlashcardLessonView && (
+                                    {!isFlashcardLessonView && !isQuizLessonView && (
                                         <LearnLessonContent
                                             lesson={enrichedLesson}
                                             chapter={currentChapter}
@@ -568,8 +661,8 @@ export default function Learn() {
                                             expertAvatar={expert?.avatar}
                                             gradient={courseDisplay.gradient}
                                             onNext={handleNext}
-                                            onComplete={handleComplete}
-                                            isCompleted={!!completedLessons[`${activeChapter}-${activeLesson}`]}
+                                            onComplete={handleToggleComplete}
+                                            isCompleted={isCurrentLessonCompleted}
                                             loadingContent={loadingContent}
                                         />
                                     )}

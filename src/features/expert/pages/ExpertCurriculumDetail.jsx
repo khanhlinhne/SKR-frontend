@@ -57,10 +57,10 @@ const lessonTypeConfig = {
     video: { label: 'Video', icon: PlayCircle, color: 'text-blue-500 bg-blue-500/10', gradient: 'from-blue-500 to-cyan-500' },
     document: { label: 'Tài liệu', icon: FileText, color: 'text-emerald-500 bg-emerald-500/10', gradient: 'from-emerald-500 to-teal-500' },
     flashcard: { label: 'Flashcard', icon: Sparkles, color: 'text-indigo-500 bg-indigo-500/10', gradient: 'from-indigo-500 to-violet-500' },
-    quiz: { label: 'Trắc nghiệm', icon: HelpCircle, color: 'text-amber-500 bg-amber-500/10', gradient: 'from-amber-500 to-orange-500' },
+    quiz: { label: 'Kiểm tra', icon: HelpCircle, color: 'text-amber-500 bg-amber-500/10', gradient: 'from-amber-500 to-orange-500' },
 };
 
-const addableLessonTypes = ['video', 'flashcard'];
+const addableLessonTypes = ['video', 'flashcard', 'quiz'];
 const getLessonFlashcardSets = (content) => (
     Array.isArray(content?.flashcardSets)
         ? content.flashcardSets
@@ -78,6 +78,7 @@ const getFlashcardSetItems = (set) => (
                 : []
 );
 const MAX_FLASHCARD_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const LESSON_CODE_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 function createFlashcardDraft(id) {
     return {
@@ -114,6 +115,70 @@ function extractUploadedImageUrl(response) {
     return payload.imageUrl || payload.url || payload.secure_url || payload.fileUrl || payload.path || '';
 }
 
+function validateLessonForm(form, existingLessons = []) {
+    const lessonCode = String(form?.lessonCode || '').trim();
+    const lessonName = String(form?.lessonName || '').trim();
+    const normalizedCode = lessonCode.toLowerCase();
+    const normalizedName = lessonName.toLowerCase();
+
+    const fieldErrors = {};
+    let summary = '';
+
+    if (!lessonCode) {
+        fieldErrors.lessonCode = 'Cú cần mã bài giảng để sắp xếp và phân biệt nội dung trong chương.';
+    } else if (lessonCode.length < 2) {
+        fieldErrors.lessonCode = 'Mã bài giảng nên có ít nhất 2 ký tự, ví dụ LS01 hoặc QUIZ01.';
+    } else if (!LESSON_CODE_PATTERN.test(lessonCode)) {
+        fieldErrors.lessonCode = 'Mã bài giảng chỉ nên gồm chữ cái, số, dấu gạch ngang hoặc gạch dưới.';
+    } else if (existingLessons.some((lesson) => String(lesson?.lessonCode || '').trim().toLowerCase() === normalizedCode)) {
+        fieldErrors.lessonCode = 'Mã bài giảng này đã tồn tại trong chương. Bạn hãy chọn mã khác để tránh bị trùng.';
+    }
+
+    if (!lessonName) {
+        fieldErrors.lessonName = 'Cú cần tên bài giảng để học viên nhận ra đúng nội dung cần học.';
+    } else if (lessonName.length < 3) {
+        fieldErrors.lessonName = 'Tên bài giảng hơi ngắn. Bạn nên nhập ít nhất 3 ký tự để hiển thị rõ ràng hơn.';
+    } else if (existingLessons.some((lesson) => String(lesson?.lessonName || '').trim().toLowerCase() === normalizedName)) {
+        fieldErrors.lessonName = 'Tên bài giảng này đã có trong chương. Bạn hãy đổi tên để người học không bị nhầm.';
+    }
+
+    if (fieldErrors.lessonCode) {
+        summary = fieldErrors.lessonCode;
+    } else if (fieldErrors.lessonName) {
+        summary = fieldErrors.lessonName;
+    }
+
+    return {
+        isValid: Object.keys(fieldErrors).length === 0,
+        fieldErrors,
+        summary,
+    };
+}
+
+function normalizeDurationMinutes(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return Math.round(parsed);
+}
+
+function getLessonDurationMinutes(source = {}) {
+    return normalizeDurationMinutes(
+        source?.timeLimitMinutes
+        ?? source?.estimatedDurationMinutes
+        ?? source?.durationMinutes
+        ?? 0
+    );
+}
+
+function formatDurationMinutes(minutes) {
+    const normalized = normalizeDurationMinutes(minutes);
+    if (!normalized) return 'Không giới hạn';
+    if (normalized < 60) return `${normalized} phút`;
+    const hours = Math.floor(normalized / 60);
+    const remainingMinutes = normalized % 60;
+    return remainingMinutes > 0 ? `${hours} giờ ${remainingMinutes} phút` : `${hours} giờ`;
+}
+
 // ===== ADD CHAPTER MODAL =====
 function AddChapterModal({ open, onClose, onSubmit, loading }) {
     const [form, setForm] = useState({ chapterName: '', chapterCode: '', chapterDescription: '' });
@@ -141,12 +206,12 @@ function AddChapterModal({ open, onClose, onSubmit, loading }) {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
                         <FolderPlus className="w-4 h-4 text-white" />
                     </div>
-                    {'\u0054h\u00eam ch\u01b0\u01a1ng m\u1edbi'}
+                    {'Thêm chương mới'}
                 </h3>
                 <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'\u004d\u00e3 ch\u01b0\u01a1ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">{'Mã chương'} <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
@@ -159,11 +224,11 @@ function AddChapterModal({ open, onClose, onSubmit, loading }) {
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'\u0054\u00ean ch\u01b0\u01a1ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">{'Tên chương'} <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
-                            placeholder="VD: Gi\u1edbi thi\u1ec7u React"
+                            placeholder="VD: Giới thiệu React"
                             value={form.chapterName}
                             onChange={e => setForm(f => ({ ...f, chapterName: e.target.value }))}
                             className="input input-bordered input-sm rounded-xl w-full font-medium"
@@ -173,10 +238,10 @@ function AddChapterModal({ open, onClose, onSubmit, loading }) {
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'\u004d\u00f4 t\u1ea3 (t\u00f9y ch\u1ecdn)'} </span>
+                            <span className="label-text font-bold text-xs">{'Mô tả (tùy chọn)'} </span>
                         </label>
                         <textarea
-                            placeholder="M\u00f4 t\u1ea3 n\u1ed9i dung ch\u01b0\u01a1ng..."
+                            placeholder="Mô tả nội dung chương..."
                             value={form.chapterDescription}
                             onChange={e => setForm(f => ({ ...f, chapterDescription: e.target.value }))}
                             className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none"
@@ -184,14 +249,14 @@ function AddChapterModal({ open, onClose, onSubmit, loading }) {
                         />
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'H\u1ee7y'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Hủy'}</button>
                         <button
                             type="submit"
                             disabled={loading || !form.chapterName.trim() || !form.chapterCode.trim()}
                             className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            {'\u0054h\u00eam ch\u01b0\u01a1ng'}
+                            {'Thêm chương'}
                         </button>
                     </div>
                 </form>
@@ -202,18 +267,41 @@ function AddChapterModal({ open, onClose, onSubmit, loading }) {
 }
 
 // ===== ADD LESSON MODAL =====
-function AddLessonModal({ open, onClose, onSubmit, loading, chapterName }) {
+function AddLessonModal({ open, onClose, onSubmit, loading, chapterName, existingLessons = [], onValidationError }) {
     const [form, setForm] = useState({ lessonName: '', lessonCode: '', lessonType: 'video' });
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [formError, setFormError] = useState('');
 
     useEffect(() => {
-        if (open) setForm({ lessonName: '', lessonCode: '', lessonType: 'video' });
+        if (open) {
+            setForm({ lessonName: '', lessonCode: '', lessonType: 'video' });
+            setFieldErrors({});
+            setFormError('');
+        }
     }, [open]);
 
     if (!open) return null;
 
+    const updateField = (field, value) => {
+        setForm((prev) => ({ ...prev, [field]: value }));
+        setFieldErrors((prev) => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+        setFormError('');
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!form.lessonName.trim()) return;
+        const validation = validateLessonForm(form, existingLessons);
+        if (!validation.isValid) {
+            setFieldErrors(validation.fieldErrors);
+            setFormError(validation.summary);
+            onValidationError?.(validation);
+            return;
+        }
         onSubmit(form);
     };
 
@@ -228,45 +316,60 @@ function AddLessonModal({ open, onClose, onSubmit, loading, chapterName }) {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                         <BookOpen className="w-4 h-4 text-white" />
                     </div>
-                    {'\u0054h\u00eam b\u00e0i gi\u1ea3ng'}
+                    {'Thêm bài giảng'}
                 </h3>
                 {chapterName && (
                     <p className="text-xs text-base-content/50 mt-1">
-                        {'\u0056\u00e0o ch\u01b0\u01a1ng:'} <span className="font-bold text-violet-600">{chapterName}</span>
+                        {'Vào chương:'} <span className="font-bold text-violet-600">{chapterName}</span>
                     </p>
                 )}
-                <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+                <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-3">
+                    {formError && (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                            <div className="flex items-start gap-3">
+                                <span className="text-lg leading-none">🦉</span>
+                                <div>
+                                    <p className="font-black">Cú cần bạn kiểm tra lại một chút</p>
+                                    <p className="mt-1 leading-relaxed">{formError}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'\u004d\u00e3 b\u00e0i gi\u1ea3ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">{'Mã bài giảng'} <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
                             placeholder="VD: LS01"
                             value={form.lessonCode}
-                            onChange={e => setForm(f => ({ ...f, lessonCode: e.target.value }))}
-                            className="input input-bordered input-sm rounded-xl w-full font-medium"
-                            required
+                            onChange={e => updateField('lessonCode', e.target.value)}
+                            className={`input input-bordered input-sm rounded-xl w-full font-medium ${fieldErrors.lessonCode ? 'border-red-400 focus:border-red-500' : ''}`}
                         />
+                        {fieldErrors.lessonCode && (
+                            <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.lessonCode}</p>
+                        )}
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'\u0054\u00ean b\u00e0i gi\u1ea3ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">{'Tên bài giảng'} <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
-                            placeholder="VD: React l\u00e0 g\u00ec?"
+                            placeholder="VD: React là gì?"
                             value={form.lessonName}
-                            onChange={e => setForm(f => ({ ...f, lessonName: e.target.value }))}
-                            className="input input-bordered input-sm rounded-xl w-full font-medium"
+                            onChange={e => updateField('lessonName', e.target.value)}
+                            className={`input input-bordered input-sm rounded-xl w-full font-medium ${fieldErrors.lessonName ? 'border-red-400 focus:border-red-500' : ''}`}
                             autoFocus
-                            required
                         />
+                        {fieldErrors.lessonName && (
+                            <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.lessonName}</p>
+                        )}
                     </div>
                     {/* Lesson type selection */}
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'\u004c\u006f\u1ea1i b\u00e0i gi\u1ea3ng'}</span>
+                            <span className="label-text font-bold text-xs">{'Loại bài giảng'}</span>
                         </label>
                         <div className="flex gap-2">
                             {addableLessonTypes.map((type) => {
@@ -291,14 +394,14 @@ function AddLessonModal({ open, onClose, onSubmit, loading, chapterName }) {
                         </div>
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'H\u1ee7y'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Hủy'}</button>
                         <button
                             type="submit"
                             disabled={loading || !form.lessonName.trim() || !form.lessonCode.trim()}
                             className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            {'\u0054h\u00eam b\u00e0i'}
+                            {'Thêm bài'}
                         </button>
                     </div>
                 </form>
@@ -859,6 +962,7 @@ export default function ExpertCurriculumDetail() {
     const [showAddQuestion, setShowAddQuestion] = useState(null);
     const [showAddFlashcardCard, setShowAddFlashcardCard] = useState(null);
     const [lessonTypeOverrides, setLessonTypeOverrides] = useState({});
+    const [quizTimeLimitDraft, setQuizTimeLimitDraft] = useState('');
 
     // Preview states
     const [previewVideo, setPreviewVideo] = useState(null);
@@ -964,6 +1068,30 @@ export default function ExpertCurriculumDetail() {
         return 'video';
     }, [lessonTypeOverrides]);
 
+    useEffect(() => {
+        if (!selectedLesson) {
+            setQuizTimeLimitDraft('');
+            return;
+        }
+
+        const selectedLessonMeta = getLessonById(selectedLesson.chapterId, selectedLesson.lessonId);
+        if (!selectedLessonMeta || getResolvedLessonType(selectedLessonMeta, lessonContent) !== 'quiz') {
+            setQuizTimeLimitDraft('');
+            return;
+        }
+
+        const durationMinutes = getLessonDurationMinutes({
+            ...selectedLessonMeta,
+            ...lessonContent,
+        });
+        setQuizTimeLimitDraft(durationMinutes > 0 ? String(durationMinutes) : '');
+    }, [
+        getLessonById,
+        getResolvedLessonType,
+        lessonContent,
+        selectedLesson,
+    ]);
+
     // ===== FETCH DATA =====
     const fetchCourseData = useCallback(async () => {
         setLoading(true);
@@ -995,7 +1123,7 @@ export default function ExpertCurriculumDetail() {
             }
         } catch (err) {
             console.error('[CurriculumDetail] fetch error:', err);
-            setError(err.response?.data?.message || '\u004b\u0068\u00f4ng th\u1ec3 t\u1ea3i th\u00f4ng tin kh\u00f3a h\u1ecdc.');
+            setError(err.response?.data?.message || 'Không thể tải thông tin khóa học.');
         } finally {
             setLoading(false);
         }
@@ -1075,7 +1203,7 @@ export default function ExpertCurriculumDetail() {
     const createFlashcardSetForLesson = useCallback(async ({ lessonId, lessonName }) => {
         const response = await flashcardApi.createSet({
             setTitle: `${lessonName} - Flashcard`,
-            setDescription: `\u0042\u1ed9 flashcard cho b\u00e0i gi\u1ea3ng "${lessonName}"`,
+            setDescription: `Bộ flashcard cho bài giảng "${lessonName}"`,
             lessonId,
             courseId,
             visibility: 'premium_only',
@@ -1089,6 +1217,15 @@ export default function ExpertCurriculumDetail() {
 
     const handleAddLesson = async (form) => {
         const chapterId = showAddLesson;
+        const existingLessons = getChapterLessons(chapterId);
+        const validation = validateLessonForm(form, existingLessons);
+        if (!validation.isValid) {
+            showToast({
+                title: 'Cú chưa thể tạo bài giảng',
+                message: validation.summary,
+            }, 'error');
+            return;
+        }
         setSaving(true);
         try {
             const payload = {
@@ -1103,6 +1240,7 @@ export default function ExpertCurriculumDetail() {
             const createdLesson = response?.data || response;
             const createdLessonId = createdLesson?.lessonId || createdLesson?.id || null;
             const shouldCreateFlashcardSet = form.lessonType === 'flashcard' && Boolean(createdLessonId);
+            const shouldOpenLessonBuilder = Boolean(createdLessonId) && (form.lessonType === 'flashcard' || form.lessonType === 'quiz');
             const optimisticLesson = {
                 ...createdLesson,
                 lessonId: createdLessonId,
@@ -1147,6 +1285,11 @@ export default function ExpertCurriculumDetail() {
                             || 'Cú đã tạo bài giảng nhưng chưa dựng được bộ flashcard tự động. Bạn có thể thêm lại sau.',
                     }, 'error');
                 }
+            } else if (form.lessonType === 'quiz') {
+                showToast({
+                    title: 'Đã tạo bài kiểm tra mới',
+                    message: `Bài "${form.lessonName}" đã sẵn sàng để bạn thêm câu hỏi.`,
+                });
             } else {
                 showToast({
                     title: 'Đã thêm bài giảng mới',
@@ -1157,8 +1300,12 @@ export default function ExpertCurriculumDetail() {
             setShowAddLesson(null);
             await fetchCourseData();
 
-            if (shouldCreateFlashcardSet) {
+            if (shouldOpenLessonBuilder) {
                 await loadLessonContent(chapterId, createdLessonId, optimisticLesson);
+            }
+
+            if (form.lessonType === 'quiz' && createdLessonId) {
+                setShowAddQuestion({ chapterId, lessonId: createdLessonId });
             }
         } catch (err) {
             showToast({
@@ -1346,7 +1493,7 @@ export default function ExpertCurriculumDetail() {
             await createFlashcardSetForLesson({
                 chapterId,
                 lessonId,
-                lessonName: lesson?.lessonName || lesson?.title || '\u0042\u00e0i h\u1ecdc',
+                lessonName: lesson?.lessonName || lesson?.title || 'Bài học',
             });
             showToast({
                 title: 'Đã tạo bộ flashcard',
@@ -1378,6 +1525,7 @@ export default function ExpertCurriculumDetail() {
             const res = await courseApi.getLessonContent(courseId, chapterId, lessonId);
             const content = res?.data || res;
             const flashcardSets = await hydrateLessonFlashcardSets(getLessonFlashcardSets(content));
+            const durationMinutes = getLessonDurationMinutes(content) || getLessonDurationMinutes(lessonMeta);
 
             if (resolvedLessonType === 'flashcard' || flashcardSets.length > 0) {
                 setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'flashcard' }));
@@ -1385,12 +1533,17 @@ export default function ExpertCurriculumDetail() {
 
             setLessonContent({
                 ...content,
+                estimatedDurationMinutes: durationMinutes,
+                timeLimitMinutes: durationMinutes,
                 flashcardSets,
                 lessonType: flashcardSets.length > 0 ? 'flashcard' : resolvedLessonType,
             });
         } catch {
+            const fallbackDurationMinutes = getLessonDurationMinutes(lessonMeta);
             setLessonContent({
                 lessonType: resolvedLessonType,
+                estimatedDurationMinutes: fallbackDurationMinutes,
+                timeLimitMinutes: fallbackDurationMinutes,
                 videos: [],
                 documents: [],
                 questions: [],
@@ -1545,7 +1698,7 @@ export default function ExpertCurriculumDetail() {
         finally { setSaving(false); }
     };
 
-    const handleAddQuestion = async (form) => {
+    const handleAddQuestion = async (form, options = {}) => {
         const { chapterId, lessonId } = showAddQuestion;
         setSaving(true);
         try {
@@ -1554,7 +1707,9 @@ export default function ExpertCurriculumDetail() {
                 title: 'Đã thêm câu hỏi',
                 message: 'Câu hỏi mới đã được thêm vào bài giảng.',
             });
-            setShowAddQuestion(null);
+            if (!options.keepOpen) {
+                setShowAddQuestion(null);
+            }
             await loadLessonContent(chapterId, lessonId);
         } catch (err) {
             showToast({
@@ -1563,6 +1718,70 @@ export default function ExpertCurriculumDetail() {
             }, 'error');
         }
         finally { setSaving(false); }
+    };
+
+    const handleSaveQuizTiming = async (chapterId, lesson) => {
+        const lessonId = lesson?.lessonId || lesson?.id;
+        if (!lessonId) return;
+
+        const rawValue = quizTimeLimitDraft.trim();
+        const parsedValue = rawValue === '' ? 0 : Number(rawValue);
+
+        if (rawValue !== '' && (!Number.isInteger(parsedValue) || parsedValue < 1 || parsedValue > 300)) {
+            showToast({
+                title: 'Cú chưa lưu được thời gian làm bài',
+                message: 'Thời gian bài kiểm tra nên là một số nguyên từ 1 đến 300 phút. Bạn có thể để trống nếu muốn không giới hạn.',
+            }, 'error');
+            return;
+        }
+
+        const durationMinutes = rawValue === '' ? 0 : parsedValue;
+
+        setSaving(true);
+        try {
+            await courseApi.updateLesson(courseId, chapterId, lessonId, {
+                estimatedDurationMinutes: durationMinutes,
+            });
+
+            setChapters((prev) => prev.map((chapter) => {
+                if ((chapter.chapterId || chapter.id) !== chapterId) return chapter;
+                return {
+                    ...chapter,
+                    lessons: (chapter.lessons || []).map((item) => {
+                        if ((item.lessonId || item.id) !== lessonId) return item;
+                        return {
+                            ...item,
+                            estimatedDurationMinutes: durationMinutes,
+                            timeLimitMinutes: durationMinutes,
+                        };
+                    }),
+                };
+            }));
+
+            setLessonContent((prev) => (
+                prev
+                    ? {
+                        ...prev,
+                        estimatedDurationMinutes: durationMinutes,
+                        timeLimitMinutes: durationMinutes,
+                    }
+                    : prev
+            ));
+
+            showToast({
+                title: durationMinutes > 0 ? 'Đã lưu thời gian làm bài' : 'Đã gỡ giới hạn thời gian',
+                message: durationMinutes > 0
+                    ? `Bài kiểm tra này hiện giới hạn ${formatDurationMinutes(durationMinutes)}. Phần learn sẽ hiển thị đồng hồ và tự động nộp khi hết giờ.`
+                    : 'Bài kiểm tra này hiện không giới hạn thời gian, nên phần learn sẽ ẩn đồng hồ đếm ngược.',
+            });
+        } catch (err) {
+            showToast({
+                title: 'Cú chưa lưu được thời gian làm bài',
+                message: err.response?.data?.message || 'Cài đặt thời gian chưa được ghi lại. Bạn thử lưu lại sau ít phút nhé.',
+            }, 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDeleteQuestion = async (chapterId, lessonId, qId) => {
@@ -1726,11 +1945,11 @@ export default function ExpertCurriculumDetail() {
                         <div className="flex gap-2 justify-center">
                             <Link to="/expert/curriculum" className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5">
                                 <ArrowLeft className="w-4 h-4" />
-                                {'\u0051\u0075\u0061\u0079 \u006c\u1ea1i'}
+                                {'Quay lại'}
                             </Link>
                             <button onClick={fetchCourseData} className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5">
                                 <RefreshCw className="w-4 h-4" />
-                                {'\u0054h\u1eed l\u1ea1i'}
+                                {'Thử lại'}
                             </button>
                         </div>
                     </div>
@@ -1747,31 +1966,31 @@ export default function ExpertCurriculumDetail() {
                     <div>
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <Link to="/expert/curriculum" className="text-sm text-base-content/50 font-medium hover:text-violet-600 transition-colors">
-                                {'\u0043\u0068\u01b0\u01a1ng tr\u00ecnh h\u1ecdc'}
+                                {'Chương trình học'}
                             </Link>
                             <ChevronRight className="w-3 h-3 text-base-content/30" />
                             <span className="text-sm text-violet-600 font-bold truncate max-w-[300px]">
-                                {course?.courseName || '\u004b\u0068\u00f3\u0061 \u0068\u1ecdc'}
+                                {course?.courseName || 'Khóa học'}
                             </span>
                         </div>
                         <h1 className="text-2xl lg:text-3xl font-black text-base-content">
-                            {chapters.length === 0 ? '\u0054\u1ea1o \u0043\u0068\u01b0\u01a1ng tr\u00ecnh h\u1ecdc' : '\u0051\u0075\u1ea3n l\u00fd \u0043\u0068\u01b0\u01a1ng tr\u00ecnh h\u1ecdc'}
+                            {chapters.length === 0 ? 'Tạo Chương trình học' : 'Quản lý Chương trình học'}
                         </h1>
                         <p className="text-sm text-base-content/60 mt-1">
                             {chapters.length === 0
-                                ? '\u0042\u1eaft \u0111\u1ea7u x\u00e2y d\u1ef1ng n\u1ed9i dung kh\u00f3a h\u1ecdc b\u1eb1ng c\u00e1ch th\u00eam c\u00e1c ch\u01b0\u01a1ng v\u00e0 b\u00e0i gi\u1ea3ng'
-                                : '\u0043\u0068\u1ec9nh s\u1eeda, th\u00eam ho\u1eb7c x\u00f3a ch\u01b0\u01a1ng v\u00e0 b\u00e0i gi\u1ea3ng'
+                                ? 'Bắt đầu xây dựng nội dung khóa học bằng cách thêm các chương và bài giảng'
+                                : 'Chỉnh sửa, thêm hoặc xóa chương và bài giảng'
                             }
                         </p>
                     </div>
                     <div className="flex gap-2">
                         <Link to="/expert/curriculum" className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5">
                             <ArrowLeft className="w-4 h-4" />
-                            {'\u0051\u0075\u0061\u0079 \u006c\u1ea1i'}
+                            {'Quay lại'}
                         </Link>
                         <button className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5">
                             <Eye className="w-4 h-4" />
-                            {'\u0058\u0065\u006d tr\u01b0\u1edbc'}
+                            {'Xem trước'}
                         </button>
                     </div>
                 </motion.div>
@@ -1779,10 +1998,10 @@ export default function ExpertCurriculumDetail() {
                 {/* Stats Bar */}
                 <motion.div variants={cardVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                     {[
-                        { label: '\u0043\u0068\u01b0\u01a1ng', value: chapters.length, icon: Layers, color: 'text-violet-500', bg: 'bg-violet-500/10' },
-                        { label: '\u0042\u00e0i gi\u1ea3ng', value: totalLessons, icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                        { label: '\u0054\u0072\u1ea1ng th\u00e1i', value: course?.status === 'published' ? '\u0110\u00e3 xu\u1ea5t b\u1ea3n' : '\u0042\u1ea3n nh\u00e1p', icon: Eye, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                        { label: '\u004d\u00e3 kh\u00f3a h\u1ecdc', value: course?.courseCode || '\u2014', icon: Hash, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                        { label: 'Chương', value: chapters.length, icon: Layers, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+                        { label: 'Bài giảng', value: totalLessons, icon: BookOpen, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                        { label: 'Trạng thái', value: course?.status === 'published' ? 'Đã xuất bản' : 'Bản nháp', icon: Eye, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                        { label: 'Mã khóa học', value: course?.courseCode || '—', icon: Hash, color: 'text-amber-500', bg: 'bg-amber-500/10' },
                     ].map((stat, i) => (
                         <div key={i} className="bg-base-100 rounded-xl p-3.5 border border-base-300 flex items-center gap-3 shadow-sm">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg}`}>
@@ -1802,16 +2021,16 @@ export default function ExpertCurriculumDetail() {
                         <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 flex items-center justify-center mb-4">
                             <GraduationCap className="w-10 h-10 text-violet-500/50" />
                         </div>
-                        <h3 className="text-lg font-black text-base-content mb-2">{'\u004b\u0068\u00f3a h\u1ecdc ch\u01b0a c\u00f3 n\u1ed9i dung'}</h3>
+                        <h3 className="text-lg font-black text-base-content mb-2">{'Khóa học chưa có nội dung'}</h3>
                         <p className="text-sm text-base-content/50 max-w-md mx-auto mb-5">
-                            {'\u0042\u1eaft \u0111\u1ea7u x\u00e2y d\u1ef1ng ch\u01b0\u01a1ng tr\u00ecnh h\u1ecdc b\u1eb1ng c\u00e1ch th\u00eam ch\u01b0\u01a1ng \u0111\u1ea7u ti\u00ean. M\u1ed7i ch\u01b0\u01a1ng s\u1ebd ch\u1ee9a c\u00e1c b\u00e0i gi\u1ea3ng nh\u01b0 video, t\u00e0i li\u1ec7u ho\u1eb7c flashcard.'}
+                            {'Bắt đầu xây dựng chương trình học bằng cách thêm chương đầu tiên. Mỗi chương sẽ chứa các bài giảng như video, tài liệu hoặc flashcard.'}
                         </p>
                         <button
                             onClick={() => setShowAddChapter(true)}
                             className="btn bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-black shadow-lg shadow-violet-500/25 gap-2"
                         >
                             <FolderPlus className="w-5 h-5" />
-                            {'\u0054h\u00eam ch\u01b0\u01a1ng \u0111\u1ea7u ti\u00ean'}
+                            {'Thêm chương đầu tiên'}
                         </button>
                     </motion.div>
                 )}
@@ -1871,7 +2090,7 @@ export default function ExpertCurriculumDetail() {
                                                         {chapter.chapterCode}
                                                     </span>
                                                 )}
-                                                <p className="text-xs text-base-content/50">{`${lessons.length} b\u00e0i gi\u1ea3ng`}</p>
+                                                <p className="text-xs text-base-content/50">{`${lessons.length} bài giảng`}</p>
                                             </div>
                                         </div>
                                     )}
@@ -1880,14 +2099,14 @@ export default function ExpertCurriculumDetail() {
                                         <button
                                             onClick={() => startEdit(chId, chapter.chapterName)}
                                             className="btn btn-ghost btn-xs btn-circle"
-                                            title={'\u0110\u1ed5i t\u00ean'}
+                                            title={'Đổi tên'}
                                         >
                                             <Pencil className="w-3.5 h-3.5" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteChapter(chapter)}
                                             className="btn btn-ghost btn-xs btn-circle text-red-500"
-                                            title={'\u0058\u00f3a ch\u01b0\u01a1ng'}
+                                            title={'Xóa chương'}
                                             disabled={saving}
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
@@ -1914,9 +2133,9 @@ export default function ExpertCurriculumDetail() {
                                             <div className="px-5 py-3 space-y-1.5">
                                                 {lessons.length === 0 && (
                                                     <div className="text-center py-6">
-                                                        <p className="text-sm text-base-content/40 font-medium">{'Ch\u01b0a c\u00f3 b\u00e0i gi\u1ea3ng n\u00e0o'}</p>
-                                                        <p className="text-xs text-base-content/30">{'Nh\u1ea5n n\u00fat b\u00ean d\u01b0\u1edbi \u0111\u1ec3 th\u00eam b\u00e0i gi\u1ea3ng \u0111\u1ea7u ti\u00ean'}</p>
-                                                        <p className="text-xs text-base-content/30">{'B\u1ea1n c\u00f3 th\u1ec3 b\u1eaft \u0111\u1ea7u b\u1eb1ng video ho\u1eb7c flashcard cho ch\u01b0\u01a1ng n\u00e0y.'}</p>
+                                                        <p className="text-sm text-base-content/40 font-medium">{'Chưa có bài giảng nào'}</p>
+                                                        <p className="text-xs text-base-content/30">{'Nhấn nút bên dưới để thêm bài giảng đầu tiên'}</p>
+                                                        <p className="text-xs text-base-content/30">{'Bạn có thể bắt đầu bằng video hoặc flashcard cho chương này.'}</p>
                                                     </div>
                                                 )}
 
@@ -1928,9 +2147,23 @@ export default function ExpertCurriculumDetail() {
                                                         isCurrentLessonSelected ? lessonContent : null,
                                                     );
                                                     const isFlashcardLesson = resolvedLessonType === 'flashcard';
+                                                    const isQuizLesson = resolvedLessonType === 'quiz';
+                                                    const lessonQuestions = isCurrentLessonSelected
+                                                        ? (lessonContent?.questions || [])
+                                                        : [];
                                                     const lessonFlashcardSets = isCurrentLessonSelected
                                                         ? getLessonFlashcardSets(lessonContent)
                                                         : [];
+                                                    const lessonQuizTimeLimitMinutes = getLessonDurationMinutes(
+                                                        isCurrentLessonSelected
+                                                            ? { ...lesson, ...lessonContent }
+                                                            : lesson,
+                                                    );
+                                                    const savedQuizTimeLimitDraft = lessonQuizTimeLimitMinutes > 0
+                                                        ? String(lessonQuizTimeLimitMinutes)
+                                                        : '';
+                                                    const isQuizTimeLimitDirty = isCurrentLessonSelected
+                                                        && quizTimeLimitDraft !== savedQuizTimeLimitDraft;
                                                     const ltConfig = lessonTypeConfig[resolvedLessonType] || lessonTypeConfig.video;
                                                     const LessonIcon = ltConfig.icon;
 
@@ -1966,8 +2199,8 @@ export default function ExpertCurriculumDetail() {
                                                             )}
 
                                                             <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                                                                    <button onClick={() => startEdit(lsId, lesson.lessonName)} className="btn btn-ghost btn-xs btn-circle" title={'\u0110\u1ed5i t\u00ean'}><Pencil className="w-3 h-3" /></button>
-                                                                    <button onClick={() => handleDeleteLesson(chId, lesson)} className="btn btn-ghost btn-xs btn-circle text-red-500" title={'X\u00f3a b\u00e0i'} disabled={saving}><Trash2 className="w-3 h-3" /></button>
+                                                                    <button onClick={() => startEdit(lsId, lesson.lessonName)} className="btn btn-ghost btn-xs btn-circle" title={'Đổi tên'}><Pencil className="w-3 h-3" /></button>
+                                                                    <button onClick={() => handleDeleteLesson(chId, lesson)} className="btn btn-ghost btn-xs btn-circle text-red-500" title={'Xóa bài'} disabled={saving}><Trash2 className="w-3 h-3" /></button>
                                                                 </div>
                                                                 <ChevronDown className={`w-4 h-4 text-base-content/30 transition-transform ${isLessonSelected(chId, lsId) ? 'rotate-180 text-violet-500' : ''}`} />
                                                         </motion.div>
@@ -1985,13 +2218,13 @@ export default function ExpertCurriculumDetail() {
                                                                         </div>
                                                                     ) : (
                                                                         <>
-                                                                        {!isFlashcardLesson && (
+                                                                        {!isFlashcardLesson && !isQuizLesson && (
                                                                             <>
                                                                         {/* Videos */}
                                                                         <div>
                                                                             <div className="flex items-center justify-between mb-1.5">
                                                                                 <span className="text-xs font-black text-blue-600 flex items-center gap-1"><PlayCircle className="w-3.5 h-3.5" />{'Video'} ({lessonContent?.videos?.length || 0})</span>
-                                                                                <button onClick={(e) => {e.stopPropagation(); setShowAddVideo({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-blue-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'\u0054h\u00eam'}</button>
+                                                                                <button onClick={(e) => {e.stopPropagation(); setShowAddVideo({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-blue-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'Thêm'}</button>
                                                                             </div>
                                                                             {(lessonContent?.videos || []).map(v => (
                                                                                 <div key={v.videoId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-base-100 border border-base-300 mb-1">
@@ -2000,40 +2233,40 @@ export default function ExpertCurriculumDetail() {
                                                                                         <p className="text-xs font-bold truncate">{v.videoTitle}</p>
                                                                                         <p className="text-[10px] text-base-content/40 truncate">{v.videoUrl}</p>
                                                                                     </div>
-                                                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewVideo(v); }} className="btn btn-ghost btn-xs btn-circle text-blue-500 hover:bg-blue-500/10" title={'Xem tr\u01b0\u1edbc'}><Eye className="w-3 h-3" /></button>
+                                                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewVideo(v); }} className="btn btn-ghost btn-xs btn-circle text-blue-500 hover:bg-blue-500/10" title={'Xem trước'}><Eye className="w-3 h-3" /></button>
                                                                                     <a href={v.videoUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-xs btn-circle"><ExternalLink className="w-3 h-3" /></a>
                                                                                     <button onClick={() => handleDeleteVideo(chId, lsId, v.videoId)} className="btn btn-ghost btn-xs btn-circle text-red-500" disabled={saving}><Trash2 className="w-3 h-3" /></button>
                                                                                 </div>
                                                                             ))}
-                                                                            {(lessonContent?.videos?.length || 0) === 0 && <p className="text-[10px] text-base-content/30 italic">{'Ch\u01b0a c\u00f3 video'}</p>}
+                                                                            {(lessonContent?.videos?.length || 0) === 0 && <p className="text-[10px] text-base-content/30 italic">{'Chưa có video'}</p>}
                                                                         </div>
 
                                                                         {/* Documents */}
                                                                         <div>
                                                                             <div className="flex items-center justify-between mb-1.5">
-                                                                                <span className="text-xs font-black text-emerald-600 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{'\u0054\u00e0i li\u1ec7u'} ({lessonContent?.documents?.length || 0})</span>
-                                                                                <button onClick={(e) => {e.stopPropagation(); setShowAddDocument({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-emerald-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'\u0054h\u00eam'}</button>
+                                                                                <span className="text-xs font-black text-emerald-600 flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{'Tài liệu'} ({lessonContent?.documents?.length || 0})</span>
+                                                                                <button onClick={(e) => {e.stopPropagation(); setShowAddDocument({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-emerald-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'Thêm'}</button>
                                                                             </div>
                                                                             {(lessonContent?.documents || []).map(d => (
                                                                                 <div key={d.documentId} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-base-100 border border-base-300 mb-1">
                                                                                     <FileText className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                                                                                     <div className="flex-1 min-w-0">
                                                                                         <p className="text-xs font-bold truncate">{d.documentTitle}</p>
-                                                                                        <p className="text-[10px] text-base-content/40">{d.fileType || 'file'}{d.fileName ? ` \u2022 ${d.fileName}` : ''}</p>
+                                                                                        <p className="text-[10px] text-base-content/40">{d.fileType || 'file'}{d.fileName ? ` • ${d.fileName}` : ''}</p>
                                                                                     </div>
-                                                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewDocument(d); }} className="btn btn-ghost btn-xs btn-circle text-emerald-500 hover:bg-emerald-500/10" title={'Xem tr\u01b0\u1edbc'}><Eye className="w-3 h-3" /></button>
+                                                                                    <button onClick={(e) => { e.stopPropagation(); setPreviewDocument(d); }} className="btn btn-ghost btn-xs btn-circle text-emerald-500 hover:bg-emerald-500/10" title={'Xem trước'}><Eye className="w-3 h-3" /></button>
                                                                                     <a href={d.fileUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-xs btn-circle"><ExternalLink className="w-3 h-3" /></a>
                                                                                     <button onClick={() => handleDeleteDocument(chId, lsId, d.documentId)} className="btn btn-ghost btn-xs btn-circle text-red-500" disabled={saving}><Trash2 className="w-3 h-3" /></button>
                                                                                 </div>
                                                                             ))}
-                                                                            {(lessonContent?.documents?.length || 0) === 0 && <p className="text-[10px] text-base-content/30 italic">{'Ch\u01b0a c\u00f3 t\u00e0i li\u1ec7u'}</p>}
+                                                                            {(lessonContent?.documents?.length || 0) === 0 && <p className="text-[10px] text-base-content/30 italic">{'Chưa có tài liệu'}</p>}
                                                                         </div>
 
                                                                         {/* Questions */}
                                                                         <div>
                                                                             <div className="flex items-center justify-between mb-1.5">
-                                                                                <span className="text-xs font-black text-amber-600 flex items-center gap-1"><HelpCircle className="w-3.5 h-3.5" />{'C\u00e2u h\u1ecfi'} ({lessonContent?.questions?.length || 0})</span>
-                                                                                <button onClick={(e) => {e.stopPropagation(); setShowAddQuestion({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-amber-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'\u0054h\u00eam'}</button>
+                                                                                <span className="text-xs font-black text-amber-600 flex items-center gap-1"><HelpCircle className="w-3.5 h-3.5" />{'Câu hỏi'} ({lessonContent?.questions?.length || 0})</span>
+                                                                                <button onClick={(e) => {e.stopPropagation(); setShowAddQuestion({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-amber-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'Thêm'}</button>
                                                                             </div>
                                                                             {(lessonContent?.questions || []).map(q => (
                                                                                 <div key={q.questionId} className="px-2 py-1.5 rounded-lg bg-base-100 border border-base-300 mb-1">
@@ -2056,15 +2289,177 @@ export default function ExpertCurriculumDetail() {
                                                                                                 </div>
                                                                                             )}
                                                                                         </div>
-                                                                                        <button onClick={(e) => { e.stopPropagation(); setPreviewQuestion(q); }} className="btn btn-ghost btn-xs btn-circle text-amber-500 hover:bg-amber-500/10" title={'Xem tr\u01b0\u1edbc'}><Eye className="w-3 h-3" /></button>
+                                                                                        <button onClick={(e) => { e.stopPropagation(); setPreviewQuestion(q); }} className="btn btn-ghost btn-xs btn-circle text-amber-500 hover:bg-amber-500/10" title={'Xem trước'}><Eye className="w-3 h-3" /></button>
                                                                                         <button onClick={() => handleDeleteQuestion(chId, lsId, q.questionId)} className="btn btn-ghost btn-xs btn-circle text-red-500" disabled={saving}><Trash2 className="w-3 h-3" /></button>
                                                                                     </div>
                                                                                 </div>
                                                                             ))}
-                                                                            {(lessonContent?.questions?.length || 0) === 0 && <p className="text-[10px] text-base-content/30 italic">{'Ch\u01b0a c\u00f3 c\u00e2u h\u1ecfi'}</p>}
+                                                                            {(lessonContent?.questions?.length || 0) === 0 && <p className="text-[10px] text-base-content/30 italic">{'Chưa có câu hỏi'}</p>}
                                                                         </div>
 
                                                                             </>
+                                                                        )}
+                                                                        {isQuizLesson && (
+                                                                            <div className="space-y-3">
+                                                                                <div className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-sm">
+                                                                                    <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between">
+                                                                                        <div className="min-w-0">
+                                                                                            <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
+                                                                                                <HelpCircle className="h-3.5 w-3.5" />
+                                                                                                Quiz lesson
+                                                                                            </div>
+                                                                                            <h4 className="mt-3 text-sm font-black text-base-content">
+                                                                                                {lesson.lessonName || 'Bài kiểm tra'}
+                                                                                            </h4>
+                                                                                            <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
+                                                                                                {'Học viên sẽ vào lesson này trong phần learn để làm bài trực tiếp, xem tiến độ từng câu và nhận kết quả ngay sau khi nộp.'}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <button
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setShowAddQuestion({ chapterId: chId, lessonId: lsId });
+                                                                                                }}
+                                                                                                className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white shadow-lg shadow-amber-500/20"
+                                                                                            >
+                                                                                                <Plus className="h-4 w-4" />
+                                                                                                {'Thêm câu hỏi'}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="grid gap-3 border-t border-amber-100/80 bg-white/80 p-4 sm:grid-cols-2 xl:grid-cols-4">
+                                                                                        <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700/70">{'Tổng câu hỏi'}</p>
+                                                                                            <p className="mt-1 text-2xl font-black text-base-content">{lessonQuestions.length}</p>
+                                                                                        </div>
+                                                                                        <div className="rounded-xl border border-amber-100 bg-white p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'Trắc nghiệm / đúng sai'}</p>
+                                                                                            <p className="mt-1 text-2xl font-black text-base-content">
+                                                                                                {lessonQuestions.filter((question) => question.questionType !== 'fill_blank').length}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <div className="rounded-xl border border-amber-100 bg-white p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'Điền từ'}</p>
+                                                                                            <p className="mt-1 text-2xl font-black text-base-content">
+                                                                                                {lessonQuestions.filter((question) => question.questionType === 'fill_blank').length}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <div className={`rounded-xl border p-3 ${lessonQuizTimeLimitMinutes > 0 ? 'border-amber-100 bg-white' : 'border-dashed border-amber-200 bg-white/70'}`}>
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'Thời gian làm bài'}</p>
+                                                                                            <p className="mt-1 text-base font-black text-base-content">
+                                                                                                {lessonQuizTimeLimitMinutes > 0 ? formatDurationMinutes(lessonQuizTimeLimitMinutes) : 'Chưa giới hạn'}
+                                                                                            </p>
+                                                                                            <p className="mt-1 text-[11px] leading-4 text-base-content/45">
+                                                                                                {lessonQuizTimeLimitMinutes > 0
+                                                                                                    ? 'Phần learn sẽ hiển thị đồng hồ đếm ngược và tự nộp khi hết giờ.'
+                                                                                                    : 'Để trống nếu bạn muốn học viên làm bài không giới hạn thời gian.'}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="border-t border-amber-100/80 bg-white/85 p-4">
+                                                                                        <div className="rounded-2xl border border-amber-100 bg-white p-4">
+                                                                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                                                                                                <div className="min-w-0">
+                                                                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700/70">{'Thiết lập thời gian'}</p>
+                                                                                                    <h5 className="mt-1 text-sm font-black text-base-content">{'Giới hạn thời gian làm bài'}</h5>
+                                                                                                    <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
+                                                                                                        {'Nhập số phút nếu bạn muốn learner thấy đồng hồ và được tự động nộp bài khi hết giờ. Để trống và lưu nếu muốn bỏ khỏi giới hạn.'}
+                                                                                                    </p>
+                                                                                                </div>
+                                                                                                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
+                                                                                                    <label className="form-control sm:min-w-[14rem]">
+                                                                                                        <span className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'Thời gian (phút)'}</span>
+                                                                                                        <input
+                                                                                                            type="number"
+                                                                                                            min="1"
+                                                                                                            max="300"
+                                                                                                            step="1"
+                                                                                                            value={quizTimeLimitDraft}
+                                                                                                            onChange={(event) => setQuizTimeLimitDraft(event.target.value)}
+                                                                                                            onClick={(event) => event.stopPropagation()}
+                                                                                                            placeholder={'Để trống nếu không giới hạn'}
+                                                                                                            className="input input-bordered input-sm rounded-xl font-medium"
+                                                                                                        />
+                                                                                                    </label>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={(event) => {
+                                                                                                            event.stopPropagation();
+                                                                                                            void handleSaveQuizTiming(chId, lesson);
+                                                                                                        }}
+                                                                                                        disabled={saving || !isQuizTimeLimitDirty}
+                                                                                                        className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white shadow-lg shadow-amber-500/20"
+                                                                                                    >
+                                                                                                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                                                                                        {'Lưu thời gian'}
+                                                                                                    </button>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-800">
+                                                                                                {lessonQuizTimeLimitMinutes > 0
+                                                                                                    ? `Đang lưu: ${formatDurationMinutes(lessonQuizTimeLimitMinutes)}. Nếu bạn xóa giá trị và lưu lại, learner sẽ không còn thấy đồng hồ.`
+                                                                                                    : 'Hiện tại bài kiểm tra này chưa có giới hạn thời gian.'}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                <div>
+                                                                                    <div className="mb-1.5 flex items-center justify-between">
+                                                                                        <span className="text-xs font-black text-amber-600 flex items-center gap-1"><HelpCircle className="w-3.5 h-3.5" />{'Ngân hàng câu hỏi'} ({lessonQuestions.length || 0})</span>
+                                                                                        <button onClick={(e) => {e.stopPropagation(); setShowAddQuestion({chapterId:chId,lessonId:lsId});}} className="btn btn-xs btn-ghost text-amber-600 gap-1 rounded-lg"><Plus className="w-3 h-3" />{'Thêm'}</button>
+                                                                                    </div>
+                                                                                    {lessonQuestions.length === 0 ? (
+                                                                                        <div className="rounded-xl border border-dashed border-amber-200 bg-base-100 px-4 py-6 text-center">
+                                                                                            <HelpCircle className="mx-auto h-6 w-6 text-amber-500" />
+                                                                                            <p className="mt-2 text-xs font-bold text-base-content/70">{'Bài kiểm tra này chưa có câu hỏi nào'}</p>
+                                                                                            <p className="mt-1 text-[11px] text-base-content/45">{'Hãy thêm câu hỏi đầu tiên để học viên có thể làm bài trong phần learn.'}</p>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <div className="space-y-2">
+                                                                                            {lessonQuestions.map((q, questionIndex) => (
+                                                                                                <div key={q.questionId} className="rounded-xl border border-base-300 bg-base-100 p-3">
+                                                                                                    <div className="flex items-start gap-3">
+                                                                                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-xs font-black text-amber-700">
+                                                                                                            {questionIndex + 1}
+                                                                                                        </div>
+                                                                                                        <div className="min-w-0 flex-1">
+                                                                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                                                                <span className="badge badge-xs badge-ghost">{q.questionType}</span>
+                                                                                                                <span className="badge badge-xs badge-ghost">{q.difficultyLevel}</span>
+                                                                                                                <span className="text-[10px] font-medium text-base-content/40">
+                                                                                                                    {`${q.options?.filter((option) => option.isCorrect).length || 0} đáp án đúng`}
+                                                                                                                </span>
+                                                                                                            </div>
+                                                                                                            <p className="mt-2 text-xs font-bold leading-5 text-base-content">{q.questionText}</p>
+                                                                                                            {q.options?.length > 0 && (
+                                                                                                                <div className="mt-2 grid gap-1.5 lg:grid-cols-2">
+                                                                                                                    {q.options.map((option) => (
+                                                                                                                        <div key={option.optionId} className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-[11px] ${option.isCorrect ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-base-300 bg-base-200/35 text-base-content/60'}`}>
+                                                                                                                            {option.isCorrect ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <span className="inline-block h-2.5 w-2.5 rounded-full border border-base-content/20" />}
+                                                                                                                            <span className="truncate">{option.optionText}</span>
+                                                                                                                        </div>
+                                                                                                                    ))}
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                            {q.questionExplanation && (
+                                                                                                                <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-[11px] text-blue-700">
+                                                                                                                    <span className="font-bold">{'Giải thích:'}</span> {q.questionExplanation}
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                        <div className="flex items-center gap-1">
+                                                                                                            <button onClick={(e) => { e.stopPropagation(); setPreviewQuestion(q); }} className="btn btn-ghost btn-xs btn-circle text-amber-500 hover:bg-amber-500/10" title={'Xem trước'}><Eye className="w-3 h-3" /></button>
+                                                                                                            <button onClick={() => handleDeleteQuestion(chId, lsId, q.questionId)} className="btn btn-ghost btn-xs btn-circle text-red-500" disabled={saving}><Trash2 className="w-3 h-3" /></button>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
                                                                         )}
                                                                         {isFlashcardLesson && (
                                                                             <div>
@@ -2082,15 +2477,15 @@ export default function ExpertCurriculumDetail() {
                                                                                             className="btn btn-xs btn-ghost gap-1 rounded-lg text-indigo-600"
                                                                                         >
                                                                                             <Plus className="h-3 w-3" />
-                                                                                            {'T\u1ea1o b\u1ed9'}
+                                                                                            {'Tạo bộ'}
                                                                                         </button>
                                                                                     )}
                                                                                 </div>
 
                                                                                 {lessonFlashcardSets.length === 0 ? (
                                                                                     <div className="rounded-xl border border-dashed border-indigo-500/20 bg-base-100 px-3 py-4 text-center">
-                                                                                        <p className="text-xs font-bold text-base-content/70">{'B\u00e0i n\u00e0y ch\u01b0a c\u00f3 b\u1ed9 flashcard n\u00e0o'}</p>
-                                                                                        <p className="mt-1 text-[11px] text-base-content/45">{'T\u1ea1o m\u1ed9t b\u1ed9 tr\u01b0\u1edbc, sau \u0111\u00f3 th\u00eam c\u00e1c th\u1ebb m\u1eb7t tr\u01b0\u1edbc v\u00e0 m\u1eb7t sau.'}</p>
+                                                                                        <p className="text-xs font-bold text-base-content/70">{'Bài này chưa có bộ flashcard nào'}</p>
+                                                                                        <p className="mt-1 text-[11px] text-base-content/45">{'Tạo một bộ trước, sau đó thêm các thẻ mặt trước và mặt sau.'}</p>
                                                                                     </div>
                                                                                 ) : (
                                                                                     <div className="space-y-3">
@@ -2133,12 +2528,12 @@ export default function ExpertCurriculumDetail() {
                                                                                                             className="btn btn-xs btn-ghost gap-1 rounded-lg text-indigo-600"
                                                                                                         >
                                                                                                             <Plus className="h-3 w-3" />
-                                                                                                            {'Th\u00eam th\u1ebb'}
+                                                                                                            {'Thêm thẻ'}
                                                                                                         </button>
                                                                                                     </div>
 
                                                                                                     {setItems.length === 0 ? (
-                                                                                                        <p className="mt-2 text-[10px] italic text-base-content/35">{'B\u1ed9 n\u00e0y ch\u01b0a c\u00f3 th\u1ebb n\u00e0o.'}</p>
+                                                                                                        <p className="mt-2 text-[10px] italic text-base-content/35">{'Bộ này chưa có thẻ nào.'}</p>
                                                                                                     ) : (
                                                                                                         <div className="mt-3 space-y-2">
                                                                                                             {setItems.map((item, itemIndex) => {
@@ -2200,7 +2595,7 @@ export default function ExpertCurriculumDetail() {
                                                                                                                         </div>
                                                                                                                         <div className="grid gap-3 lg:grid-cols-2">
                                                                                                                             <div className="space-y-2">
-                                                                                                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'M\u1eb7t tr\u01b0\u1edbc'}</p>
+                                                                                                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'Mặt trước'}</p>
                                                                                                                                 {frontImageUrl && (
                                                                                                                                     <img
                                                                                                                                         src={frontImageUrl}
@@ -2208,10 +2603,10 @@ export default function ExpertCurriculumDetail() {
                                                                                                                                         className="max-h-80 w-full rounded-lg border border-base-300 bg-base-200/40 object-contain object-center"
                                                                                                                                     />
                                                                                                                                 )}
-                                                                                                                                <p className="text-xs font-medium text-base-content/80">{frontText || 'Kh\u00f4ng c\u00f3 n\u1ed9i dung ch\u1eef'}</p>
+                                                                                                                                <p className="text-xs font-medium text-base-content/80">{frontText || 'Không có nội dung chữ'}</p>
                                                                                                                             </div>
                                                                                                                             <div className="space-y-2">
-                                                                                                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'M\u1eb7t sau'}</p>
+                                                                                                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">{'Mặt sau'}</p>
                                                                                                                                 {backImageUrl && (
                                                                                                                                     <img
                                                                                                                                         src={backImageUrl}
@@ -2219,7 +2614,7 @@ export default function ExpertCurriculumDetail() {
                                                                                                                                         className="max-h-80 w-full rounded-lg border border-base-300 bg-base-200/40 object-contain object-center"
                                                                                                                                     />
                                                                                                                                 )}
-                                                                                                                                <p className="text-xs font-medium text-base-content/80">{backText || 'Kh\u00f4ng c\u00f3 n\u1ed9i dung ch\u1eef'}</p>
+                                                                                                                                <p className="text-xs font-medium text-base-content/80">{backText || 'Không có nội dung chữ'}</p>
                                                                                                                             </div>
                                                                                                                         </div>
                                                                                                                     </div>
@@ -2251,7 +2646,7 @@ export default function ExpertCurriculumDetail() {
                                                     className="btn btn-sm btn-ghost rounded-xl font-bold text-violet-600 w-full border-2 border-dashed border-base-300 hover:border-violet-500/50 gap-1.5"
                                                 >
                                                     <Plus className="w-4 h-4" />
-                                                    {'\u0054h\u00eam b\u00e0i gi\u1ea3ng'}
+                                                    {'Thêm bài giảng'}
                                                 </button>
                                             </div>
                                         </div>
@@ -2271,7 +2666,7 @@ export default function ExpertCurriculumDetail() {
                             className="btn btn-lg w-full rounded-2xl font-black text-violet-600 bg-base-100 border-2 border-dashed border-violet-500/30 hover:border-violet-500 hover:bg-violet-500/5 transition-all gap-2 shadow-lg"
                         >
                             <FolderPlus className="w-5 h-5" />
-                            {'\u0054h\u00eam ch\u01b0\u01a1ng m\u1edbi'}
+                            {'Thêm chương mới'}
                         </button>
                     </motion.div>
                 )}
@@ -2290,6 +2685,14 @@ export default function ExpertCurriculumDetail() {
                 onSubmit={handleAddLesson}
                 loading={saving}
                 chapterName={showAddLesson ? getChapterName(showAddLesson) : ''}
+                existingLessons={showAddLesson ? getChapterLessons(showAddLesson) : []}
+                onValidationError={(validation) => {
+                    if (!validation?.summary) return;
+                    showToast({
+                        title: 'Cú cần bạn kiểm tra lại bài giảng mới',
+                        message: validation.summary,
+                    }, 'error');
+                }}
             />
             <AddFlashcardCardModal
                 open={!!showAddFlashcardCard}
@@ -2308,19 +2711,19 @@ export default function ExpertCurriculumDetail() {
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="modal-box rounded-2xl border border-base-300 shadow-2xl">
                         <h3 className="font-black text-lg flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center"><PlayCircle className="w-4 h-4 text-white" /></div>
-                            {'\u0054h\u00eam Video'}
+                            {'Thêm Video'}
                         </h3>
                         <form onSubmit={e => { e.preventDefault(); const fd = new FormData(e.target); handleAddVideo({ videoTitle: fd.get('videoTitle'), videoUrl: fd.get('videoUrl'), videoDescription: fd.get('videoDescription') }); }} className="mt-4 space-y-3">
-                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Ti\u00eau \u0111\u1ec1 video'} <span className="text-red-500">*</span></span></label>
-                                <input name="videoTitle" type="text" placeholder="VD: Gi\u1edbi thi\u1ec7u b\u00e0i h\u1ecdc" className="input input-bordered input-sm rounded-xl w-full font-medium" required autoFocus /></div>
+                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Tiêu đề video'} <span className="text-red-500">*</span></span></label>
+                                <input name="videoTitle" type="text" placeholder="VD: Giới thiệu bài học" className="input input-bordered input-sm rounded-xl w-full font-medium" required autoFocus /></div>
                             <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">URL Video <span className="text-red-500">*</span></span></label>
                                 <input name="videoUrl" type="url" placeholder="https://youtube.com/watch?v=..." className="input input-bordered input-sm rounded-xl w-full font-medium" required /></div>
-                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'\u004d\u00f4 t\u1ea3 (t\u00f9y ch\u1ecdn)'}</span></label>
-                                <textarea name="videoDescription" placeholder="M\u00f4 t\u1ea3 n\u1ed9i dung video..." className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none" rows={2} /></div>
+                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Mô tả (tùy chọn)'}</span></label>
+                                <textarea name="videoDescription" placeholder="Mô tả nội dung video..." className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none" rows={2} /></div>
                             <div className="modal-action">
-                                <button type="button" onClick={() => setShowAddVideo(null)} className="btn btn-sm btn-ghost rounded-xl font-bold">{'H\u1ee7y'}</button>
+                                <button type="button" onClick={() => setShowAddVideo(null)} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Hủy'}</button>
                                 <button type="submit" disabled={saving} className="btn btn-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-none rounded-xl font-bold gap-1.5">
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} {'\u0054h\u00eam video'}
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} {'Thêm video'}
                                 </button>
                             </div>
                         </form>
@@ -2335,7 +2738,7 @@ export default function ExpertCurriculumDetail() {
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="modal-box rounded-2xl border border-base-300 shadow-2xl">
                         <h3 className="font-black text-lg flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center"><FileText className="w-4 h-4 text-white" /></div>
-                            {'\u0054h\u00eam T\u00e0i li\u1ec7u'}
+                            {'Thêm Tài liệu'}
                         </h3>
                         <form onSubmit={e => {
                             e.preventDefault();
@@ -2352,25 +2755,25 @@ export default function ExpertCurriculumDetail() {
                                 documentDescription: fd.get('documentDescription'),
                             });
                         }} className="mt-4 space-y-3">
-                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Ti\u00eau \u0111\u1ec1'} <span className="text-red-500">*</span></span></label>
-                                <input name="documentTitle" type="text" placeholder="VD: Slide b\u00e0i gi\u1ea3ng" className="input input-bordered input-sm rounded-xl w-full font-medium" required autoFocus /></div>
-                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'T\u1ea3i file t\u1eeb m\u00e1y'}</span></label>
+                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Tiêu đề'} <span className="text-red-500">*</span></span></label>
+                                <input name="documentTitle" type="text" placeholder="VD: Slide bài giảng" className="input input-bordered input-sm rounded-xl w-full font-medium" required autoFocus /></div>
+                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Tải file từ máy'}</span></label>
                                 <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt" className="file-input file-input-bordered file-input-sm rounded-xl w-full font-medium" /></div>
-                            <div className="divider text-[10px] font-bold text-base-content/40 uppercase my-1">{'ho\u1eb7c d\u00f9ng link'}</div>
-                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'URL T\u00e0i li\u1ec7u'}</span></label>
+                            <div className="divider text-[10px] font-bold text-base-content/40 uppercase my-1">{'hoặc dùng link'}</div>
+                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'URL Tài liệu'}</span></label>
                                 <input name="fileUrl" type="url" placeholder="https://drive.google.com/..." className="input input-bordered input-sm rounded-xl w-full font-medium" /></div>
                             <div className="flex gap-2">
-                                <div className="form-control flex-1"><label className="label py-1"><span className="label-text font-bold text-xs">{'T\u00ean file'}</span></label>
+                                <div className="form-control flex-1"><label className="label py-1"><span className="label-text font-bold text-xs">{'Tên file'}</span></label>
                                     <input name="fileName" type="text" placeholder="document.pdf" className="input input-bordered input-sm rounded-xl w-full font-medium" /></div>
-                                <div className="form-control w-28"><label className="label py-1"><span className="label-text font-bold text-xs">{'Lo\u1ea1i file'}</span></label>
+                                <div className="form-control w-28"><label className="label py-1"><span className="label-text font-bold text-xs">{'Loại file'}</span></label>
                                     <select name="fileType" className="select select-bordered select-sm rounded-xl font-medium"><option value="pdf">PDF</option><option value="doc">DOC</option><option value="docx">DOCX</option><option value="ppt">PPT</option><option value="txt">TXT</option></select></div>
                             </div>
-                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'\u004d\u00f4 t\u1ea3 (t\u00f9y ch\u1ecdn)'}</span></label>
-                                <textarea name="documentDescription" placeholder="M\u00f4 t\u1ea3 t\u00e0i li\u1ec7u..." className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none" rows={2} /></div>
+                            <div className="form-control"><label className="label py-1"><span className="label-text font-bold text-xs">{'Mô tả (tùy chọn)'}</span></label>
+                                <textarea name="documentDescription" placeholder="Mô tả tài liệu..." className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none" rows={2} /></div>
                             <div className="modal-action">
-                                <button type="button" onClick={() => setShowAddDocument(null)} className="btn btn-sm btn-ghost rounded-xl font-bold">{'H\u1ee7y'}</button>
+                                <button type="button" onClick={() => setShowAddDocument(null)} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Hủy'}</button>
                                 <button type="submit" disabled={saving} className="btn btn-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-none rounded-xl font-bold gap-1.5">
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} {'\u0054h\u00eam t\u00e0i li\u1ec7u'}
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} {'Thêm tài liệu'}
                                 </button>
                             </div>
                         </form>
@@ -2398,7 +2801,7 @@ export default function ExpertCurriculumDetail() {
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
                                     <PlayCircle className="w-4 h-4 text-white" />
                                 </div>
-                                {'Xem tr\u01b0\u1edbc Video'}
+                                {'Xem trước Video'}
                             </h3>
                             <button onClick={() => setPreviewVideo(null)} className="btn btn-ghost btn-sm btn-circle"><X className="w-5 h-5"/></button>
                         </div>
@@ -2413,7 +2816,7 @@ export default function ExpertCurriculumDetail() {
                                 />
                             ) : (
                                 <video src={previewVideo.videoUrl} controls className="w-full h-full">
-                                    {'Tr\u00ecnh duy\u1ec7t kh\u00f4ng h\u1ed7 tr\u1ee3 ph\u00e1t video.'}
+                                    {'Trình duyệt không hỗ trợ phát video.'}
                                 </video>
                             )}
                         </div>
@@ -2452,11 +2855,11 @@ export default function ExpertCurriculumDetail() {
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
                                     <FileText className="w-4 h-4 text-white" />
                                 </div>
-                                {'Xem tr\u01b0\u1edbc T\u00e0i li\u1ec7u'}
+                                {'Xem trước Tài liệu'}
                             </h3>
                             <div className="flex items-center gap-2">
                                 <a href={previewDocument.fileUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5 text-emerald-600">
-                                    <ExternalLink className="w-3.5 h-3.5"/> {'M\u1edf link g\u1ed1c'}
+                                    <ExternalLink className="w-3.5 h-3.5"/> {'Mở link gốc'}
                                 </a>
                                 <button onClick={() => setPreviewDocument(null)} className="btn btn-ghost btn-sm btn-circle"><X className="w-5 h-5"/></button>
                             </div>
@@ -2503,7 +2906,7 @@ export default function ExpertCurriculumDetail() {
                                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/25">
                                     <HelpCircle className="w-4 h-4 text-white" />
                                 </div>
-                                {'Xem tr\u01b0\u1edbc C\u00e2u h\u1ecfi'}
+                                {'Xem trước Câu hỏi'}
                             </h3>
                             <button onClick={() => setPreviewQuestion(null)} className="btn btn-ghost btn-sm btn-circle"><X className="w-5 h-5"/></button>
                         </div>
@@ -2517,10 +2920,10 @@ export default function ExpertCurriculumDetail() {
                                     previewQuestion.difficultyLevel === 'hard' ? 'bg-red-500/10 text-red-600 ring-1 ring-red-500/20' :
                                     'bg-amber-500/10 text-amber-600 ring-1 ring-amber-500/20'
                                 }`}>
-                                    {previewQuestion.difficultyLevel === 'easy' ? '\u0044\u1ec5' : previewQuestion.difficultyLevel === 'hard' ? '\u004b\u0068\u00f3' : '\u0054\u0072\u0075\u006e\u0067 b\u00ecnh'}
+                                    {previewQuestion.difficultyLevel === 'easy' ? 'Dễ' : previewQuestion.difficultyLevel === 'hard' ? 'Khó' : 'Trung bình'}
                                 </span>
                                 <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 ring-1 ring-violet-500/20">
-                                    {previewQuestion.questionType === 'multiple_choice' ? '\u0054\u0072\u1eafc nghi\u1ec7m' : previewQuestion.questionType === 'true_false' ? '\u0110\u00fang/Sai' : '\u0110i\u1ec1n t\u1eeb'}
+                                    {previewQuestion.questionType === 'multiple_choice' ? 'Trắc nghiệm' : previewQuestion.questionType === 'true_false' ? 'Đúng/Sai' : 'Điền từ'}
                                 </span>
                             </div>
 
@@ -2550,7 +2953,7 @@ export default function ExpertCurriculumDetail() {
                                                 o.isCorrect ? 'font-bold text-emerald-700' : 'text-base-content/70'
                                             }`}>{o.optionText}</span>
                                             {o.isCorrect && (
-                                                <span className="ml-auto text-[10px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">{'\u0110\u00e1p \u00e1n \u0111\u00fang'}</span>
+                                                <span className="ml-auto text-[10px] font-black text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">{'Đáp án đúng'}</span>
                                             )}
                                         </div>
                                     ))}
@@ -2561,7 +2964,7 @@ export default function ExpertCurriculumDetail() {
                             {previewQuestion.questionExplanation && (
                                 <div className="mt-4 p-3.5 rounded-xl bg-blue-500/5 border border-blue-500/20">
                                     <p className="text-xs font-black text-blue-600 mb-1.5 flex items-center gap-1.5">
-                                        <MessageSquare className="w-3.5 h-3.5"/> {'Gi\u1ea3i th\u00edch \u0111\u00e1p \u00e1n'}
+                                        <MessageSquare className="w-3.5 h-3.5"/> {'Giải thích đáp án'}
                                     </p>
                                     <p className="text-sm text-base-content/70 leading-relaxed">{previewQuestion.questionExplanation}</p>
                                 </div>
@@ -2569,7 +2972,7 @@ export default function ExpertCurriculumDetail() {
                         </div>
 
                         <div className="mt-4 text-center">
-                            <p className="text-[10px] text-base-content/30 font-medium">{'\u0110\u00e2y l\u00e0 giao di\u1ec7n xem tr\u01b0\u1edbc c\u00e2u h\u1ecfi m\u00e0 h\u1ecdc vi\u00ean s\u1ebd th\u1ea5y.'}</p>
+                            <p className="text-[10px] text-base-content/30 font-medium">{'Đây là giao diện xem trước câu hỏi mà học viên sẽ thấy.'}</p>
                         </div>
                     </motion.div>
                     <div className="modal-backdrop bg-black/60 backdrop-blur-sm" onClick={() => setPreviewQuestion(null)} />
