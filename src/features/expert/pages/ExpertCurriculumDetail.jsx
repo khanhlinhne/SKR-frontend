@@ -1566,6 +1566,48 @@ export default function ExpertCurriculumDetail() {
         await loadLessonContent(chapterId, lessonId, lesson);
     };
 
+    const appendCreatedQuestionsToState = useCallback((chapterId, lessonId, createdQuestions = []) => {
+        if (!Array.isArray(createdQuestions) || createdQuestions.length === 0) {
+            return;
+        }
+
+        setChapters((prev) => prev.map((chapter) => {
+            if ((chapter.chapterId || chapter.id) !== chapterId) {
+                return chapter;
+            }
+
+            return {
+                ...chapter,
+                lessons: (chapter.lessons || []).map((lesson) => {
+                    if ((lesson.lessonId || lesson.id) !== lessonId) {
+                        return lesson;
+                    }
+
+                    const currentTotalQuestions = Number(lesson.totalQuestions ?? 0);
+                    return {
+                        ...lesson,
+                        totalQuestions: currentTotalQuestions + createdQuestions.length,
+                    };
+                }),
+            };
+        }));
+
+        setLessonContent((prev) => {
+            if (!prev || selectedLesson?.chapterId !== chapterId || selectedLesson?.lessonId !== lessonId) {
+                return prev;
+            }
+
+            const existingQuestions = Array.isArray(prev.questions) ? prev.questions : [];
+            const currentTotalQuestions = Number(prev.totalQuestions ?? existingQuestions.length);
+
+            return {
+                ...prev,
+                totalQuestions: currentTotalQuestions + createdQuestions.length,
+                questions: [...createdQuestions.slice().reverse(), ...existingQuestions],
+            };
+        });
+    }, [selectedLesson]);
+
     const handleAddVideo = async (form) => {
         const { chapterId, lessonId } = showAddVideo;
         setSaving(true);
@@ -1700,9 +1742,22 @@ export default function ExpertCurriculumDetail() {
 
     const handleAddQuestion = async (form, options = {}) => {
         const { chapterId, lessonId } = showAddQuestion;
+        const questionPayloads = Array.isArray(form) ? form.filter(Boolean) : [form].filter(Boolean);
+        const totalQuestions = questionPayloads.length;
+
+        if (!chapterId || !lessonId || totalQuestions === 0) {
+            return false;
+        }
+
         setSaving(true);
+        const createdQuestions = [];
         try {
-            await courseApi.addQuestion(courseId, chapterId, lessonId, form);
+            for (const questionPayload of questionPayloads) {
+                // Backend endpoint expects a single question object per request.
+                const response = await courseApi.addQuestion(courseId, chapterId, lessonId, questionPayload);
+                createdQuestions.push(response?.data || response);
+            }
+            appendCreatedQuestionsToState(chapterId, lessonId, createdQuestions);
             showToast({
                 title: 'Đã thêm câu hỏi',
                 message: 'Câu hỏi mới đã được thêm vào bài giảng.',
@@ -1710,8 +1765,11 @@ export default function ExpertCurriculumDetail() {
             if (!options.keepOpen) {
                 setShowAddQuestion(null);
             }
-            await loadLessonContent(chapterId, lessonId);
+            return true;
         } catch (err) {
+            if (createdQuestions.length > 0) {
+                appendCreatedQuestionsToState(chapterId, lessonId, createdQuestions);
+            }
             showToast({
                 title: 'Chưa thể thêm câu hỏi',
                 message: err.response?.data?.message || 'Cú chưa thêm được câu hỏi vào bài giảng.',
@@ -1957,6 +2015,14 @@ export default function ExpertCurriculumDetail() {
             </ExpertLayout>
         );
     }
+
+    const questionModalContextTitle = showAddQuestion
+        ? [
+            course?.courseName,
+            chapters.find((chapter) => (chapter.chapterId || chapter.id) === showAddQuestion.chapterId)?.chapterName,
+            getLessonById(showAddQuestion.chapterId, showAddQuestion.lessonId)?.lessonName,
+        ].filter(Boolean).join(' / ')
+        : '';
 
     return (
         <ExpertLayout>
@@ -2783,7 +2849,15 @@ export default function ExpertCurriculumDetail() {
             )}
 
             {/* Add Question Modal */}
-            {showAddQuestion && <AddQuestionModal open={true} onClose={() => setShowAddQuestion(null)} onSubmit={handleAddQuestion} loading={saving} />}
+            {showAddQuestion && (
+                <AddQuestionModal
+                    open={true}
+                    onClose={() => setShowAddQuestion(null)}
+                    onSubmit={handleAddQuestion}
+                    loading={saving}
+                    contextTitle={questionModalContextTitle}
+                />
+            )}
 
             {/* ===== VIDEO PREVIEW MODAL ===== */}
             <AnimatePresence>
