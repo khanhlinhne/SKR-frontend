@@ -5,7 +5,7 @@ import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 /**
  * FlashcardsHeader - Header component for flashcards page
  */
-export default function FlashcardsHeader({ onCreateNew }) {
+export default function FlashcardsHeader({ onCreateNew, searchValue = '', onSearchChange }) {
     const { profile } = useCurrentUserProfile();
     const userData = {
         name: profile.name || 'Người dùng',
@@ -31,6 +31,8 @@ export default function FlashcardsHeader({ onCreateNew }) {
                     <div className="relative">
                         <input
                             type="text"
+                            value={searchValue}
+                            onChange={(event) => onSearchChange?.(event.target.value)}
                             placeholder="Tìm flashcard..."
                             className="input input-bordered w-64 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
                         />

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
-import { OwlLoader, StatCard, ViewToggle } from '@/shared/ui/common';
+import { OwlDialog, OwlLoader, StatCard, ViewToggle, useOwlDialog } from '@/shared/ui/common';
+import quizApi from '@/shared/api/quizApi';
+import Icon from '@/shared/ui/icons/Icon';
 import {
     TestCard,
     TestListItem,
@@ -11,6 +13,25 @@ import {
 } from '@/features/tests/components';
 import { useQuizPractices } from '@/features/tests/hooks/useQuiz';
 
+const SYSTEM_PRACTICE_SEED_TITLES = new Set([
+    'kiem tra kien thuc lap trinh web co ban',
+    'thu thach javascript nang cao',
+    'on tap git & devops',
+    'tong hop kien thuc backend',
+    'mini quiz - nhanh tri cntt',
+]);
+
+function normalizePracticeTitle(title) {
+    return String(title || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+}
+
+function isDeletablePractice(test) {
+    return !SYSTEM_PRACTICE_SEED_TITLES.has(normalizePracticeTitle(test?.testTitle));
+}
+
 /**
  * Tests Page — Danh sách bài thi thử
  * Route: /tests
@@ -18,11 +39,13 @@ import { useQuizPractices } from '@/features/tests/hooks/useQuiz';
  */
 export default function Tests() {
     const { practices, loading, error, refresh } = useQuizPractices();
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
 
     const [viewMode, setViewMode] = useState('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [filterDifficulty, setFilterDifficulty] = useState('all');
     const [sortBy, setSortBy] = useState('recent');
+    const [deletingTestId, setDeletingTestId] = useState(null);
 
     // Track if initial animation has played
     const [hasAnimated, setHasAnimated] = useState(false);
@@ -79,9 +102,68 @@ export default function Tests() {
                 default: return 0;
             }
         });
+    const deletableFilteredTests = filteredTests.filter(isDeletablePractice);
 
     const handleCreateTest = () => {
         refresh(); // Refetch after creating
+    };
+
+    const handleDeleteTest = (test) => {
+        if (!isDeletablePractice(test)) {
+            return;
+        }
+
+        openDialog({
+            variant: 'warning',
+            title: 'Xóa bài thi này?',
+            message: `Cú nhắc bạn rằng bài thi "${test.testTitle}" sẽ bị xóa khỏi danh sách luyện tập của bạn.`,
+            details: 'Bạn vẫn nên cân nhắc nếu bài thi này đang có lịch sử làm bài hoặc kết quả muốn giữ lại.',
+            confirmLabel: 'Xóa bài thi',
+            cancelLabel: 'Giữ lại',
+            showCancel: true,
+            confirmTone: 'danger',
+            onConfirm: async () => {
+                try {
+                    setDeletingTestId(test.practiceTestId);
+                    await quizApi.deletePractice(test.practiceTestId);
+                    await refresh();
+                    openDialog({
+                        variant: 'success',
+                        title: 'Đã xóa bài thi',
+                        message: `Bài thi "${test.testTitle}" đã được gỡ khỏi danh sách của bạn.`,
+                        details: 'Nếu cần, bạn có thể tạo lại một bài thi mới với bộ câu hỏi khác.',
+                        confirmLabel: 'Đã hiểu',
+                        confirmTone: 'success',
+                    });
+                } catch (deleteError) {
+                    const backendMessage = deleteError?.response?.data?.message || '';
+                    if (deleteError?.response?.status === 404) {
+                        await refresh();
+                        openDialog({
+                            variant: 'warning',
+                            title: 'Bài thi không còn trong danh sách',
+                            message: backendMessage || 'Bài thi này đã bị xóa hoặc không còn khả dụng.',
+                            details: 'Cú đã làm mới lại danh sách để đồng bộ với backend.',
+                            confirmLabel: 'Đã hiểu',
+                            confirmTone: 'warning',
+                        });
+                    } else {
+                        openDialog({
+                            variant: 'error',
+                            title: 'Chưa thể xóa bài thi',
+                            message: backendMessage || 'Máy chủ chưa xử lý được yêu cầu xóa bài thi này.',
+                            details: 'Thử lại sau ít phút. Nếu lỗi lặp lại, kiểm tra backend hoặc trạng thái kết nối.',
+                            confirmLabel: 'Đóng',
+                            confirmTone: 'danger',
+                        });
+                    }
+                } finally {
+                    setDeletingTestId(null);
+                }
+
+                return false;
+            },
+        });
     };
 
     return (
@@ -137,6 +219,71 @@ export default function Tests() {
                                     <option value="name">Theo tên</option>
                                 </select>
 
+                                {deletableFilteredTests.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            openDialog({
+                                                variant: 'warning',
+                                                title: 'Xóa tất cả bài tự tạo đang hiển thị?',
+                                                message: `Cú nhắc bạn rằng thao tác này sẽ xóa ${deletableFilteredTests.length} bài thi do bạn tạo trong danh sách hiện tại.`,
+                                                details: 'Các bài thi mẫu của hệ thống sẽ được giữ nguyên và không bị ảnh hưởng.',
+                                                confirmLabel: 'Xóa bài tự tạo',
+                                                cancelLabel: 'Hủy',
+                                                showCancel: true,
+                                                confirmTone: 'danger',
+                                                onConfirm: async () => {
+                                                    try {
+                                                        setDeletingTestId('__bulk__');
+                                                        const results = await Promise.allSettled(
+                                                            deletableFilteredTests.map((test) => quizApi.deletePractice(test.practiceTestId))
+                                                        );
+                                                        const failedCount = results.filter((result) => result.status === 'rejected').length;
+                                                        await refresh();
+
+                                                        if (failedCount > 0) {
+                                                            openDialog({
+                                                                variant: 'warning',
+                                                                title: 'Xóa chưa hoàn tất',
+                                                                message: `Đã xóa ${deletableFilteredTests.length - failedCount}/${deletableFilteredTests.length} bài thi tự tạo.`,
+                                                                details: 'Một vài bài chưa xóa được. Bạn có thể thử lại thêm lần nữa.',
+                                                                confirmLabel: 'Đã hiểu',
+                                                                confirmTone: 'warning',
+                                                            });
+                                                        } else {
+                                                            openDialog({
+                                                                variant: 'success',
+                                                                title: 'Đã xóa toàn bộ',
+                                                                message: `Cú đã gỡ ${deletableFilteredTests.length} bài thi tự tạo khỏi danh sách của bạn.`,
+                                                                details: 'Các bài thi mẫu của hệ thống vẫn được giữ nguyên.',
+                                                                confirmLabel: 'Đã hiểu',
+                                                                confirmTone: 'success',
+                                                            });
+                                                        }
+                                                    } catch (bulkError) {
+                                                        openDialog({
+                                                            variant: 'error',
+                                                            title: 'Chưa thể xóa toàn bộ',
+                                                            message: bulkError?.response?.data?.message || 'Máy chủ chưa xử lý được yêu cầu xóa hàng loạt.',
+                                                            details: 'Thử lại sau hoặc xóa từng bài nếu cần xử lý ngay.',
+                                                            confirmLabel: 'Đóng',
+                                                            confirmTone: 'danger',
+                                                        });
+                                                    } finally {
+                                                        setDeletingTestId(null);
+                                                    }
+
+                                                    return false;
+                                                },
+                                            });
+                                        }}
+                                        className="btn btn-sm rounded-xl border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                                    >
+                                        <Icon name="Trash2" size="sm" />
+                                        Xóa bài tự tạo
+                                    </button>
+                                )}
+
                                 {/* View Toggle */}
                                 <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
                             </div>
@@ -179,11 +326,18 @@ export default function Tests() {
                                 viewMode === 'grid' ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredTests.map((test, index) => (
-                                            <TestCard key={test.practiceTestId} test={test} index={index} variants={cardVariants} />
+                                            <TestCard
+                                                key={test.practiceTestId}
+                                                test={test}
+                                                index={index}
+                                                variants={cardVariants}
+                                                onDelete={isDeletablePractice(test) ? handleDeleteTest : undefined}
+                                                deleting={deletingTestId === test.practiceTestId}
+                                            />
                                         ))}
 
                                         {/* Add Test Card */}
-                                        <motion.div variants={cardVariants}>
+                                        <motion.div variants={cardVariants} initial="hidden" animate="visible">
                                             <motion.button
                                                 whileHover={{ y: -4, scale: 1.01 }}
                                                 whileTap={{ scale: 0.98 }}
@@ -204,7 +358,13 @@ export default function Tests() {
                                 ) : (
                                     <div className="space-y-3">
                                         {filteredTests.map((test) => (
-                                            <TestListItem key={test.practiceTestId} test={test} variants={cardVariants} />
+                                            <TestListItem
+                                                key={test.practiceTestId}
+                                                test={test}
+                                                variants={cardVariants}
+                                                onDelete={isDeletablePractice(test) ? handleDeleteTest : undefined}
+                                                deleting={deletingTestId === test.practiceTestId}
+                                            />
                                         ))}
                                     </div>
                                 )
@@ -290,6 +450,21 @@ export default function Tests() {
                     onCreate={handleCreateTest}
                 />
             )}
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onConfirm={handleDialogConfirm}
+                onClose={closeDialog}
+            />
         </div>
     );
 }

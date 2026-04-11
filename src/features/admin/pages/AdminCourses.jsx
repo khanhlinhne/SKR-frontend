@@ -5,7 +5,7 @@ import { AdminLayout } from '@/features/admin/components';
 import adminApi from '@/shared/api/adminApi';
 import CourseEditModal from '@/features/admin/components/adminCourses/CourseEditModal';
 import CourseCreateModal from '@/features/admin/components/adminCourses/CourseCreateModal';
-import { OwlLoader } from '@/shared/ui/common';
+import { OwlDialog, OwlLoader, useOwlDialog } from '@/shared/ui/common';
 import {
     Search,
     Plus,
@@ -278,7 +278,7 @@ function PublishToggle({ course, onToggle, loading }) {
 
 // ─── Admin Course Card (Grid View) ────────────────────────
 
-function AdminCourseCard({ course, onView, onEdit, onTogglePublish, togglingId }) {
+function AdminCourseCard({ course, onView, onEdit }) {
     const status = statusConfig[course.status] || statusConfig.draft;
     const StatusIcon = status.icon;
     const isFree = course.price === 0;
@@ -461,6 +461,7 @@ export default function AdminCourses() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [togglingId, setTogglingId] = useState(null);
     const navigate = useNavigate();
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
 
     // ─── Fetch courses ───────────────────────────────────────
     const fetchCourses = useCallback(async () => {
@@ -520,6 +521,45 @@ export default function AdminCourses() {
         setCourses(prev => [normalizeCourse(newCourse), ...prev]);
         setShowCreateModal(false);
     };
+
+    const handleDeleteCourse = useCallback((course) => {
+        openDialog({
+            variant: 'warning',
+            title: `Xóa khóa học "${course.name}"?`,
+            message: 'Cú quản trị đang chờ bạn xác nhận trước khi gửi yêu cầu xóa khóa học này.',
+            details: 'Nếu tiếp tục, khóa học sẽ bị gỡ khỏi danh sách quản lý hiện tại.',
+            showCancel: true,
+            confirmLabel: 'Xóa khóa học',
+            cancelLabel: 'Giữ lại',
+            confirmTone: 'danger',
+            onConfirm: async () => {
+                try {
+                    await adminApi.deleteCourse(course.id);
+                    setCourses(prev => prev.filter(c => c.id !== course.id));
+                    openDialog({
+                        variant: 'success',
+                        title: 'Đã xóa khóa học',
+                        message: `Khóa học "${course.name}" đã được gỡ khỏi dashboard quản trị.`,
+                        details: 'Danh sách khóa học vừa được cập nhật lại.',
+                        confirmLabel: 'Đã rõ',
+                        confirmTone: 'success',
+                    });
+                } catch (err) {
+                    console.error('Lỗi khi xóa khóa học:', err);
+                    openDialog({
+                        variant: 'error',
+                        title: 'Chưa thể xóa khóa học',
+                        message: `Cú chưa thể xóa "${course.name}" ở thời điểm này.`,
+                        details: 'Vui lòng thử lại sau hoặc kiểm tra dữ liệu liên quan rồi thao tác lại.',
+                        confirmLabel: 'Đã hiểu',
+                        confirmTone: 'warning',
+                    });
+                }
+
+                return false;
+            },
+        });
+    }, [openDialog]);
 
     // ─── Filter + sort ───────────────────────────────────────
     const filteredCourses = useMemo(() => {
@@ -908,15 +948,7 @@ export default function AdminCourses() {
                                                                     <Edit3 className="w-3.5 h-3.5 text-blue-600" />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => {
-                                                                        if (window.confirm(`Bạn có chắc muốn xóa khóa học "${course.name}"?`)) {
-                                                                            adminApi.deleteCourse(course.id).then(() => {
-                                                                                setCourses(prev => prev.filter(c => c.id !== course.id));
-                                                                            }).catch(err => {
-                                                                                console.error('Lỗi khi xóa khóa học:', err);
-                                                                            });
-                                                                        }
-                                                                    }}
+                                                                    onClick={() => handleDeleteCourse(course)}
                                                                     className="btn btn-ghost btn-xs btn-circle hover:bg-red-500/10"
                                                                     title="Xóa"
                                                                 >
@@ -989,6 +1021,21 @@ export default function AdminCourses() {
                     />
                 )}
             </AnimatePresence>
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onClose={closeDialog}
+                onConfirm={handleDialogConfirm}
+            />
         </AdminLayout>
     );
 }

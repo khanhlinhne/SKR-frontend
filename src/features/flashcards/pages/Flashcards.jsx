@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
 import { DashboardSidebar } from '@/features/learner/components';
@@ -172,12 +172,40 @@ function isSameEntityId(left, right) {
     return Boolean(normalizedLeft && normalizedRight && normalizedLeft === normalizedRight);
 }
 
+function normalizeSearchText(value) {
+    if (value == null) {
+        return '';
+    }
+
+    return String(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .trim()
+        .toLowerCase();
+}
+
+function resolveDeckSubjectMeta(deck) {
+    const subjectId = deck.courseId || deck.subjectId || deck.course?.subjectId || deck.course?.courseId || null;
+    const subjectName =
+        deck.course?.subjectName ||
+        deck.course?.courseName ||
+        deck.subjectName ||
+        (Array.isArray(deck.tags) && deck.tags.length > 0 ? deck.tags[0] : '') ||
+        '';
+
+    return {
+        subjectId,
+        subjectName: subjectName || (deck.visibility === 'public' ? 'Công khai' : 'Cá nhân'),
+    };
+}
+
 function normalizeDeck(deck, index, currentUserId) {
     const totalCards = Number(deck.totalCards || 0);
     const mastered = Number(deck.masteredCount || deck.mastered || 0);
     const learning = Math.max(totalCards - mastered, 0);
     const creatorId = deck.creatorId || deck.creator?.userId || deck.creator?.id || deck.creator_id || null;
-
     return {
         id: deck.flashcardSetId || deck.id,
         name: deck.setTitle || deck.name || 'Bộ flashcard chưa đặt tên',
@@ -218,7 +246,16 @@ function normalizeCard(item, index) {
 function extractDecksFromResponse(response, currentUserId) {
     const payload = response?.data?.data || response?.data || response;
     const items = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
-    return items.map((deck, index) => normalizeDeck(deck, index, currentUserId));
+    return items.map((deck, index) => {
+        const normalizedDeck = normalizeDeck(deck, index, currentUserId);
+        const { subjectId, subjectName } = resolveDeckSubjectMeta(deck);
+
+        return {
+            ...normalizedDeck,
+            subject: subjectName || normalizedDeck.subject,
+            subjectId,
+        };
+    });
 }
 
 function extractItemsFromResponse(response) {
@@ -258,6 +295,8 @@ export default function Flashcards() {
     });
     const [manualSyncing, setManualSyncing] = useState(false);
     const [subjectOptions, setSubjectOptions] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedSubject, setSelectedSubject] = useState('all');
     const [hasAnimated, setHasAnimated] = useState(false);
     const [deletingDeckId, setDeletingDeckId] = useState(null);
     const [deckDeleteCandidate, setDeckDeleteCandidate] = useState(null);
@@ -333,6 +372,10 @@ export default function Flashcards() {
     useEffect(() => {
         fetchDecks();
     }, [fetchDecks]);
+
+    useEffect(() => {
+        void fetchSubjects();
+    }, [fetchSubjects]);
 
     useEffect(() => {
         if (!showCreateModal || subjectOptions.length > 0) {
@@ -685,10 +728,67 @@ export default function Flashcards() {
               },
           };
 
+    const availableSubjects = useMemo(() => {
+        const optionMap = new Map();
+
+        subjectOptions.forEach((option) => {
+            const normalizedId = normalizeComparableId(option.value);
+            if (normalizedId && option.label) {
+                optionMap.set(normalizedId, {
+                    value: normalizedId,
+                    label: option.label,
+                });
+            }
+        });
+
+        decks.forEach((deck) => {
+            const normalizedId = normalizeComparableId(deck.subjectId);
+            const fallbackValue = normalizedId || normalizeSearchText(deck.subject);
+            const fallbackLabel = deck.subject || 'Chưa phân môn';
+
+            if (!fallbackValue || optionMap.has(fallbackValue)) {
+                return;
+            }
+
+            optionMap.set(fallbackValue, {
+                value: fallbackValue,
+                label: fallbackLabel,
+            });
+        });
+
+        return Array.from(optionMap.values()).sort((left, right) => left.label.localeCompare(right.label, 'vi'));
+    }, [decks, subjectOptions]);
+
+    const filteredDecks = useMemo(() => {
+        const normalizedQuery = normalizeSearchText(searchQuery);
+
+        return decks.filter((deck) => {
+            const deckSubjectKey = normalizeComparableId(deck.subjectId) || normalizeSearchText(deck.subject);
+            const matchesSubject = selectedSubject === 'all' || deckSubjectKey === selectedSubject;
+
+            if (!matchesSubject) {
+                return false;
+            }
+
+            if (!normalizedQuery) {
+                return true;
+            }
+
+            const searchableText = normalizeSearchText([
+                deck.name,
+                deck.description,
+                deck.subject,
+                deck.creatorName,
+            ].filter(Boolean).join(' '));
+
+            return searchableText.includes(normalizedQuery);
+        });
+    }, [decks, searchQuery, selectedSubject]);
+
     const stats = {
-        totalCards: decks.reduce((sum, deck) => sum + (deck.totalCards || 0), 0),
-        mastered: decks.reduce((sum, deck) => sum + (deck.mastered || 0), 0),
-        dueToday: decks.reduce((sum, deck) => sum + (deck.dueToday || 0), 0),
+        totalCards: filteredDecks.reduce((sum, deck) => sum + (deck.totalCards || 0), 0),
+        mastered: filteredDecks.reduce((sum, deck) => sum + (deck.mastered || 0), 0),
+        dueToday: filteredDecks.reduce((sum, deck) => sum + (deck.dueToday || 0), 0),
         streak: 0,
     };
 
@@ -1083,6 +1183,8 @@ export default function Flashcards() {
         }
     };
 
+    void handleDeleteDeck;
+
     const openDeleteDeckConfirm = (deckId) => {
         const requestDeckId = deckId == null ? '' : String(deckId).trim();
         const normalizedDeckId = normalizeComparableId(requestDeckId);
@@ -1237,7 +1339,11 @@ export default function Flashcards() {
         <div className="flex h-screen bg-base-200 overflow-hidden">
             <DashboardSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
-                <FlashcardsHeader onCreateNew={() => setShowCreateModal(true)} />
+                <FlashcardsHeader
+                    onCreateNew={() => setShowCreateModal(true)}
+                    searchValue={searchQuery}
+                    onSearchChange={setSearchQuery}
+                />
 
                 <motion.main className="flex-1 overflow-y-auto p-6 lg:p-8" variants={containerVariants} initial="hidden" animate="visible">
                     <div className="grid grid-cols-1 gap-4 mb-8 md:grid-cols-4">
@@ -1249,7 +1355,35 @@ export default function Flashcards() {
 
                     <motion.div variants={cardVariants}>
                         <SectionHeader title="Bộ Flashcard" badge={`${decks.length} bộ`}>
-                            <FilterSortControls />
+                            <FilterSortControls
+                                filterLabel={selectedSubject === 'all'
+                                    ? 'Lọc'
+                                    : `Môn: ${availableSubjects.find((option) => option.value === selectedSubject)?.label || 'Đã chọn'}`}
+                                filterContent={(
+                                    <div className="dropdown-content z-[20] mt-2 w-72 rounded-2xl border border-base-300 bg-base-100 p-3 shadow-2xl">
+                                        <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wide text-base-content/50">Lọc theo môn</p>
+                                        <div className="flex flex-col gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedSubject('all')}
+                                                className={`btn btn-sm justify-start rounded-xl ${selectedSubject === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                                            >
+                                                Tất cả môn
+                                            </button>
+                                            {availableSubjects.map((subject) => (
+                                                <button
+                                                    key={subject.value}
+                                                    type="button"
+                                                    onClick={() => setSelectedSubject(subject.value)}
+                                                    className={`btn btn-sm justify-start rounded-xl ${selectedSubject === subject.value ? 'btn-primary' : 'btn-ghost'}`}
+                                                >
+                                                    {subject.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            />
                             <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
                         </SectionHeader>
                     </motion.div>
@@ -1278,10 +1412,27 @@ export default function Flashcards() {
                         </div>
                     )}
 
-                    {!loading && !error && decks.length > 0 && (
+                    {!loading && !error && decks.length > 0 && filteredDecks.length === 0 && (
+                        <div className="rounded-3xl border border-dashed border-base-300 bg-base-100 px-6 py-12 text-center">
+                            <Icon name="Search" size="xl" className="mx-auto mb-4 text-base-content/30" />
+                            <p className="text-base-content/70">Không có bộ flashcard nào khớp với bộ lọc hiện tại.</p>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setSelectedSubject('all');
+                                }}
+                                className="btn btn-sm btn-ghost mt-4 rounded-xl"
+                            >
+                                Xóa bộ lọc
+                            </button>
+                        </div>
+                    )}
+
+                    {!loading && !error && filteredDecks.length > 0 && (
                         viewMode === 'grid' ? (
                             <div key="grid-view" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                {decks.map((deck, index) => (
+                                {filteredDecks.map((deck, index) => (
                                     <FlashcardDeckCard
                                         key={deck.id}
                                         deck={deck}
@@ -1296,7 +1447,7 @@ export default function Flashcards() {
                             </div>
                         ) : (
                             <div key="list-view" className="space-y-3">
-                                {decks.map((deck) => (
+                                {filteredDecks.map((deck) => (
                                     <FlashcardDeckListItem
                                         key={deck.id}
                                         deck={deck}

@@ -5,6 +5,7 @@ import {
     Save, Image as ImageIcon, Type, MousePointerClick, Star, LayoutTemplate,
     Sparkles, RefreshCw, Eye, Monitor, Smartphone, Maximize2, Edit2, X
 } from 'lucide-react';
+import { OwlDialog, useOwlDialog } from '@/shared/ui/common';
 
 import { NavBar, Footer } from '@/shared/layout';
 import {
@@ -39,6 +40,8 @@ function SectionOverlay({ id, name, onEdit, children }) {
 }
 
 export default function HomepageSettings({ setDirty }) {
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
+
     const loadInitialState = (key, defaultData) => {
         try {
             const item = localStorage.getItem(key);
@@ -88,10 +91,24 @@ export default function HomepageSettings({ setDirty }) {
             localStorage.setItem('skr_homepage_features', JSON.stringify(featuresData));
             localStorage.setItem('skr_homepage_experts', JSON.stringify(expertsData));
             setDirty(false);
-            alert('Lưu thay đổi thành công! Bản nháp đã được Live trên trang chủ.');
+            openDialog({
+                variant: 'success',
+                title: 'Cú đã lưu bố cục trang chủ',
+                message: 'Các thay đổi của bạn đã được lưu thành công và áp dụng cho bản xem trước hiện tại.',
+                details: 'Bạn có thể tiếp tục chỉnh sửa hoặc chuyển sang tab khác.',
+                confirmLabel: 'Tiếp tục',
+                confirmTone: 'success',
+            });
         } catch (error) {
             console.error('Error saving homepage config:', error);
-            alert('Có lỗi xảy ra khi lưu! Hãy thử lại.');
+            openDialog({
+                variant: 'error',
+                title: 'Chưa thể lưu cấu hình',
+                message: 'Cú gặp lỗi khi ghi lại thay đổi của trang chủ.',
+                details: 'Hãy thử lại sau vài giây. Nếu lỗi còn lặp lại, kiểm tra lại dữ liệu vừa nhập.',
+                confirmLabel: 'Đã hiểu',
+                confirmTone: 'warning',
+            });
         }
     };
 
@@ -305,6 +322,21 @@ export default function HomepageSettings({ setDirty }) {
                     </motion.div>
                 </div>
             )}
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onClose={closeDialog}
+                onConfirm={handleDialogConfirm}
+            />
         </motion.div>
     );
 }

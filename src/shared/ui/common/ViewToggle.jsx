@@ -2,7 +2,7 @@ import Icon from '@/shared/ui/icons/Icon';
 
 /**
  * ViewToggle - Toggle between grid and list view
- * 
+ *
  * @param {string} viewMode - Current view mode ('grid' or 'list')
  * @param {function} onViewChange - Callback when view changes
  * @param {string} size - Button size ('sm', 'md')
@@ -31,33 +31,35 @@ export default function ViewToggle({
     );
 }
 
-// Filter and Sort controls
 export function FilterSortControls({
-    onFilter,
-    onSort,
     filterLabel = 'Lọc',
     sortLabel = 'Sắp xếp',
-    className = ''
+    className = '',
+    filterContent,
+    sortContent,
+    onFilter,
+    onSort,
 }) {
     return (
         <div className={`flex items-center gap-3 ${className}`}>
             <div className="dropdown dropdown-end">
-                <button className="btn btn-ghost btn-sm gap-2" onClick={onFilter}>
+                <button type="button" className="btn btn-ghost btn-sm gap-2" onClick={onFilter}>
                     <Icon name="Filter" size="sm" />
                     {filterLabel}
                 </button>
+                {filterContent}
             </div>
             <div className="dropdown dropdown-end">
-                <button className="btn btn-ghost btn-sm gap-2" onClick={onSort}>
+                <button type="button" className="btn btn-ghost btn-sm gap-2" onClick={onSort}>
                     <Icon name="SortAsc" size="sm" />
                     {sortLabel}
                 </button>
+                {sortContent}
             </div>
         </div>
     );
 }
 
-// Section header with title, badge and controls
 export function SectionHeader({
     title,
     badge,

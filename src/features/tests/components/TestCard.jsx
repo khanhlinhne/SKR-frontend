@@ -1,30 +1,57 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Icon from '@/shared/ui/icons/Icon';
-import { DIFFICULTY_CONFIG, QUESTION_TYPE_CONFIG, DEFAULT_GRADIENT, DEFAULT_ICON, formatDuration, formatRelativeTime, getScoreColor } from './utils';
+import {
+    DIFFICULTY_CONFIG,
+    QUESTION_TYPE_CONFIG,
+    DEFAULT_GRADIENT,
+    DEFAULT_ICON,
+    formatDuration,
+    formatRelativeTime,
+    getScoreColor,
+} from './utils';
 
-/**
- * TestCard - Card hiển thị bài thi thử (Grid view)
- * Props: test = backend DTO (practiceTestId, testTitle, ...)
- */
-export default function TestCard({ test, variants }) {
-    const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
-    const hasAttempts = (test.attemptsCount || 0) > 0;
+function DeleteButton({ onDelete, test, deleting, compact = false }) {
+    if (!onDelete) return null;
 
     return (
-        <motion.div variants={variants}>
+        <button
+            type="button"
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onDelete(test);
+            }}
+            disabled={deleting}
+            className={compact
+                ? 'btn btn-sm btn-circle btn-ghost text-red-500 hover:bg-red-50'
+                : 'absolute right-4 top-5 z-10 btn btn-sm btn-circle bg-base-100/95 border border-base-300 text-red-500 shadow-sm hover:bg-red-50 hover:border-red-200'}
+            title="Xóa bài thi"
+        >
+            {deleting ? <span className="loading loading-spinner loading-xs" /> : <Icon name="Trash2" size="sm" />}
+        </button>
+    );
+}
+
+export default function TestCard({ test, variants, onDelete, deleting = false }) {
+    const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
+    const hasAttempts = (test.attemptsCount || 0) > 0;
+    const animationProps = variants ? { variants, initial: 'hidden', animate: 'visible' } : {};
+
+    return (
+        <motion.div {...animationProps} className="relative">
+            <DeleteButton onDelete={onDelete} test={test} deleting={deleting} />
+
             <Link to={`/tests/${test.practiceTestId}`} className="block">
                 <motion.div
                     whileHover={{ y: -4, scale: 1.01 }}
                     transition={{ duration: 0.2 }}
                     className="bg-base-100 rounded-2xl shadow-lg border border-base-300 hover:shadow-xl hover:border-blue-500/30 transition-all overflow-hidden group h-full"
                 >
-                    {/* Gradient Header */}
                     <div className={`h-2 bg-gradient-to-r ${DEFAULT_GRADIENT}`} />
 
                     <div className="p-5">
-                        {/* Top Row: Difficulty */}
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-3 pr-12">
                             <div className="flex items-center gap-2">
                                 <span className="text-lg">{DEFAULT_ICON}</span>
                                 <span className="text-xs font-bold text-base-content/60 uppercase tracking-wider">
@@ -38,17 +65,14 @@ export default function TestCard({ test, variants }) {
                             )}
                         </div>
 
-                        {/* Title */}
                         <h3 className="text-base font-black text-base-content mb-2 line-clamp-2 group-hover:text-blue-500 transition-colors">
                             {test.testTitle}
                         </h3>
 
-                        {/* Description */}
                         <p className="text-xs text-base-content/60 mb-4 line-clamp-2">
                             {test.testDescription || 'Bài thi thử'}
                         </p>
 
-                        {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-2 mb-4">
                             <div className="bg-base-200/60 rounded-xl px-3 py-2 text-center">
                                 <p className="text-sm font-black text-base-content">{test.totalQuestions}</p>
@@ -64,7 +88,6 @@ export default function TestCard({ test, variants }) {
                             </div>
                         </div>
 
-                        {/* Score Section */}
                         {hasAttempts ? (
                             <div className="flex items-center justify-between p-3 bg-base-200/40 rounded-xl mb-4">
                                 <div className="flex items-center gap-2">
@@ -78,11 +101,10 @@ export default function TestCard({ test, variants }) {
                         ) : (
                             <div className="flex items-center justify-center p-3 bg-blue-500/5 rounded-xl mb-4 border border-blue-500/10">
                                 <Icon name="Sparkles" size="sm" className="text-blue-500 mr-2" />
-                                <span className="text-xs font-bold text-blue-500">Chưa thi — Bắt đầu ngay!</span>
+                                <span className="text-xs font-bold text-blue-500">Chưa thi - Bắt đầu ngay!</span>
                             </div>
                         )}
 
-                        {/* Question Types */}
                         {test.questionTypes?.length > 0 && (
                             <div className="flex flex-wrap gap-1 mb-4">
                                 {test.questionTypes.map((type) => {
@@ -97,14 +119,11 @@ export default function TestCard({ test, variants }) {
                             </div>
                         )}
 
-                        {/* Footer */}
                         <div className="flex items-center justify-between pt-3 border-t border-base-300">
                             <span className="text-xs text-base-content/40 font-medium">
                                 {hasAttempts ? formatRelativeTime(test.lastAttemptAtUtc) : 'Mới tạo'}
                             </span>
-                            <motion.span
-                                className="flex items-center gap-1 text-xs font-bold text-blue-500 group-hover:gap-2 transition-all"
-                            >
+                            <motion.span className="flex items-center gap-1 text-xs font-bold text-blue-500 group-hover:gap-2 transition-all">
                                 {hasAttempts ? 'Thi lại' : 'Bắt đầu'}
                                 <Icon name="ArrowRight" size="xs" />
                             </motion.span>
@@ -116,15 +135,13 @@ export default function TestCard({ test, variants }) {
     );
 }
 
-/**
- * TestListItem - List item cho bài thi (List view)
- */
-export function TestListItem({ test, variants }) {
+export function TestListItem({ test, variants, onDelete, deleting = false }) {
     const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
     const hasAttempts = (test.attemptsCount || 0) > 0;
+    const animationProps = variants ? { variants, initial: 'hidden', animate: 'visible' } : {};
 
     return (
-        <motion.div variants={variants}>
+        <motion.div {...animationProps}>
             <Link to={`/tests/${test.practiceTestId}`} className="block">
                 <motion.div
                     whileHover={{ x: 4 }}
@@ -132,12 +149,10 @@ export function TestListItem({ test, variants }) {
                     className="bg-base-100 rounded-2xl shadow-md border border-base-300 hover:shadow-lg hover:border-blue-500/30 transition-all p-4 group"
                 >
                     <div className="flex items-center gap-4">
-                        {/* Icon */}
                         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${DEFAULT_GRADIENT} flex items-center justify-center text-xl shrink-0`}>
                             {DEFAULT_ICON}
                         </div>
 
-                        {/* Title & Info */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-black text-base-content text-sm truncate group-hover:text-blue-500 transition-colors">
@@ -150,7 +165,6 @@ export function TestListItem({ test, variants }) {
                             <p className="text-xs text-base-content/50 truncate">{test.testDescription || 'Bài thi thử'}</p>
                         </div>
 
-                        {/* Stats */}
                         <div className="hidden md:flex items-center gap-6 shrink-0">
                             <div className="text-center">
                                 <p className="text-sm font-black text-base-content">{test.totalQuestions}</p>
@@ -174,8 +188,8 @@ export function TestListItem({ test, variants }) {
                             )}
                         </div>
 
-                        {/* Action */}
-                        <div className="shrink-0">
+                        <div className="shrink-0 flex items-center gap-2">
+                            <DeleteButton onDelete={onDelete} test={test} deleting={deleting} compact />
                             <span className="btn btn-sm btn-ghost text-blue-500 gap-1 font-bold group-hover:bg-blue-500/10">
                                 {hasAttempts ? 'Thi lại' : 'Bắt đầu'}
                                 <Icon name="ArrowRight" size="xs" />

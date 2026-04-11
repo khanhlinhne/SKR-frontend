@@ -6,7 +6,7 @@ import {
     Globe, EyeOff, RefreshCw, Loader2, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { AdminLayout } from '@/features/admin/components';
-import { OwlLoader } from '@/shared/ui/common';
+import { OwlDialog, OwlLoader, useOwlDialog } from '@/shared/ui/common';
 import {
     BusinessKPICards,
     RevenueChart,
@@ -70,6 +70,7 @@ export default function AdminCourseDetail() {
     const [error, setError] = useState('');
     const [toggling, setToggling] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
 
     const fetchCourse = useCallback(async () => {
         if (!id) return;
@@ -113,16 +114,36 @@ export default function AdminCourseDetail() {
         setCourse(normalizeCourse(updatedCourse));
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!course) return;
-        if (!window.confirm(`Bạn có chắc muốn xóa khóa học "${course.name}"?\nHành động này không thể hoàn tác.`)) return;
-        try {
-            await adminApi.deleteCourse(course.id);
-            navigate('/admin/courses');
-        } catch (err) {
-            console.error('Lỗi khi xóa khóa học:', err);
-            alert('Không thể xóa khóa học. Vui lòng thử lại.');
-        }
+        openDialog({
+            variant: 'warning',
+            title: `Xóa khóa học "${course.name}"?`,
+            message: 'Cú quản trị cần bạn xác nhận trước khi xóa khóa học này khỏi hệ thống.',
+            details: 'Hành động này không thể hoàn tác. Sau khi xóa, bạn sẽ được đưa về lại danh sách khóa học.',
+            showCancel: true,
+            confirmLabel: 'Xóa ngay',
+            cancelLabel: 'Quay lại',
+            confirmTone: 'danger',
+            onConfirm: async () => {
+                try {
+                    await adminApi.deleteCourse(course.id);
+                    navigate('/admin/courses');
+                    return true;
+                } catch (err) {
+                    console.error('Lỗi khi xóa khóa học:', err);
+                    openDialog({
+                        variant: 'error',
+                        title: 'Không thể xóa khóa học',
+                        message: `Cú chưa thể xóa "${course.name}" lúc này.`,
+                        details: 'Vui lòng thử lại sau vài giây hoặc kiểm tra dữ liệu liên quan.',
+                        confirmLabel: 'Đã hiểu',
+                        confirmTone: 'warning',
+                    });
+                    return false;
+                }
+            },
+        });
     };
 
     if (loading) {
@@ -313,6 +334,21 @@ export default function AdminCourseDetail() {
                     />
                 )}
             </AnimatePresence>
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onClose={closeDialog}
+                onConfirm={handleDialogConfirm}
+            />
         </AdminLayout>
     );
 }

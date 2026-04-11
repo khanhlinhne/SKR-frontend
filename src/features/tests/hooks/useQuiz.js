@@ -12,8 +12,9 @@ export function useQuizPractices() {
         try {
             setLoading(true);
             setError(null);
-            const res = await quizApi.getPractices({ limit: 100 });
-            setPractices(res.data?.items || []);
+            const res = await quizApi.getPractices({ limit: 100, status: 'active' });
+            const items = Array.isArray(res.data?.items) ? res.data.items : [];
+            setPractices(items.filter((item) => item?.status !== 'deleted'));
         } catch (err) {
             console.error('Error fetching quiz practices:', err);
             setError('Không thể tải danh sách bài thi.');

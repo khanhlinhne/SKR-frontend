@@ -3,10 +3,12 @@ import { motion } from 'motion/react';
 import { Settings as SettingsIcon, Layout, Mail, Server, ShieldCheck } from 'lucide-react';
 import { AdminLayout } from '@/features/admin/components';
 import { GeneralSettings, HomepageSettings, containerVariants } from '@/features/admin/components/adminSettings';
+import { OwlDialog, useOwlDialog } from '@/shared/ui/common';
 
 export default function AdminSettings() {
     const [activeTab, setActiveTab] = useState('homepage');
     const [isDirty, setDirty] = useState(false); // check if unsaved changes exist
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
 
     const tabs = [
         { id: 'general', label: 'Cài đặt chung', icon: SettingsIcon },
@@ -18,10 +20,20 @@ export default function AdminSettings() {
 
     const handleTabChange = (tabId) => {
         if (isDirty) {
-            if (window.confirm("Bạn có thay đổi chưa lưu, vẫn muốn chuyển tab?")) {
-                setDirty(false);
-                setActiveTab(tabId);
-            }
+            openDialog({
+                variant: 'warning',
+                title: 'Bạn còn thay đổi chưa lưu',
+                message: 'Cú phát hiện bạn vẫn đang chỉnh sửa nội dung trong tab hiện tại.',
+                details: 'Nếu chuyển tab bây giờ, các thay đổi chưa lưu sẽ bị bỏ qua.',
+                showCancel: true,
+                confirmLabel: 'Chuyển tab',
+                cancelLabel: 'Ở lại chỉnh sửa',
+                confirmTone: 'warning',
+                onConfirm: () => {
+                    setDirty(false);
+                    setActiveTab(tabId);
+                },
+            });
         } else {
             setActiveTab(tabId);
         }
@@ -86,6 +98,21 @@ export default function AdminSettings() {
                     </div>
                 </div>
             </motion.div>
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onClose={closeDialog}
+                onConfirm={handleDialogConfirm}
+            />
         </AdminLayout>
     );
 }

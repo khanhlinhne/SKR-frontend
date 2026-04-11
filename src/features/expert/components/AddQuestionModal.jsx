@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, HelpCircle, Loader2, Plus, Sparkles, Trash2, Wand2, X } from 'lucide-react';
-import { geminiApi } from '@/shared/api';
+import { aiGeminiApi } from '@/shared/api';
 
 const EMPTY_OPTION = { optionText: '', isCorrect: false };
 const DEFAULT_AI_QUESTION_COUNT = 3;
@@ -184,10 +184,11 @@ export default function AddQuestionModal({
         setFormError('');
 
         try {
-            const generatedQuestions = await geminiApi.generateQuizQuestions({
-                sourceText,
-                count: aiQuestionCount,
-                contextTitle,
+            const generatedQuestions = await aiGeminiApi.generateQuestions({
+                content: sourceText,
+                questionCount: aiQuestionCount,
+                difficulty: 'medium',
+                language: 'vi',
             });
 
             setQuestions((prev) => {
