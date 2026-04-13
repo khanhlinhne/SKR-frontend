@@ -53,6 +53,60 @@ function buildQuizPrompt({ sourceText, count, contextTitle }) {
     ].join('\n');
 }
 
+function buildAssignmentPrompt({ sourceText, criteriaCount, contextTitle }) {
+    const resolvedCount = Math.max(2, Math.min(6, Number(criteriaCount) || 4));
+    const titleLine = contextTitle?.trim()
+        ? `Ngu canh bai hoc: ${contextTitle.trim()}`
+        : 'Ngu canh bai hoc: Khong co tieu de bai hoc.';
+
+    return [
+        'Ban la tro ly tao assignment hoc tap bang tieng Viet cho expert.',
+        'Hay tao 1 bai assignment co de bai ro rang, co huong dan nop bai va rubric cham diem.',
+        titleLine,
+        `Rubric can co chinh xac ${resolvedCount} tieu chi.`,
+        'Yeu cau:',
+        '- De bai phai ro, thuc te, phu hop de hoc vien tra loi bang van ban.',
+        '- Huong dan nop bai ngan gon, de hoc vien biet can trinh bay nhu the nao.',
+        '- Tong diem mac dinh la 100.',
+        '- Rubric can can bang giua do dung yeu cau, lap luan va cach trinh bay.',
+        '- Khong tra ve markdown, khong them giai thich ngoai JSON.',
+        '- Dinh dang JSON: {"assignment":{"title":"...","description":"...","instructions":"...","submissionFormat":"...","maxScore":100,"reviewFocus":"...","rubricCriteria":[{"title":"...","description":"...","maxPoints":25}]}}',
+        '',
+        'Noi dung dau vao:',
+        sourceText.trim(),
+    ].join('\n');
+}
+
+function buildAssignmentGradingPrompt({ assignment, learnerAnswer, language = 'vi' }) {
+    const rubricText = (Array.isArray(assignment?.rubricCriteria) ? assignment.rubricCriteria : [])
+        .map((criterion, index) => (
+            `${index + 1}. ${criterion.title} (${criterion.maxPoints} diem): ${criterion.description || 'Khong co mo ta bo sung.'}`
+        ))
+        .join('\n');
+
+    return [
+        `Ban la tro ly cham assignment bang ${language === 'en' ? 'English' : 'tieng Viet'}.`,
+        'Hay cham bai lam theo rubric duoi day, sau do tra ve JSON hop le.',
+        `Tieu de assignment: ${assignment?.title || 'Khong co tieu de'}`,
+        `Mo ta de bai: ${assignment?.description || 'Khong co mo ta'}`,
+        `Huong dan nop bai: ${assignment?.instructions || 'Khong co huong dan rieng'}`,
+        `Tong diem toi da: ${assignment?.maxScore || 100}`,
+        assignment?.reviewFocus ? `Luu y review: ${assignment.reviewFocus}` : '',
+        'Rubric:',
+        rubricText || 'Khong co rubric chi tiet.',
+        '',
+        'Yeu cau output:',
+        '- Score trong khoang 0..maxScore.',
+        '- strengths va improvements moi mang 2-4 y gon ngan.',
+        '- rubricScores phai co du tieu chi va ghi awardedPoints, maxPoints, feedback.',
+        '- Khong viet markdown, khong them text ngoai JSON.',
+        '- Dinh dang JSON: {"grade":{"score":82,"summary":"...","strengths":["..."],"improvements":["..."],"rubricScores":[{"criterionTitle":"...","awardedPoints":20,"maxPoints":25,"feedback":"..."}]}}',
+        '',
+        'Bai lam cua hoc vien:',
+        String(learnerAnswer || '').trim() || '(de trong)',
+    ].filter(Boolean).join('\n');
+}
+
 function extractResponseText(payload) {
     const parts = payload?.candidates?.[0]?.content?.parts;
     if (!Array.isArray(parts)) {
@@ -221,6 +275,77 @@ function normalizeGeneratedQuestions(questions) {
         .filter(Boolean);
 }
 
+function normalizeRubricCriteria(criteria, maxScore = 100) {
+    const items = Array.isArray(criteria) ? criteria : [];
+    const normalized = items
+        .map((criterion, index) => ({
+            criterionId: criterion?.criterionId || criterion?.id || `criterion-${index + 1}`,
+            title: String(criterion?.title || '').trim(),
+            description: String(criterion?.description || '').trim(),
+            maxPoints: Math.max(0, Number(criterion?.maxPoints) || 0),
+        }))
+        .filter((criterion) => criterion.title);
+
+    if (normalized.length > 0) {
+        return normalized;
+    }
+
+    return [
+        { criterionId: 'criterion-1', title: 'Dung yeu cau', description: 'Tra loi dung bai toan va dung trong tam.', maxPoints: Math.round(maxScore * 0.4) },
+        { criterionId: 'criterion-2', title: 'Lap luan', description: 'Giai thich ro rang va co logic.', maxPoints: Math.round(maxScore * 0.35) },
+        { criterionId: 'criterion-3', title: 'Trinh bay', description: 'Trinh bay gon va de theo doi.', maxPoints: Math.max(5, maxScore - Math.round(maxScore * 0.75)) },
+    ];
+}
+
+function normalizeGeneratedAssignmentDraft(assignment) {
+    const maxScore = Math.max(1, Number(assignment?.maxScore) || 100);
+    const rubricCriteria = normalizeRubricCriteria(assignment?.rubricCriteria, maxScore);
+
+    return {
+        title: String(assignment?.title || '').trim(),
+        description: String(assignment?.description || '').trim(),
+        instructions: String(assignment?.instructions || '').trim(),
+        submissionFormat: String(
+            assignment?.submissionFormat
+            || 'Tra loi bang van ban, co the chia thanh cac y nho de de cham diem.',
+        ).trim(),
+        maxScore,
+        reviewFocus: String(assignment?.reviewFocus || '').trim(),
+        rubricCriteria,
+    };
+}
+
+function normalizeAssignmentGrade(grade, assignment = null) {
+    const maxScore = Math.max(1, Number(grade?.maxScore) || Number(assignment?.maxScore) || 100);
+    const rubricCriteria = Array.isArray(assignment?.rubricCriteria) ? assignment.rubricCriteria : [];
+    const rubricScores = (Array.isArray(grade?.rubricScores) ? grade.rubricScores : [])
+        .map((criterion, index) => {
+            const matched = rubricCriteria.find((item) => item.title === criterion?.criterionTitle) || rubricCriteria[index];
+            const maxPoints = Math.max(0, Number(criterion?.maxPoints) || Number(matched?.maxPoints) || 0);
+
+            return {
+                criterionId: criterion?.criterionId || matched?.criterionId || `criterion-${index + 1}`,
+                criterionTitle: String(criterion?.criterionTitle || matched?.title || `Tieu chi ${index + 1}`).trim(),
+                awardedPoints: Math.max(0, Math.min(Number(criterion?.awardedPoints) || 0, maxPoints || maxScore)),
+                maxPoints,
+                feedback: String(criterion?.feedback || '').trim(),
+            };
+        })
+        .filter((criterion) => criterion.criterionTitle);
+
+    return {
+        score: Math.max(0, Math.min(Number(grade?.score) || 0, maxScore)),
+        summary: String(grade?.summary || '').trim(),
+        strengths: Array.isArray(grade?.strengths)
+            ? grade.strengths.map((item) => String(item || '').trim()).filter(Boolean)
+            : [],
+        improvements: Array.isArray(grade?.improvements)
+            ? grade.improvements.map((item) => String(item || '').trim()).filter(Boolean)
+            : [],
+        rubricScores,
+    };
+}
+
 async function generateQuizQuestions({ sourceText, count = 3, contextTitle = '' }) {
     const apiKey = readApiKey();
     if (!apiKey) {
@@ -267,9 +392,103 @@ async function generateQuizQuestions({ sourceText, count = 3, contextTitle = '' 
     return normalizedQuestions;
 }
 
+async function generateAssignmentDraft({ sourceText, criteriaCount = 4, contextTitle = '' }) {
+    const apiKey = readApiKey();
+    if (!apiKey) {
+        throw new Error('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.');
+    }
+
+    const prompt = buildAssignmentPrompt({ sourceText, criteriaCount, contextTitle });
+    const response = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+            contents: [
+                {
+                    parts: [{ text: prompt }],
+                },
+            ],
+            generationConfig: {
+                temperature: 0.8,
+                responseMimeType: 'application/json',
+            },
+        }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(payload?.error?.message || 'Gemini khong tra ve ket qua hop le.');
+    }
+
+    const responseText = extractResponseText(payload);
+    if (!responseText) {
+        throw new Error('Gemini khong tra ve noi dung de tao assignment.');
+    }
+
+    const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON assignment tra ve tu Gemini.');
+    const normalizedAssignment = normalizeGeneratedAssignmentDraft(parsed?.assignment);
+
+    if (!normalizedAssignment.title || !normalizedAssignment.description || normalizedAssignment.rubricCriteria.length === 0) {
+        throw new Error('Gemini chua tao duoc assignment hop le tu noi dung nay.');
+    }
+
+    return normalizedAssignment;
+}
+
+async function gradeAssignmentSubmission({ assignment, learnerAnswer, language = 'vi' }) {
+    const apiKey = readApiKey();
+    if (!apiKey) {
+        throw new Error('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.');
+    }
+
+    const prompt = buildAssignmentGradingPrompt({ assignment, learnerAnswer, language });
+    const response = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify({
+            contents: [
+                {
+                    parts: [{ text: prompt }],
+                },
+            ],
+            generationConfig: {
+                temperature: 0.4,
+                responseMimeType: 'application/json',
+            },
+        }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw new Error(payload?.error?.message || 'Gemini khong tra ve ket qua hop le.');
+    }
+
+    const responseText = extractResponseText(payload);
+    if (!responseText) {
+        throw new Error('Gemini khong tra ve noi dung cham assignment.');
+    }
+
+    const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cham assignment tra ve tu Gemini.');
+    const normalizedGrade = normalizeAssignmentGrade(parsed?.grade, assignment);
+
+    if (!normalizedGrade.summary && normalizedGrade.rubricScores.length === 0) {
+        throw new Error('Gemini chua cham duoc bai assignment hop le.');
+    }
+
+    return normalizedGrade;
+}
+
 const geminiApi = {
     generateFlashcards,
     generateQuizQuestions,
+    generateAssignmentDraft,
+    gradeAssignmentSubmission,
 };
 
 export default geminiApi;

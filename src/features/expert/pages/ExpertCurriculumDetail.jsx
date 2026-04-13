@@ -3,8 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ExpertLayout } from '@/features/expert/components';
 import courseApi from '@/shared/api/courseApi';
-import { flashcardApi, geminiApi, uploadApi } from '@/shared/api';
+import { assignmentApi, flashcardApi, geminiApi, uploadApi } from '@/shared/api';
 import AddQuestionModal from '@/features/expert/components/AddQuestionModal';
+import AssignmentBuilderModal from '@/features/expert/components/AssignmentBuilderModal';
 import DocumentPreviewContent from '@/features/expert/components/DocumentPreviewContent';
 import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
 import { OwlLoader } from '@/shared/ui/common';
@@ -40,6 +41,7 @@ import {
     CheckCircle2,
     ExternalLink,
     Sparkles,
+    ClipboardCheck,
 } from 'lucide-react';
 
 // ===== ANIMATION =====
@@ -58,9 +60,10 @@ const lessonTypeConfig = {
     document: { label: 'Tài liệu', icon: FileText, color: 'text-emerald-500 bg-emerald-500/10', gradient: 'from-emerald-500 to-teal-500' },
     flashcard: { label: 'Flashcard', icon: Sparkles, color: 'text-indigo-500 bg-indigo-500/10', gradient: 'from-indigo-500 to-violet-500' },
     quiz: { label: 'Kiểm tra', icon: HelpCircle, color: 'text-amber-500 bg-amber-500/10', gradient: 'from-amber-500 to-orange-500' },
+    assignment: { label: 'Assignment', icon: ClipboardCheck, color: 'text-rose-500 bg-rose-500/10', gradient: 'from-rose-500 to-orange-500' },
 };
 
-const addableLessonTypes = ['video', 'flashcard', 'quiz'];
+const addableLessonTypes = ['video', 'flashcard', 'quiz', 'assignment'];
 const getLessonFlashcardSets = (content) => (
     Array.isArray(content?.flashcardSets)
         ? content.flashcardSets
@@ -960,6 +963,7 @@ export default function ExpertCurriculumDetail() {
     const [showAddVideo, setShowAddVideo] = useState(null); // {chapterId, lessonId}
     const [showAddDocument, setShowAddDocument] = useState(null);
     const [showAddQuestion, setShowAddQuestion] = useState(null);
+    const [showAssignmentBuilder, setShowAssignmentBuilder] = useState(null);
     const [showAddFlashcardCard, setShowAddFlashcardCard] = useState(null);
     const [lessonTypeOverrides, setLessonTypeOverrides] = useState({});
     const [quizTimeLimitDraft, setQuizTimeLimitDraft] = useState('');
@@ -1060,6 +1064,10 @@ export default function ExpertCurriculumDetail() {
             return 'flashcard';
         }
 
+        if (content?.assignment?.assignmentId || content?.assignment?.title || lesson?.hasAssignment) {
+            return 'assignment';
+        }
+
         const explicitType = String(lesson?.lessonType || lesson?.type || '').trim().toLowerCase();
         if (lessonTypeConfig[explicitType]) {
             return explicitType;
@@ -1092,6 +1100,43 @@ export default function ExpertCurriculumDetail() {
         selectedLesson,
     ]);
 
+    const hydrateAssignmentLessonState = useCallback((inputChapters = []) => {
+        const detectedOverrides = {};
+
+        const nextChapters = (Array.isArray(inputChapters) ? inputChapters : []).map((chapter) => {
+            const chapterId = chapter?.chapterId || chapter?.id;
+
+            return {
+                ...chapter,
+                lessons: (chapter?.lessons || []).map((lesson) => {
+                    const lessonId = lesson?.lessonId || lesson?.id;
+                    const explicitType = String(lesson?.lessonType || lesson?.type || '').trim().toLowerCase();
+                    const localAssignment = chapterId && lessonId
+                        ? assignmentApi.peekLessonAssignment(courseId, chapterId, lessonId)
+                        : null;
+                    const hasAssignment = explicitType === 'assignment'
+                        || Boolean(lesson?.hasAssignment)
+                        || Boolean(localAssignment?.assignmentId || localAssignment?.title);
+
+                    if (hasAssignment && lessonId) {
+                        detectedOverrides[lessonId] = 'assignment';
+                    }
+
+                    return {
+                        ...lesson,
+                        hasAssignment,
+                    };
+                }),
+            };
+        });
+
+        if (Object.keys(detectedOverrides).length > 0) {
+            setLessonTypeOverrides((prev) => ({ ...prev, ...detectedOverrides }));
+        }
+
+        return nextChapters;
+    }, [courseId]);
+
     // ===== FETCH DATA =====
     const fetchCourseData = useCallback(async () => {
         setLoading(true);
@@ -1104,18 +1149,20 @@ export default function ExpertCurriculumDetail() {
             // Course detail endpoint may return chapters nested
             const chaptersFromCourse = courseData?.chapters || [];
             if (chaptersFromCourse.length > 0) {
-                setChapters(chaptersFromCourse);
+                const hydratedChapters = hydrateAssignmentLessonState(chaptersFromCourse);
+                setChapters(hydratedChapters);
                 // Auto-expand first chapter
-                setExpandedChapters(new Set([chaptersFromCourse[0]?.chapterId || chaptersFromCourse[0]?.id]));
+                setExpandedChapters(new Set([hydratedChapters[0]?.chapterId || hydratedChapters[0]?.id]));
             } else {
                 // Fallback: fetch chapters separately
                 try {
                     const chapRes = await courseApi.getChapters(courseId);
                     const chapData = chapRes?.data || chapRes || [];
                     const chapArray = Array.isArray(chapData) ? chapData : chapData?.chapters || [];
-                    setChapters(chapArray);
-                    if (chapArray.length > 0) {
-                        setExpandedChapters(new Set([chapArray[0]?.chapterId || chapArray[0]?.id]));
+                    const hydratedChapters = hydrateAssignmentLessonState(chapArray);
+                    setChapters(hydratedChapters);
+                    if (hydratedChapters.length > 0) {
+                        setExpandedChapters(new Set([hydratedChapters[0]?.chapterId || hydratedChapters[0]?.id]));
                     }
                 } catch {
                     setChapters([]);
@@ -1127,7 +1174,7 @@ export default function ExpertCurriculumDetail() {
         } finally {
             setLoading(false);
         }
-    }, [courseId]);
+    }, [courseId, hydrateAssignmentLessonState]);
 
     useEffect(() => {
         fetchCourseData();
@@ -1240,7 +1287,11 @@ export default function ExpertCurriculumDetail() {
             const createdLesson = response?.data || response;
             const createdLessonId = createdLesson?.lessonId || createdLesson?.id || null;
             const shouldCreateFlashcardSet = form.lessonType === 'flashcard' && Boolean(createdLessonId);
-            const shouldOpenLessonBuilder = Boolean(createdLessonId) && (form.lessonType === 'flashcard' || form.lessonType === 'quiz');
+            const shouldOpenLessonBuilder = Boolean(createdLessonId) && (
+                form.lessonType === 'flashcard'
+                || form.lessonType === 'quiz'
+                || form.lessonType === 'assignment'
+            );
             const optimisticLesson = {
                 ...createdLesson,
                 lessonId: createdLessonId,
@@ -1250,9 +1301,19 @@ export default function ExpertCurriculumDetail() {
                 type: form.lessonType,
                 totalFlashcardSets: shouldCreateFlashcardSet ? 1 : (createdLesson?.totalFlashcardSets || 0),
                 hasFlashcardSet: shouldCreateFlashcardSet ? true : Boolean(createdLesson?.hasFlashcardSet),
+                hasAssignment: form.lessonType === 'assignment' ? true : Boolean(createdLesson?.hasAssignment),
             };
 
             if (createdLessonId) {
+                if (form.lessonType === 'assignment') {
+                    try {
+                        await courseApi.updateLesson(courseId, chapterId, createdLessonId, {
+                            lessonType: 'assignment',
+                        });
+                    } catch {
+                        // Some backends still reject the new enum; keep the frontend override path active.
+                    }
+                }
                 setLessonTypeOverrides((prev) => ({ ...prev, [createdLessonId]: form.lessonType }));
                 setChapters((prev) => prev.map((chapter) => {
                     const currentChapterId = chapter.chapterId || chapter.id;
@@ -1306,6 +1367,14 @@ export default function ExpertCurriculumDetail() {
 
             if (form.lessonType === 'quiz' && createdLessonId) {
                 setShowAddQuestion({ chapterId, lessonId: createdLessonId });
+            }
+            if (form.lessonType === 'assignment' && createdLessonId) {
+                setShowAssignmentBuilder({
+                    chapterId,
+                    lessonId: createdLessonId,
+                    lessonName: form.lessonName,
+                    initialValue: null,
+                });
             }
         } catch (err) {
             showToast({
@@ -1525,10 +1594,16 @@ export default function ExpertCurriculumDetail() {
             const res = await courseApi.getLessonContent(courseId, chapterId, lessonId);
             const content = res?.data || res;
             const flashcardSets = await hydrateLessonFlashcardSets(getLessonFlashcardSets(content));
+            const assignment = resolvedLessonType === 'assignment'
+                ? await assignmentApi.getLessonAssignment(courseId, chapterId, lessonId)
+                : null;
             const durationMinutes = getLessonDurationMinutes(content) || getLessonDurationMinutes(lessonMeta);
 
             if (resolvedLessonType === 'flashcard' || flashcardSets.length > 0) {
                 setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'flashcard' }));
+            }
+            if (assignment?.assignmentId || assignment?.title) {
+                setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'assignment' }));
             }
 
             setLessonContent({
@@ -1536,18 +1611,23 @@ export default function ExpertCurriculumDetail() {
                 estimatedDurationMinutes: durationMinutes,
                 timeLimitMinutes: durationMinutes,
                 flashcardSets,
-                lessonType: flashcardSets.length > 0 ? 'flashcard' : resolvedLessonType,
+                assignment,
+                lessonType: flashcardSets.length > 0 ? 'flashcard' : (assignment ? 'assignment' : resolvedLessonType),
             });
         } catch {
             const fallbackDurationMinutes = getLessonDurationMinutes(lessonMeta);
+            const assignment = resolvedLessonType === 'assignment'
+                ? await assignmentApi.getLessonAssignment(courseId, chapterId, lessonId)
+                : null;
             setLessonContent({
-                lessonType: resolvedLessonType,
+                lessonType: assignment ? 'assignment' : resolvedLessonType,
                 estimatedDurationMinutes: fallbackDurationMinutes,
                 timeLimitMinutes: fallbackDurationMinutes,
                 videos: [],
                 documents: [],
                 questions: [],
                 flashcardSets: [],
+                assignment,
             });
         } finally {
             setLoadingContent(false);
@@ -1776,6 +1856,49 @@ export default function ExpertCurriculumDetail() {
             }, 'error');
         }
         finally { setSaving(false); }
+    };
+
+    const handleSaveAssignment = async (payload) => {
+        const chapterId = showAssignmentBuilder?.chapterId;
+        const lessonId = showAssignmentBuilder?.lessonId;
+        if (!chapterId || !lessonId) {
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const savedAssignment = await assignmentApi.upsertLessonAssignment(courseId, chapterId, lessonId, payload);
+            setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'assignment' }));
+            setShowAssignmentBuilder(null);
+
+            setLessonContent((prev) => (
+                prev && selectedLesson?.chapterId === chapterId && selectedLesson?.lessonId === lessonId
+                    ? {
+                        ...prev,
+                        assignment: savedAssignment,
+                        lessonType: 'assignment',
+                    }
+                    : prev
+            ));
+
+            showToast({
+                title: 'Da luu assignment',
+                message: 'De bai, rubric va cau hinh cham diem da duoc cap nhat.',
+            });
+
+            await loadLessonContent(chapterId, lessonId, {
+                ...getLessonById(chapterId, lessonId),
+                lessonType: 'assignment',
+                type: 'assignment',
+            });
+        } catch (err) {
+            showToast({
+                title: 'Chua the luu assignment',
+                message: err?.response?.data?.message || err?.message || 'Co loi xay ra khi luu assignment.',
+            }, 'error');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleSaveQuizTiming = async (chapterId, lesson) => {
@@ -2214,12 +2337,16 @@ export default function ExpertCurriculumDetail() {
                                                     );
                                                     const isFlashcardLesson = resolvedLessonType === 'flashcard';
                                                     const isQuizLesson = resolvedLessonType === 'quiz';
+                                                    const isAssignmentLesson = resolvedLessonType === 'assignment';
                                                     const lessonQuestions = isCurrentLessonSelected
                                                         ? (lessonContent?.questions || [])
                                                         : [];
                                                     const lessonFlashcardSets = isCurrentLessonSelected
                                                         ? getLessonFlashcardSets(lessonContent)
                                                         : [];
+                                                    const lessonAssignment = isCurrentLessonSelected
+                                                        ? (lessonContent?.assignment || null)
+                                                        : null;
                                                     const lessonQuizTimeLimitMinutes = getLessonDurationMinutes(
                                                         isCurrentLessonSelected
                                                             ? { ...lesson, ...lessonContent }
@@ -2284,7 +2411,7 @@ export default function ExpertCurriculumDetail() {
                                                                         </div>
                                                                     ) : (
                                                                         <>
-                                                                        {!isFlashcardLesson && !isQuizLesson && (
+                                                                        {!isFlashcardLesson && !isQuizLesson && !isAssignmentLesson && (
                                                                             <>
                                                                         {/* Videos */}
                                                                         <div>
@@ -2364,6 +2491,111 @@ export default function ExpertCurriculumDetail() {
                                                                         </div>
 
                                                                             </>
+                                                                        )}
+                                                                        {isAssignmentLesson && (
+                                                                            <div className="space-y-3">
+                                                                                <div className="overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 shadow-sm">
+                                                                                    <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between">
+                                                                                        <div className="min-w-0">
+                                                                                            <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-rose-700">
+                                                                                                <ClipboardCheck className="h-3.5 w-3.5" />
+                                                                                                Assignment lesson
+                                                                                            </div>
+                                                                                            <h4 className="mt-3 text-sm font-black text-base-content">
+                                                                                                {lessonAssignment?.title || lesson.lessonName || 'Assignment'}
+                                                                                            </h4>
+                                                                                            <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
+                                                                                                {lessonAssignment?.description || 'Tao de bai, huong dan nop bai va rubric de hoc vien lam bai trong phan learn. Sau khi nop, AI se cham va tra ve review cho expert xem lai.'}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <div className="flex flex-wrap items-center gap-2">
+                                                                                            <button
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setShowAssignmentBuilder({
+                                                                                                        chapterId: chId,
+                                                                                                        lessonId: lsId,
+                                                                                                        lessonName: lesson.lessonName,
+                                                                                                        initialValue: lessonAssignment,
+                                                                                                    });
+                                                                                                }}
+                                                                                                className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-rose-500 to-orange-500 font-bold text-white shadow-lg shadow-rose-500/20"
+                                                                                            >
+                                                                                                <ClipboardCheck className="h-4 w-4" />
+                                                                                                {lessonAssignment ? 'Chinh assignment' : 'Tao assignment'}
+                                                                                            </button>
+                                                                                            <Link
+                                                                                                to="/expert/assignments"
+                                                                                                className="btn btn-sm rounded-xl border border-rose-200 bg-white font-bold text-rose-600"
+                                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                            >
+                                                                                                Xem bai nop
+                                                                                            </Link>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="grid gap-3 border-t border-rose-100/80 bg-white/80 p-4 sm:grid-cols-2 xl:grid-cols-4">
+                                                                                        <div className="rounded-xl border border-rose-100 bg-rose-50/70 p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-700/70">Tong diem</p>
+                                                                                            <p className="mt-1 text-2xl font-black text-base-content">{lessonAssignment?.maxScore || 100}</p>
+                                                                                        </div>
+                                                                                        <div className="rounded-xl border border-rose-100 bg-white p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Tieu chi</p>
+                                                                                            <p className="mt-1 text-2xl font-black text-base-content">{lessonAssignment?.rubricCriteria?.length || 0}</p>
+                                                                                        </div>
+                                                                                        <div className="rounded-xl border border-rose-100 bg-white p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Nguon tao</p>
+                                                                                            <p className="mt-1 text-base font-black capitalize text-base-content">{lessonAssignment?.sourceType || 'manual'}</p>
+                                                                                        </div>
+                                                                                        <div className="rounded-xl border border-rose-100 bg-white p-3">
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trang thai</p>
+                                                                                            <p className="mt-1 text-base font-black text-base-content">{lessonAssignment ? 'San sang nop bai' : 'Chua soan de'}</p>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {lessonAssignment ? (
+                                                                                    <div className="grid gap-3 lg:grid-cols-[1.1fr,0.9fr]">
+                                                                                        <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
+                                                                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Huong dan cho hoc vien</p>
+                                                                                            <p className="mt-3 text-sm leading-6 text-base-content/75">
+                                                                                                {lessonAssignment.instructions || lessonAssignment.submissionFormat || 'Chua co huong dan chi tiet.'}
+                                                                                            </p>
+                                                                                            {lessonAssignment.reviewFocus && (
+                                                                                                <div className="mt-4 rounded-xl bg-base-200/60 px-3 py-3">
+                                                                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/40">Trong tam AI review</p>
+                                                                                                    <p className="mt-2 text-xs leading-5 text-base-content/65">{lessonAssignment.reviewFocus}</p>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
+                                                                                            <div className="flex items-center justify-between gap-3">
+                                                                                                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Rubric</p>
+                                                                                                <span className="rounded-full bg-rose-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-rose-600">
+                                                                                                    {`${lessonAssignment.maxScore || 100} diem`}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <div className="mt-3 space-y-2.5">
+                                                                                                {(lessonAssignment.rubricCriteria || []).map((criterion) => (
+                                                                                                    <div key={criterion.criterionId} className="rounded-xl border border-base-300 bg-base-200/30 px-3 py-3">
+                                                                                                        <div className="flex items-center justify-between gap-2">
+                                                                                                            <p className="text-sm font-bold text-base-content">{criterion.title}</p>
+                                                                                                            <span className="text-xs font-bold text-base-content/45">{`${criterion.maxPoints} diem`}</span>
+                                                                                                        </div>
+                                                                                                        {criterion.description && (
+                                                                                                            <p className="mt-1 text-xs leading-5 text-base-content/60">{criterion.description}</p>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <div className="rounded-2xl border border-dashed border-rose-300 bg-white px-4 py-5 text-center">
+                                                                                        <p className="text-sm font-bold text-base-content">Lesson nay chua co de bai assignment.</p>
+                                                                                        <p className="mt-1 text-xs text-base-content/55">Mo modal o tren de nhap de bai thu cong hoac nho AI tao goi y rubric.</p>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
                                                                         )}
                                                                         {isQuizLesson && (
                                                                             <div className="space-y-3">
@@ -2856,6 +3088,17 @@ export default function ExpertCurriculumDetail() {
                     onSubmit={handleAddQuestion}
                     loading={saving}
                     contextTitle={questionModalContextTitle}
+                />
+            )}
+
+            {showAssignmentBuilder && (
+                <AssignmentBuilderModal
+                    open={true}
+                    onClose={() => setShowAssignmentBuilder(null)}
+                    onSave={handleSaveAssignment}
+                    loading={saving}
+                    contextTitle={showAssignmentBuilder.lessonName || 'Assignment lesson'}
+                    initialValue={showAssignmentBuilder.initialValue}
                 />
             )}
 

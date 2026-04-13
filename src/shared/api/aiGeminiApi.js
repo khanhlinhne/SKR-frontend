@@ -1,5 +1,5 @@
-import axiosClient from "./axiosClient";
-import geminiApi from "./geminiApi";
+import axiosClient from './axiosClient';
+import geminiApi from './geminiApi';
 
 function normalizeQuestionType(value) {
     const normalized = String(value || '').trim().toLowerCase();
@@ -28,11 +28,11 @@ function normalizeGeneratedQuestions(questions) {
             const questionExplanation = String(
                 question?.questionExplanation
                 || question?.explanation
-                || ''
+                || '',
             ).trim();
             const questionType = normalizeQuestionType(question?.questionType);
             const difficultyLevel = normalizeDifficultyLevel(
-                question?.difficultyLevel || question?.difficulty
+                question?.difficultyLevel || question?.difficulty,
             );
 
             const options = Array.isArray(question?.options)
@@ -80,6 +80,11 @@ function extractQuestionsPayload(response) {
     return [];
 }
 
+function shouldFallbackToDirectGemini(error) {
+    const status = error?.response?.status;
+    return !status || [404, 405, 500, 501, 503].includes(status);
+}
+
 const aiGeminiApi = {
     async generateQuestions({
         content,
@@ -89,7 +94,7 @@ const aiGeminiApi = {
     }) {
         const trimmedContent = String(content || '').trim();
         if (!trimmedContent) {
-            throw new Error('Thiếu nội dung để tạo câu hỏi bằng AI.');
+            throw new Error('Thieu noi dung de tao cau hoi bang AI.');
         }
 
         try {
@@ -102,34 +107,106 @@ const aiGeminiApi = {
 
             const normalizedQuestions = normalizeGeneratedQuestions(extractQuestionsPayload(response));
             if (normalizedQuestions.length === 0) {
-                throw new Error('AI backend chưa trả về câu hỏi hợp lệ.');
+                throw new Error('AI backend chua tra ve cau hoi hop le.');
             }
 
             return normalizedQuestions;
         } catch (error) {
-            const status = error?.response?.status;
-            const backendMessage = error?.response?.data?.message || error?.message;
-
-            // Keep quiz on backend by default, but fall back to direct Gemini if backend AI is unavailable.
-            if (status === 503) {
-                try {
-                    return await geminiApi.generateQuizQuestions({
-                        sourceText: trimmedContent,
-                        count: questionCount,
-                        contextTitle: '',
-                    });
-                } catch (fallbackError) {
-                    throw new Error(
-                        fallbackError?.response?.data?.message
-                        || fallbackError?.message
-                        || backendMessage
-                        || 'Dịch vụ AI hiện chưa khả dụng.'
-                    );
-                }
+            if (shouldFallbackToDirectGemini(error)) {
+                return geminiApi.generateQuizQuestions({
+                    sourceText: trimmedContent,
+                    count: questionCount,
+                    contextTitle: '',
+                });
             }
 
             throw new Error(
-                backendMessage || 'Không thể tạo câu hỏi bằng AI lúc này.'
+                error?.response?.data?.message
+                || error?.message
+                || 'Khong the tao cau hoi bang AI luc nay.',
+            );
+        }
+    },
+
+    async generateAssignment({
+        topic,
+        criteriaCount = 4,
+        contextTitle = '',
+        language = 'vi',
+    }) {
+        const trimmedTopic = String(topic || '').trim();
+        if (!trimmedTopic) {
+            throw new Error('Thieu chu de de tao assignment bang AI.');
+        }
+
+        try {
+            const response = await axiosClient.post('/ai-gemini/generate-assignment', {
+                topic: trimmedTopic,
+                criteriaCount: Math.max(2, Math.min(6, Number(criteriaCount) || 4)),
+                contextTitle: String(contextTitle || '').trim(),
+                language,
+            });
+
+            const payload = response?.data?.data || response?.data || response || {};
+            const assignment = payload.assignment || payload.data || payload;
+
+            if (!assignment?.title || !Array.isArray(assignment?.rubricCriteria)) {
+                throw new Error('AI backend chua tra ve assignment hop le.');
+            }
+
+            return assignment;
+        } catch (error) {
+            if (shouldFallbackToDirectGemini(error)) {
+                return geminiApi.generateAssignmentDraft({
+                    sourceText: trimmedTopic,
+                    criteriaCount,
+                    contextTitle,
+                });
+            }
+
+            throw new Error(
+                error?.response?.data?.message
+                || error?.message
+                || 'Khong the tao assignment bang AI luc nay.',
+            );
+        }
+    },
+
+    async gradeAssignment({
+        assignment,
+        learnerAnswer,
+        language = 'vi',
+    }) {
+        const trimmedAnswer = String(learnerAnswer || '').trim();
+
+        try {
+            const response = await axiosClient.post('/ai-gemini/grade-assignment', {
+                assignment,
+                learnerAnswer: trimmedAnswer,
+                language,
+            });
+
+            const payload = response?.data?.data || response?.data || response || {};
+            const grade = payload.grade || payload.data || payload;
+
+            if (!grade || typeof grade?.score !== 'number') {
+                throw new Error('AI backend chua tra ve ket qua cham assignment hop le.');
+            }
+
+            return grade;
+        } catch (error) {
+            if (shouldFallbackToDirectGemini(error)) {
+                return geminiApi.gradeAssignmentSubmission({
+                    assignment,
+                    learnerAnswer: trimmedAnswer,
+                    language,
+                });
+            }
+
+            throw new Error(
+                error?.response?.data?.message
+                || error?.message
+                || 'Khong the cham assignment bang AI luc nay.',
             );
         }
     },

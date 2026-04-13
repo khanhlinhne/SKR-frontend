@@ -11,4 +11,5 @@ export { default as uploadApi } from "./uploadApi";
 export { default as enrollmentApi } from "./enrollmentApi";
 export { default as aiGeminiApi } from "./aiGeminiApi";
 export { default as geminiApi } from "./geminiApi";
+export { default as assignmentApi } from "./assignmentApi";
 

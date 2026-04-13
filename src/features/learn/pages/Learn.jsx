@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import {
     LearnSidebar,
+    LearnAssignmentFlow,
     LearnVideoPlayer,
     LearnLessonContent,
     LearnHeader,
@@ -10,10 +11,10 @@ import {
     LearnQuizFlow,
 } from '@/features/learn/components';
 import { FlashcardStudyCard, StudyControls, StudyHeader, KeyboardHints } from '@/features/flashcards/components';
-import { courseApi } from '@/shared/api';
+import { assignmentApi, courseApi } from '@/shared/api';
 import { OwlLoader } from '@/shared/ui/common';
 
-const VALID_LESSON_TYPES = new Set(['video', 'document', 'flashcard', 'quiz']);
+const VALID_LESSON_TYPES = new Set(['video', 'document', 'flashcard', 'quiz', 'assignment']);
 
 function toNonNegativeCount(value) {
     const parsed = Number(value);
@@ -40,10 +41,6 @@ function resolveLessonType(lesson = {}) {
                 ? lesson.type.trim().toLowerCase()
                 : '';
 
-    if (VALID_LESSON_TYPES.has(explicitType)) {
-        return explicitType;
-    }
-
     const totalFlashcardSets = toNonNegativeCount(lesson.totalFlashcardSets ?? lesson.flashcardSets?.length);
     const totalVideos = toNonNegativeCount(lesson.totalVideos ?? lesson.videos?.length);
     const totalDocuments = toNonNegativeCount(lesson.totalDocuments ?? lesson.documents?.length);
@@ -51,10 +48,15 @@ function resolveLessonType(lesson = {}) {
 
     // Flashcard lessons should stay in flashcard mode even when no video exists.
     if (totalFlashcardSets > 0 && totalVideos === 0 && totalDocuments === 0 && totalQuestions === 0) return 'flashcard';
+    if (lesson?.assignment?.assignmentId || lesson?.assignment?.title || lesson?.hasAssignment) return 'assignment';
+    if (VALID_LESSON_TYPES.has(explicitType) && explicitType !== 'video') {
+        return explicitType;
+    }
     if (totalVideos > 0) return 'video';
     if (totalDocuments > 0) return 'document';
     if (totalQuestions > 0) return 'quiz';
     if (totalFlashcardSets > 0) return 'flashcard';
+    if (explicitType === 'video') return 'video';
 
     return 'video';
 }
@@ -106,6 +108,11 @@ function getLessonLoadingCopy(lesson = {}) {
             return {
                 message: `Đang mở bài luyện tập "${lessonTitle}"...`,
                 subMessage: 'Cú đang chuẩn bị câu hỏi, đáp án và tiến độ ôn tập để bạn chuyển bài mượt hơn.',
+            };
+        case 'assignment':
+            return {
+                message: `Dang mo assignment "${lessonTitle}"...`,
+                subMessage: 'SKR dang dong bo de bai, rubric va bai nop gan nhat de ban tiep tuc lam bai.',
             };
         case 'video':
             return {
@@ -279,23 +286,36 @@ export default function Learn() {
                 estimatedDurationMinutes: ch.estimatedDurationMinutes,
                 lessons: (ch.lessons || [])
                     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
-                    .map((l) => ({
-                        lessonId: l.lessonId,
-                        title: l.lessonName,
-                        description: l.lessonDescription,
-                        lessonType: l.lessonType,
-                        type: resolveLessonType(l),
-                        durationMinutes: l.estimatedDurationMinutes || 0,
-                        timeLimitMinutes: resolveLessonTimeLimitMinutes(l),
-                        totalVideos: toNonNegativeCount(l.totalVideos),
-                        totalDocuments: toNonNegativeCount(l.totalDocuments),
-                        totalQuestions: toNonNegativeCount(l.totalQuestions),
-                        totalFlashcardSets: toNonNegativeCount(l.totalFlashcardSets),
-                        hasFlashcardSet: Boolean(l.hasFlashcardSet),
-                        isPreview: false,
-                    })),
+                    .map((l) => {
+                        const localAssignment = assignmentApi.peekLessonAssignment(id, ch.chapterId, l.lessonId);
+                        const hasAssignment = Boolean(l.hasAssignment)
+                            || String(l.lessonType || '').trim().toLowerCase() === 'assignment'
+                            || Boolean(localAssignment?.assignmentId || localAssignment?.title);
+
+                        return {
+                            lessonId: l.lessonId,
+                            title: l.lessonName,
+                            description: l.lessonDescription,
+                            lessonType: l.lessonType,
+                            type: resolveLessonType({
+                                ...l,
+                                hasAssignment,
+                                assignment: localAssignment,
+                            }),
+                            durationMinutes: l.estimatedDurationMinutes || 0,
+                            timeLimitMinutes: resolveLessonTimeLimitMinutes(l),
+                            totalVideos: toNonNegativeCount(l.totalVideos),
+                            totalDocuments: toNonNegativeCount(l.totalDocuments),
+                            totalQuestions: toNonNegativeCount(l.totalQuestions),
+                            totalFlashcardSets: toNonNegativeCount(l.totalFlashcardSets),
+                            hasFlashcardSet: Boolean(l.hasFlashcardSet),
+                            hasAssignment,
+                            assignment: localAssignment || null,
+                            isPreview: false,
+                        };
+                    }),
             }));
-    }, [course]);
+    }, [course, id]);
 
     // Expert info
     const expert = useMemo(() => {
@@ -349,14 +369,27 @@ export default function Learn() {
                     { signal: controller.signal }
                 );
                 if (ignore) return;
-                setLessonContent(response.data);
+                const content = response?.data || response || {};
+                const assignment = resolveLessonType({
+                    ...currentLesson,
+                    ...content,
+                }) === 'assignment'
+                    ? await assignmentApi.getLessonAssignment(id, currentChapter.chapterId, currentLesson.lessonId)
+                    : null;
+                setLessonContent({
+                    ...content,
+                    assignment,
+                });
                 setLessonContentKey(currentLessonKey);
             } catch (err) {
                 if (ignore || err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') {
                     return;
                 }
                 console.error('Error fetching lesson content:', err);
-                setLessonContent(null);
+                const assignment = resolveLessonType(currentLesson) === 'assignment'
+                    ? await assignmentApi.getLessonAssignment(id, currentChapter.chapterId, currentLesson.lessonId)
+                    : null;
+                setLessonContent(assignment ? { assignment, lessonType: 'assignment' } : null);
                 setLessonContentKey(currentLessonKey);
             } finally {
                 if (!ignore) {
@@ -391,6 +424,7 @@ export default function Learn() {
             totalDocuments: syncedLessonContent?.documents?.length ?? currentLesson.totalDocuments,
             totalQuestions: syncedLessonContent?.questions?.length ?? currentLesson.totalQuestions,
             totalFlashcardSets: flashcardSets.length || currentLesson.totalFlashcardSets,
+            assignment: syncedLessonContent?.assignment || currentLesson.assignment,
         });
 
         return {
@@ -409,12 +443,14 @@ export default function Learn() {
             documents: syncedLessonContent?.documents || [],
             questions: syncedLessonContent?.questions || [],
             flashcardSets,
+            assignment: syncedLessonContent?.assignment || currentLesson.assignment || null,
             description: syncedLessonContent?.lessonDescription || currentLesson.description,
         };
     }, [currentLesson, syncedLessonContent]);
 
     const isFlashcardLessonView = enrichedLesson?.type === 'flashcard';
     const isQuizLessonView = enrichedLesson?.type === 'quiz';
+    const isAssignmentLessonView = enrichedLesson?.type === 'assignment';
     const isCurrentLessonCompleted = !!completedLessons[currentLessonCompletionKey];
 
     useEffect(() => {
@@ -623,6 +659,19 @@ export default function Learn() {
                                             lesson={enrichedLesson}
                                             loadingContent={loadingContent}
                                         />
+                                    ) : isAssignmentLessonView ? (
+                                        <LearnAssignmentFlow
+                                            courseId={id}
+                                            courseTitle={courseDisplay.title}
+                                            lesson={enrichedLesson}
+                                            chapter={currentChapter}
+                                            nextLesson={nextLesson}
+                                            gradient={courseDisplay.gradient}
+                                            onComplete={handleMarkComplete}
+                                            onNext={handleNext}
+                                            isCompleted={isCurrentLessonCompleted}
+                                            loadingContent={loadingContent}
+                                        />
                                     ) : isQuizLessonView ? (
                                         <LearnQuizFlow
                                             lesson={enrichedLesson}
@@ -652,7 +701,7 @@ export default function Learn() {
                                         />
                                     )}
 
-                                    {!isFlashcardLessonView && !isQuizLessonView && (
+                                    {!isFlashcardLessonView && !isQuizLessonView && !isAssignmentLessonView && (
                                         <LearnLessonContent
                                             lesson={enrichedLesson}
                                             chapter={currentChapter}
