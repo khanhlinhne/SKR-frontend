@@ -1,9 +1,10 @@
-﻿import { motion } from 'motion/react';
-import { CreditCard, FileText, Play, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
+import { BookOpen, CreditCard, FileText, Play, Sparkles } from 'lucide-react';
 import { SUBJECT_COLOR_STYLES } from '@/features/dashboard/constants';
 
 export default function DashboardSubjectsPanel({ subjects, activeTab, onTabChange, variants }) {
-    const filteredSubjects = subjects.filter((subject) => activeTab === 'all' || subject.status === activeTab);
+    const normalizedSubjects = Array.isArray(subjects) ? subjects : [];
+    const filteredSubjects = normalizedSubjects.filter((subject) => activeTab === 'all' || subject.status === activeTab);
 
     return (
         <motion.div variants={variants} className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg">
@@ -17,9 +18,13 @@ export default function DashboardSubjectsPanel({ subjects, activeTab, onTabChang
             </div>
 
             <div className="space-y-3">
-                {filteredSubjects.map((subject, index) => {
+                {filteredSubjects.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-base-300 bg-base-200/30 p-6 text-center text-sm font-medium text-base-content/50">
+                        Chưa có môn học nào trong nhóm này
+                    </div>
+                ) : filteredSubjects.map((subject, index) => {
                     const style = SUBJECT_COLOR_STYLES[subject.color] || SUBJECT_COLOR_STYLES.blue;
-                    const SubjectIcon = subject.icon;
+                    const SubjectIcon = subject.icon || BookOpen;
 
                     return (
                         <motion.div
