@@ -141,12 +141,13 @@ const adminApi = {
     // ===== DASHBOARD STATS =====
 
     /**
-     * Lay thong ke tong quan cho admin dashboard
-     * GET /api/admin/stats
-     * @returns {{ totalUsers, totalCourses, totalOrders, revenue, ... }}
+     * Lay du lieu tong quan cho admin dashboard
+     * GET /api/admin/dashboard
+     * @param {Object} params
+     * @returns {Object}
      */
-    getDashboardStats() {
-        return axiosClient.get("/admin/stats");
+    getDashboardStats(params = {}) {
+        return axiosClient.get("/admin/dashboard", { params });
     },
 
     // ===== EXPERT ASSIGNMENT =====
