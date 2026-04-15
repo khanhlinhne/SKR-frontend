@@ -33,13 +33,36 @@ function DeleteButton({ onDelete, test, deleting, compact = false }) {
     );
 }
 
-export default function TestCard({ test, variants, onDelete, deleting = false }) {
+function EditButton({ onEdit, test, editing, compact = false }) {
+    if (!onEdit) return null;
+
+    return (
+        <button
+            type="button"
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onEdit(test);
+            }}
+            disabled={editing}
+            className={compact
+                ? 'btn btn-sm btn-circle btn-ghost text-blue-500 hover:bg-blue-50'
+                : 'absolute right-16 top-5 z-10 btn btn-sm btn-circle bg-base-100/95 border border-base-300 text-blue-500 shadow-sm hover:bg-blue-50 hover:border-blue-200'}
+            title="Chỉnh sửa bài thi"
+        >
+            {editing ? <span className="loading loading-spinner loading-xs" /> : <Icon name="Pencil" size="sm" />}
+        </button>
+    );
+}
+
+export default function TestCard({ test, variants, onDelete, deleting = false, onEdit, editing = false }) {
     const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
     const hasAttempts = (test.attemptsCount || 0) > 0;
     const animationProps = variants ? { variants, initial: 'hidden', animate: 'visible' } : {};
 
     return (
         <motion.div {...animationProps} className="relative">
+            <EditButton onEdit={onEdit} test={test} editing={editing} />
             <DeleteButton onDelete={onDelete} test={test} deleting={deleting} />
 
             <Link to={`/tests/${test.practiceTestId}`} className="block">
@@ -135,7 +158,7 @@ export default function TestCard({ test, variants, onDelete, deleting = false })
     );
 }
 
-export function TestListItem({ test, variants, onDelete, deleting = false }) {
+export function TestListItem({ test, variants, onDelete, deleting = false, onEdit, editing = false }) {
     const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
     const hasAttempts = (test.attemptsCount || 0) > 0;
     const animationProps = variants ? { variants, initial: 'hidden', animate: 'visible' } : {};
@@ -189,6 +212,7 @@ export function TestListItem({ test, variants, onDelete, deleting = false }) {
                         </div>
 
                         <div className="shrink-0 flex items-center gap-2">
+                            <EditButton onEdit={onEdit} test={test} editing={editing} compact />
                             <DeleteButton onDelete={onDelete} test={test} deleting={deleting} compact />
                             <span className="btn btn-sm btn-ghost text-blue-500 gap-1 font-bold group-hover:bg-blue-500/10">
                                 {hasAttempts ? 'Thi lại' : 'Bắt đầu'}

@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { DashboardSidebar } from '@/features/learner/components';
 import { OwlDialog, OwlLoader, StatCard, ViewToggle, useOwlDialog } from '@/shared/ui/common';
-import quizApi from '@/shared/api/quizApi';
+import { enrollmentApi, quizApi } from '@/shared/api';
 import Icon from '@/shared/ui/icons/Icon';
+import { useCurrentUserProfile } from '@/shared/user';
 import {
     TestCard,
     TestListItem,
@@ -12,6 +13,7 @@ import {
     DIFFICULTY_CONFIG,
 } from '@/features/tests/components';
 import { useQuizPractices } from '@/features/tests/hooks/useQuiz';
+import { getPracticeDraft, pickFirstPopulatedArray } from '@/features/tests/utils/practiceDraftCache';
 
 const SYSTEM_PRACTICE_SEED_TITLES = new Set([
     'kiem tra kien thuc lap trinh web co ban',
@@ -20,6 +22,8 @@ const SYSTEM_PRACTICE_SEED_TITLES = new Set([
     'tong hop kien thuc backend',
     'mini quiz - nhanh tri cntt',
 ]);
+
+const SUBJECT_PICKER_LIMIT = 40;
 
 function normalizePracticeTitle(title) {
     return String(title || '')
@@ -40,18 +44,62 @@ function isDeletablePractice(test) {
 export default function Tests() {
     const { practices, loading, error, refresh } = useQuizPractices();
     const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
+    const { profile } = useCurrentUserProfile();
 
     const [viewMode, setViewMode] = useState('grid');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [filterDifficulty, setFilterDifficulty] = useState('all');
     const [sortBy, setSortBy] = useState('recent');
     const [deletingTestId, setDeletingTestId] = useState(null);
+    const [editingTestId, setEditingTestId] = useState(null);
+    const [editingTestData, setEditingTestData] = useState(null);
+    const [subjectOptions, setSubjectOptions] = useState([]);
 
     // Track if initial animation has played
     const [hasAnimated, setHasAnimated] = useState(false);
     useEffect(() => {
         const timer = setTimeout(() => setHasAnimated(true), 1000);
         return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchSubjects = async () => {
+            try {
+                const response = await enrollmentApi.getMyEnrollments({ limit: SUBJECT_PICKER_LIMIT });
+                const payload = response?.data || response || {};
+                const items = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
+
+                const nextOptions = items
+                    .map((subject) => ({
+                        value: subject.courseId || subject.subjectId || subject.id || '',
+                        label: subject.courseName || subject.subjectName || subject.title || '',
+                        courseId: subject.courseId || subject.subjectId || subject.id || null,
+                        isOwnedByUser: true,
+                    }))
+                    .filter((option) => option.value && option.label)
+                    .filter((option, index, arr) => (
+                        arr.findIndex((item) => String(item.value) === String(option.value)) === index
+                    ));
+
+                if (isMounted) {
+                    setSubjectOptions(nextOptions);
+                }
+            } catch (fetchError) {
+                console.error('Failed to fetch learner-owned test subjects:', fetchError);
+                if (isMounted) {
+                    setSubjectOptions([]);
+                }
+            }
+        };
+
+        void fetchSubjects();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     // Animation variants
@@ -104,8 +152,19 @@ export default function Tests() {
         });
     const deletableFilteredTests = filteredTests.filter(isDeletablePractice);
 
-    const handleCreateTest = () => {
-        refresh(); // Refetch after creating
+    const handleCreateTest = async (createdTestMeta = null) => {
+        await refresh();
+
+        openDialog({
+            variant: 'success',
+            title: 'Con cú đã lưu bài thi',
+            message: createdTestMeta?.testTitle
+                ? `Bài thi "${createdTestMeta.testTitle}" đã được tạo thành công.`
+                : 'Bài thi mới đã được tạo thành công.',
+            details: createdTestMeta?.details || 'Bạn có thể mở lại bài thi để làm ngay hoặc tiếp tục tạo bài khác.',
+            confirmLabel: 'Đã hiểu',
+            confirmTone: 'success',
+        });
     };
 
     const handleDeleteTest = (test) => {
@@ -163,6 +222,103 @@ export default function Tests() {
 
                 return false;
             },
+        });
+    };
+
+    const handleOpenEditTest = async (test) => {
+        if (!isDeletablePractice(test)) {
+            return;
+        }
+
+        try {
+            setEditingTestId(test.practiceTestId);
+            const response = await quizApi.getPracticeById(test.practiceTestId);
+            const payload = response?.data?.data || response?.data || response || {};
+            const nestedDetail = payload.practice || payload.item || {};
+            const cachedDetail = getPracticeDraft({
+                practiceTestId: test.practiceTestId,
+                testTitle: test.testTitle,
+                testDescription: test.testDescription,
+                courseId: test.courseId,
+                subjectId: test.subjectId,
+            });
+            const resolvedQuestions = pickFirstPopulatedArray(
+                payload.questions,
+                nestedDetail.questions,
+                payload.practiceQuestions,
+                nestedDetail.practiceQuestions,
+                payload.practiceTestQuestions,
+                nestedDetail.practiceTestQuestions,
+                payload.items,
+                nestedDetail.items,
+                cachedDetail?.questions,
+                cachedDetail?.practiceQuestions,
+                cachedDetail?.practiceTestQuestions,
+                cachedDetail?.manualQuestions,
+            );
+            const detail = {
+                ...cachedDetail,
+                ...payload,
+                ...nestedDetail,
+                practiceTestId: nestedDetail.practiceTestId || payload.practiceTestId || test.practiceTestId,
+                questions: resolvedQuestions,
+                practiceQuestions: resolvedQuestions,
+                practiceTestQuestions: resolvedQuestions,
+                manualQuestions: resolvedQuestions,
+            };
+
+            if (resolvedQuestions.length === 0) {
+                openDialog({
+                    variant: 'warning',
+                    title: 'Con cú chưa khôi phục được nội dung câu hỏi',
+                    message: 'Backend hiện chưa trả question detail cho bài thi này, và frontend cũng chưa có bản sao nội dung để mở chế độ cập nhật.',
+                    details: 'Hướng xử lý hiện tại: chỉ các bài thi được tạo hoặc cập nhật lại sau bản vá này mới có thể phục hồi câu hỏi từ cache cục bộ để chỉnh sửa.',
+                    confirmLabel: 'Đã hiểu',
+                    confirmTone: 'warning',
+                });
+                return;
+            }
+
+            setEditingTestData(detail);
+            setShowEditModal(true);
+        } catch (loadError) {
+            console.error('Failed to load practice test for editing:', loadError);
+            openDialog({
+                variant: 'error',
+                title: 'Con cú chưa mở được bài thi để sửa',
+                message: loadError?.response?.data?.message || 'Không thể tải dữ liệu bài thi thử này để chỉnh sửa.',
+                details: 'Thử lại sau ít phút. Nếu lỗi còn lặp lại, kiểm tra dữ liệu backend của bài thi này.',
+                confirmLabel: 'Đóng',
+                confirmTone: 'danger',
+            });
+        } finally {
+            setEditingTestId(null);
+        }
+    };
+
+    const handleCloseEditModal = () => {
+        if (editingTestId) {
+            return;
+        }
+
+        setShowEditModal(false);
+        setEditingTestData(null);
+    };
+
+    const handleUpdateTest = async (updatedTestMeta = null) => {
+        await refresh();
+        setShowEditModal(false);
+        setEditingTestData(null);
+
+        openDialog({
+            variant: 'success',
+            title: 'Con cú đã cập nhập nội dung thi',
+            message: updatedTestMeta?.testTitle
+                ? `Bài thi "${updatedTestMeta.testTitle}" đã được cập nhập thành công.`
+                : 'Nội dung bài thi đã được cập nhập thành công.',
+            details: updatedTestMeta?.details || 'Danh sách bài thi đã được làm mới với nội dung mới nhất.',
+            confirmLabel: 'Đã hiểu',
+            confirmTone: 'success',
         });
     };
 
@@ -331,8 +487,10 @@ export default function Tests() {
                                                 test={test}
                                                 index={index}
                                                 variants={cardVariants}
+                                                onEdit={isDeletablePractice(test) ? handleOpenEditTest : undefined}
                                                 onDelete={isDeletablePractice(test) ? handleDeleteTest : undefined}
                                                 deleting={deletingTestId === test.practiceTestId}
+                                                editing={editingTestId === test.practiceTestId}
                                             />
                                         ))}
 
@@ -362,8 +520,10 @@ export default function Tests() {
                                                 key={test.practiceTestId}
                                                 test={test}
                                                 variants={cardVariants}
+                                                onEdit={isDeletablePractice(test) ? handleOpenEditTest : undefined}
                                                 onDelete={isDeletablePractice(test) ? handleDeleteTest : undefined}
                                                 deleting={deletingTestId === test.practiceTestId}
+                                                editing={editingTestId === test.practiceTestId}
                                             />
                                         ))}
                                     </div>
@@ -448,6 +608,21 @@ export default function Tests() {
                     isOpen={showCreateModal}
                     onClose={() => setShowCreateModal(false)}
                     onCreate={handleCreateTest}
+                    subjects={subjectOptions}
+                    currentUserId={profile?.userId || ''}
+                />
+            )}
+
+            {showEditModal && editingTestData && (
+                <CreateTestModal
+                    isOpen={showEditModal}
+                    onClose={handleCloseEditModal}
+                    onCreate={handleCreateTest}
+                    onUpdate={handleUpdateTest}
+                    subjects={subjectOptions}
+                    currentUserId={profile?.userId || ''}
+                    mode="edit"
+                    initialTest={editingTestData}
                 />
             )}
 

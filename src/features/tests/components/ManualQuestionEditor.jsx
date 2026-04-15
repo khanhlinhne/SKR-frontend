@@ -203,7 +203,7 @@ export default function ManualQuestionEditor({ questions, onChange }) {
                             </label>
                             <textarea
                                 rows={3}
-                                className="textarea textarea-bordered rounded-2xl focus:border-blue-500 resize-none"
+                                className="textarea textarea-bordered w-full rounded-2xl focus:border-blue-500 resize-none"
                                 placeholder="VD: JavaScript chạy ở đâu?"
                                 value={question.questionText}
                                 onChange={(event) => updateQuestion(question.id, 'questionText', event.target.value)}
@@ -216,7 +216,7 @@ export default function ManualQuestionEditor({ questions, onChange }) {
                                     <span className="label-text font-bold text-sm">Loại câu hỏi</span>
                                 </label>
                                 <select
-                                    className="select select-bordered rounded-xl"
+                                    className="select select-bordered w-full rounded-xl"
                                     value={question.questionType}
                                     onChange={(event) => updateQuestion(question.id, 'questionType', event.target.value)}
                                 >
@@ -231,7 +231,7 @@ export default function ManualQuestionEditor({ questions, onChange }) {
                                         <span className="label-text font-bold text-sm">Đáp án đúng</span>
                                     </label>
                                     <select
-                                        className="select select-bordered rounded-xl"
+                                        className="select select-bordered w-full rounded-xl"
                                         value={question.trueFalseAnswer}
                                         onChange={(event) => updateQuestion(question.id, 'trueFalseAnswer', event.target.value)}
                                     >

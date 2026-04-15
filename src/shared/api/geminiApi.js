@@ -368,6 +368,19 @@ function normalizeDifficultyLevel(value) {
     return 'medium';
 }
 
+function normalizeCorrectFlag(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return false;
+
+    return normalized === 'true'
+        || normalized === '1'
+        || normalized === 'yes'
+        || normalized === 'correct';
+}
+
 function normalizeGeneratedQuestions(questions) {
     if (!Array.isArray(questions)) {
         return [];
@@ -384,7 +397,7 @@ function normalizeGeneratedQuestions(questions) {
                 ? question.options
                     .map((option, index) => ({
                         optionText: String(option?.optionText || '').trim(),
-                        isCorrect: Boolean(option?.isCorrect),
+                        isCorrect: normalizeCorrectFlag(option?.isCorrect),
                         optionOrder: index,
                     }))
                     .filter((option) => option.optionText)

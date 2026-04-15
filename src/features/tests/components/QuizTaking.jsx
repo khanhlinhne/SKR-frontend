@@ -327,7 +327,7 @@ export default function QuizTaking() {
     const attemptId = searchParams.get('attemptId');
 
     // Load attempt data from API
-    const { testInfo, questions, loading, error, submitting, submitAttempt } = useQuizTaking(attemptId);
+    const { testInfo, questions, loading, error, submitting, submitAttempt } = useQuizTaking(attemptId, id);
 
     // State
     const [currentIndex, setCurrentIndex] = useState(0);

@@ -1,5 +1,39 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import quizApi from '@/shared/api/quizApi';
+import { getPracticeDraft } from '@/features/tests/utils/practiceDraftCache';
+
+function mergeAttemptQuestionsWithDraft(attemptQuestions = [], draftQuestions = []) {
+    if (!Array.isArray(attemptQuestions) || attemptQuestions.length === 0) {
+        return [];
+    }
+
+    if (!Array.isArray(draftQuestions) || draftQuestions.length === 0) {
+        return attemptQuestions;
+    }
+
+    return attemptQuestions.map((question, questionIndex) => {
+        const draftQuestion = draftQuestions[questionIndex];
+        if (!draftQuestion) {
+            return question;
+        }
+
+        const mergedOptions = Array.isArray(question?.options)
+            ? question.options.map((option, optionIndex) => {
+                const draftOption = draftQuestion?.options?.[optionIndex];
+                return draftOption?.optionText
+                    ? { ...option, optionText: draftOption.optionText }
+                    : option;
+            })
+            : [];
+
+        return {
+            ...question,
+            questionText: draftQuestion?.questionText || question?.questionText,
+            questionType: draftQuestion?.questionType || question?.questionType,
+            options: mergedOptions.length > 0 ? mergedOptions : question?.options || [],
+        };
+    });
+}
 
 // ─── useQuizPractices ────────────────────────────────────
 // Load danh sách bài thi thử cho trang Tests.jsx
@@ -77,7 +111,7 @@ export function useQuizDetail(practiceTestId) {
 
 // ─── useQuizTaking ───────────────────────────────────────
 // Quản lý state khi đang làm bài: câu hỏi, timer, answers
-export function useQuizTaking(attemptId) {
+export function useQuizTaking(attemptId, practiceTestId = '') {
     const [attemptData, setAttemptData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -122,11 +156,15 @@ export function useQuizTaking(attemptId) {
     }, [attemptId]);
 
     // Derived data
-    const questions = attemptData?.questions || [];
+    const cachedDraft = getPracticeDraft({ practiceTestId });
+    const questions = mergeAttemptQuestionsWithDraft(
+        attemptData?.questions || [],
+        cachedDraft?.manualQuestions || [],
+    );
     const testInfo = attemptData ? {
         attemptId: attemptData.attemptId,
         quizTitle: attemptData.quizTitle,
-        totalQuestions: attemptData.totalQuestions,
+        totalQuestions: questions.length || attemptData.totalQuestions,
         timeLimitSeconds: attemptData.timeLimitSeconds,
         status: attemptData.status,
         startedAtUtc: attemptData.startedAtUtc,
