@@ -20,12 +20,11 @@ import { subjectApi } from '@/shared/api';
 import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 import { OwlLoader } from '@/shared/ui/common';
 
-// ─── Map API data to component format ──────────────────────
-
 const mapApiToCourse = (subject) => {
     const priceAmount = Number(subject.priceAmount) || 0;
     const isFree = subject.isFree || priceAmount === 0;
-    return ({
+
+    return {
         id: subject.subjectId,
         subjectId: subject.subjectId,
         title: subject.subjectName,
@@ -54,11 +53,13 @@ const mapApiToCourse = (subject) => {
         visibility: subject.status === 'published' ? 'public' : 'draft',
         isPurchased: false,
         publishedAt: subject.publishedAt,
-    });
+        creator: subject.creator,
+    };
 };
 
 const mapApiToExpert = (creator) => {
     if (!creator) return null;
+
     return {
         id: creator.userId,
         userId: creator.userId,
@@ -70,17 +71,14 @@ const mapApiToExpert = (creator) => {
     };
 };
 
-// ─── Mock Course (Demo) ──────────────────────────────────
-// Khóa học demo để hiển thị trang học — ID=1 khớp với mock data trong Learn.jsx
-
 const MOCK_DEMO_COURSE = {
     id: 1,
     subjectId: 1,
     title: 'Toán Cao Cấp - Giải Tích & Đại Số',
     subjectName: 'Toán Cao Cấp - Giải Tích & Đại Số',
-    description: 'Khóa học toán cao cấp toàn diện dành cho sinh viên đại học. Bao gồm giới hạn, đạo hàm, tích phân, ma trận và các ứng dụng thực tế.',
+    description: 'Khóa học toán cao cấp toàn diện dành cho sinh viên đại học.',
     category: 'Toán học',
-    isFree: true,        // Miễn phí → hiển thị "Học miễn phí", không có giá
+    isFree: true,
     priceAmount: 0,
     originalPrice: 0,
     discountPercent: 0,
@@ -93,7 +91,7 @@ const MOCK_DEMO_COURSE = {
     totalDocuments: 8,
     totalQuestions: 120,
     estimatedDurationHours: 24,
-    level: 'Cơ bản → Nâng cao',
+    level: 'Cơ bản -> Nâng cao',
     gradient: 'from-blue-500 to-cyan-500',
     bgGradient: 'from-blue-500/10 to-cyan-500/10',
     icon: '📐',
@@ -109,8 +107,6 @@ const MOCK_DEMO_COURSE = {
         avatarUrl: 'https://i.pravatar.cc/150?img=11',
     },
 };
-
-// ─── Categories & Levels (static for now) ────────────────
 
 const categories = [
     { value: 'Toán học', label: 'Toán học', icon: '📐' },
@@ -133,32 +129,34 @@ const defaultFilters = {
     level: '',
 };
 
-// ─── Filtering & Sorting ────────────────────────────────
-
 function filterCourses(courses, filters, searchQuery) {
-    return courses.filter(course => {
-        // Search
+    return courses.filter((course) => {
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
-            const searchable = [
-                course.title, course.category, course.level,
-            ].join(' ').toLowerCase();
+            const searchable = [course.title, course.category, course.level].join(' ').toLowerCase();
             if (!searchable.includes(q)) return false;
         }
-        // Category
+
         if (filters.category && course.category !== filters.category) return false;
-        // Price
+
         if (filters.priceRange !== 'all') {
             switch (filters.priceRange) {
-                case 'free': if (!course.isFree) return false; break;
-                case 'under200': if (course.isFree || course.priceAmount >= 200000) return false; break;
-                case '200to500': if (course.isFree || course.priceAmount < 200000 || course.priceAmount > 500000) return false; break;
-                case 'above500': if (course.isFree || course.priceAmount <= 500000) return false; break;
+                case 'free':
+                    if (!course.isFree) return false;
+                    break;
+                case 'under200':
+                    if (course.isFree || course.priceAmount >= 200000) return false;
+                    break;
+                case '200to500':
+                    if (course.isFree || course.priceAmount < 200000 || course.priceAmount > 500000) return false;
+                    break;
+                case 'above500':
+                    if (course.isFree || course.priceAmount <= 500000) return false;
+                    break;
             }
         }
-        // Rating
+
         if (filters.minRating > 0 && course.ratingAverage < filters.minRating) return false;
-        // Level
         if (filters.level && course.level !== filters.level) return false;
 
         return true;
@@ -167,19 +165,29 @@ function filterCourses(courses, filters, searchQuery) {
 
 function sortCourses(courses, sortBy) {
     const sorted = [...courses];
+
     switch (sortBy) {
-        case 'popular': return sorted.sort((a, b) => b.purchaseCount - a.purchaseCount);
-        case 'newest': return sorted.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-        case 'price_asc': return sorted.sort((a, b) => a.priceAmount - b.priceAmount);
-        case 'price_desc': return sorted.sort((a, b) => b.priceAmount - a.priceAmount);
-        case 'rating': return sorted.sort((a, b) => b.ratingAverage - a.ratingAverage);
-        default: return sorted;
+        case 'popular':
+            return sorted.sort((a, b) => b.purchaseCount - a.purchaseCount);
+        case 'newest':
+            return sorted.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+        case 'price_asc':
+            return sorted.sort((a, b) => a.priceAmount - b.priceAmount);
+        case 'price_desc':
+            return sorted.sort((a, b) => b.priceAmount - a.priceAmount);
+        case 'rating':
+            return sorted.sort((a, b) => b.ratingAverage - a.ratingAverage);
+        default:
+            return sorted;
     }
 }
 
-// ─── Page Component (Dashboard Layout) ──────────────────
-
-export default function Courses() {
+export default function Courses({
+    layout = 'dashboard',
+    initialShowAll = false,
+    showHighlightSections = true,
+}) {
+    const isPublicLayout = layout === 'public';
     const [searchQuery, setSearchQuery] = useState('');
     const [filters, setFilters] = useState(defaultFilters);
     const [sortBy, setSortBy] = useState('popular');
@@ -187,9 +195,8 @@ export default function Courses() {
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [showAll, setShowAll] = useState(false);
+    const [showAll, setShowAll] = useState(initialShowAll);
 
-    // Fetch subjects from API
     useEffect(() => {
         const fetchSubjects = async () => {
             try {
@@ -197,12 +204,10 @@ export default function Courses() {
                 const response = await subjectApi.getAll({ limit: 100 });
                 const items = response.data?.items || response.data || [];
                 const apiCourses = items.map(mapApiToCourse);
-                // Luôn thêm mock demo course vào đầu danh sách để demo trang học
                 setSubjects([MOCK_DEMO_COURSE, ...apiCourses]);
             } catch (err) {
                 console.error('Error fetching subjects:', err);
                 setError(err.message);
-                // Khi lỗi API vẫn hiển thị mock course
                 setSubjects([MOCK_DEMO_COURSE]);
             } finally {
                 setLoading(false);
@@ -212,7 +217,6 @@ export default function Courses() {
         fetchSubjects();
     }, []);
 
-    // Count active filters
     const activeFilterCount = useMemo(() => {
         let count = 0;
         if (filters.category) count++;
@@ -222,34 +226,31 @@ export default function Courses() {
         return count;
     }, [filters]);
 
-    // Filter + sort
-    const filteredCourses = useMemo(() => {
-        return sortCourses(filterCourses(subjects, filters, searchQuery), sortBy);
-    }, [subjects, filters, searchQuery, sortBy]);
+    const filteredCourses = useMemo(
+        () => sortCourses(filterCourses(subjects, filters, searchQuery), sortBy),
+        [subjects, filters, searchQuery, sortBy]
+    );
 
-    // ─── Category Sections ────────────────────────────────────
-    const topSellers = useMemo(() => {
-        return [...subjects]
-            .sort((a, b) => b.purchaseCount - a.purchaseCount)
-            .slice(0, 4);
-    }, [subjects]);
+    const topSellers = useMemo(
+        () => [...subjects].sort((a, b) => b.purchaseCount - a.purchaseCount).slice(0, 4),
+        [subjects]
+    );
 
-    const topRated = useMemo(() => {
-        return [...subjects]
-            .filter(c => c.ratingAverage > 0)
+    const topRated = useMemo(
+        () => [...subjects]
+            .filter((course) => course.ratingAverage > 0)
             .sort((a, b) => b.ratingAverage - a.ratingAverage || b.ratingCount - a.ratingCount)
-            .slice(0, 4);
-    }, [subjects]);
+            .slice(0, 4),
+        [subjects]
+    );
 
-    const freeCourses = useMemo(() => {
-        return [...subjects]
-            .filter(c => c.isFree)
-            .sort((a, b) => b.purchaseCount - a.purchaseCount)
-            .slice(0, 4);
-    }, [subjects]);
+    const freeCourses = useMemo(
+        () => [...subjects].filter((course) => course.isFree).sort((a, b) => b.purchaseCount - a.purchaseCount).slice(0, 4),
+        [subjects]
+    );
 
     const handleFilterChange = (key, value) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
+        setFilters((prev) => ({ ...prev, [key]: value }));
     };
 
     const handleResetFilters = () => {
@@ -257,7 +258,6 @@ export default function Courses() {
         setSearchQuery('');
     };
 
-    // Animation variants (same as Dashboard)
     const containerVariants = {
         hidden: { opacity: 0 },
         visible: {
@@ -269,249 +269,248 @@ export default function Courses() {
     const cardVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: {
-            opacity: 1, y: 0,
+            opacity: 1,
+            y: 0,
             transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
         },
     };
 
+    const pageContent = (
+        <>
+            <motion.div variants={cardVariants} className="mb-6">
+                <div className="flex items-center gap-3 mb-1">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 shadow-lg">
+                        <BookOpen className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tight text-base-content">Danh Sách Môn Học</h1>
+                        <p className="text-sm font-medium text-base-content/60">
+                            Khám phá tất cả khóa học từ các chuyên gia hàng đầu
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
+
+            <motion.div variants={cardVariants} className="mb-8">
+                <CoursesToolbar
+                    searchQuery={searchQuery}
+                    onSearchChange={(value) => {
+                        setSearchQuery(value);
+                        setShowAll(true);
+                    }}
+                    filters={filters}
+                    onFilterChange={(key, value) => {
+                        handleFilterChange(key, value);
+                        setShowAll(true);
+                    }}
+                    onResetFilters={() => {
+                        handleResetFilters();
+                        setShowAll(true);
+                    }}
+                    sortBy={sortBy}
+                    onSortChange={(value) => {
+                        setSortBy(value);
+                        setShowAll(true);
+                    }}
+                    viewMode={viewMode}
+                    onViewChange={setViewMode}
+                    totalCourses={filteredCourses.length}
+                    activeFilterCount={activeFilterCount}
+                    categories={categories}
+                    levels={levels}
+                />
+            </motion.div>
+
+            {loading && <OwlLoader message="Đang tải môn học..." />}
+
+            {!loading && error && (
+                <motion.div variants={cardVariants} className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                        <Frown className="h-8 w-8 text-red-500" />
+                    </div>
+                    <h3 className="mb-2 text-lg font-black text-base-content">Lỗi tải dữ liệu</h3>
+                    <p className="mb-5 max-w-sm text-sm font-medium text-base-content/50">{error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white"
+                    >
+                        Thử lại
+                    </button>
+                </motion.div>
+            )}
+
+            {!loading && !error && showAll && filteredCourses.length > 0 && (
+                <div className="mb-8">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-xl font-black tracking-tight text-base-content">
+                            Kết quả tìm kiếm
+                            <span className="ml-2 text-sm font-medium text-base-content/50">
+                                ({filteredCourses.length} môn học)
+                            </span>
+                        </h2>
+                        {showHighlightSections && (
+                            <button
+                                onClick={() => setShowAll(false)}
+                                className="btn btn-sm btn-ghost gap-1 font-bold text-base-content/50"
+                            >
+                                <ArrowRight className="h-4 w-4 rotate-180" />
+                                Ẩn bớt
+                            </button>
+                        )}
+                    </div>
+                    <motion.div
+                        key={viewMode + sortBy + JSON.stringify(filters) + searchQuery}
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="visible"
+                        className={
+                            viewMode === 'grid'
+                                ? 'grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
+                                : 'space-y-4'
+                        }
+                    >
+                        {filteredCourses.map((course) => {
+                            const expert = mapApiToExpert(course.creator);
+                            return viewMode === 'grid' ? (
+                                <CourseCard key={course.id} course={course} expert={expert} variants={cardVariants} />
+                            ) : (
+                                <CourseListItem key={course.id} course={course} expert={expert} variants={cardVariants} />
+                            );
+                        })}
+                    </motion.div>
+                </div>
+            )}
+
+            {!loading && !error && showAll && filteredCourses.length === 0 && (
+                <motion.div variants={cardVariants} className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-base-300">
+                        <Frown className="h-8 w-8 text-base-content/30" />
+                    </div>
+                    <h3 className="mb-2 text-lg font-black text-base-content">Không tìm thấy môn học</h3>
+                    <p className="mb-5 max-w-sm text-sm font-medium text-base-content/50">
+                        Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm kết quả.
+                    </p>
+                    <button
+                        onClick={() => {
+                            handleResetFilters();
+                            setShowAll(false);
+                        }}
+                        className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white"
+                    >
+                        Xóa bộ lọc
+                    </button>
+                </motion.div>
+            )}
+
+            {!loading && !error && showHighlightSections && !showAll && subjects.length > 0 && (
+                <div className="mb-8 space-y-8">
+                    <CategorySection
+                        title="Top Bán Chạy"
+                        icon={<Flame className="h-5 w-5" />}
+                        iconBg="from-orange-500 to-red-500"
+                        courses={topSellers}
+                        mapApiToExpert={mapApiToExpert}
+                        containerVariants={containerVariants}
+                        cardVariants={cardVariants}
+                    />
+
+                    <CategorySection
+                        title="Top Đánh Giá Cao"
+                        icon={<ThumbsUp className="h-5 w-5" />}
+                        iconBg="from-violet-500 to-purple-500"
+                        courses={topRated}
+                        mapApiToExpert={mapApiToExpert}
+                        containerVariants={containerVariants}
+                        cardVariants={cardVariants}
+                    />
+
+                    <CategorySection
+                        title="Khóa Học Miễn Phí"
+                        icon={<Gift className="h-5 w-5" />}
+                        iconBg="from-emerald-500 to-teal-500"
+                        courses={freeCourses}
+                        mapApiToExpert={mapApiToExpert}
+                        containerVariants={containerVariants}
+                        cardVariants={cardVariants}
+                    />
+                </div>
+            )}
+
+            {!loading && !error && showHighlightSections && (
+                <motion.div variants={cardVariants} className="mb-8 flex justify-center">
+                    <button
+                        onClick={() => setShowAll(true)}
+                        className="btn gap-2 rounded-xl border-none bg-gradient-to-r from-blue-600 to-violet-600 px-8 font-bold text-white shadow-lg hover:from-blue-700 hover:to-violet-700"
+                    >
+                        Xem tất cả {subjects.length} môn học
+                        <ArrowRight className="h-4 w-4" />
+                    </button>
+                </motion.div>
+            )}
+
+            {!loading && !error && filteredCourses.length > 0 && (
+                <motion.div variants={cardVariants} className="mt-10">
+                    <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-base-300 bg-base-100 p-6 shadow-sm sm:flex-row">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 shadow-lg">
+                                <GraduationCap className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-black text-base-content">Bạn là chuyên gia?</h3>
+                                <p className="text-sm font-medium text-base-content/50">
+                                    Chia sẻ kiến thức, tạo thu nhập bền vững trên SKR.
+                                </p>
+                            </div>
+                        </div>
+                        <Link to="/signup">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="btn btn-sm gap-1 rounded-xl border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white shadow-lg hover:from-blue-700 hover:to-violet-700"
+                            >
+                                Đăng ký làm Chuyên Gia
+                                <ArrowRight className="h-4 w-4" />
+                            </motion.button>
+                        </Link>
+                    </div>
+                </motion.div>
+            )}
+        </>
+    );
+
+    if (isPublicLayout) {
+        return (
+            <section className="w-full bg-base-200">
+                <motion.main
+                    className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
+                >
+                    {pageContent}
+                </motion.main>
+            </section>
+        );
+    }
+
     return (
-        <div className="flex h-screen bg-base-200 overflow-hidden">
-            {/* Sidebar */}
+        <div className="flex h-screen overflow-hidden bg-base-200">
             <DashboardSidebar />
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
+            <div className="flex flex-1 flex-col overflow-hidden">
                 <CoursesPageHeader />
-
-                {/* Content */}
                 <motion.main
                     className="flex-1 overflow-y-auto p-6 lg:p-8"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                 >
-                    {/* Page Title */}
-                    <motion.div variants={cardVariants} className="mb-6">
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-lg">
-                                <BookOpen className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-black text-base-content tracking-tight">Danh Sách Môn Học</h1>
-                                <p className="text-sm text-base-content/60 font-medium">
-                                    Khám phá tất cả khóa học từ các chuyên gia hàng đầu
-                                </p>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Toolbar: Search + Filter + Sort + View */}
-                    <motion.div variants={cardVariants} className="mb-8">
-                        <CoursesToolbar
-                            searchQuery={searchQuery}
-                            onSearchChange={(q) => { setSearchQuery(q); setShowAll(true); }}
-                            filters={filters}
-                            onFilterChange={(k, v) => { handleFilterChange(k, v); setShowAll(true); }}
-                            onResetFilters={() => { handleResetFilters(); setShowAll(true); }}
-                            sortBy={sortBy}
-                            onSortChange={(s) => { setSortBy(s); setShowAll(true); }}
-                            viewMode={viewMode}
-                            onViewChange={setViewMode}
-                            totalCourses={filteredCourses.length}
-                            activeFilterCount={activeFilterCount}
-                            categories={categories}
-                            levels={levels}
-                        />
-                    </motion.div>
-
-                    {/* Loading State */}
-                    {loading && <OwlLoader message="Đang tải môn học..." />}
-
-                    {/* Error State */}
-                    {!loading && error && (
-                        <motion.div
-                            variants={cardVariants}
-                            className="flex flex-col items-center justify-center py-16 text-center"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-5">
-                                <Frown className="w-8 h-8 text-red-500" />
-                            </div>
-                            <h3 className="text-lg font-black text-base-content mb-2">Lỗi tải dữ liệu</h3>
-                            <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
-                                {error}
-                            </p>
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
-                            >
-                                Thử lại
-                            </button>
-                        </motion.div>
-                    )}
-
-                    {/* ── Show all filtered courses (when searching/filtering) ── */}
-                    {!loading && !error && showAll && filteredCourses.length > 0 && (
-                        <div className="mb-8">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-black text-base-content tracking-tight">
-                                    Kết quả tìm kiếm
-                                    <span className="ml-2 text-sm font-medium text-base-content/50">
-                                        ({filteredCourses.length} môn học)
-                                    </span>
-                                </h2>
-                                <button
-                                    onClick={() => setShowAll(false)}
-                                    className="btn btn-sm btn-ghost text-base-content/50 font-bold gap-1"
-                                >
-                                    <ArrowRight className="w-4 h-4 rotate-180" />
-                                    Ẩn bỏ
-                                </button>
-                            </div>
-                            <motion.div
-                                key={viewMode + sortBy + JSON.stringify(filters) + searchQuery}
-                                variants={containerVariants}
-                                initial="hidden"
-                                animate="visible"
-                                className={
-                                    viewMode === 'grid'
-                                        ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5'
-                                        : 'space-y-4'
-                                }
-                            >
-                                {filteredCourses.map((course) => {
-                                    const expert = mapApiToExpert(course.creator);
-                                    return viewMode === 'grid' ? (
-                                        <CourseCard
-                                            key={course.id}
-                                            course={course}
-                                            expert={expert}
-                                            variants={cardVariants}
-                                        />
-                                    ) : (
-                                        <CourseListItem
-                                            key={course.id}
-                                            course={course}
-                                            expert={expert}
-                                            variants={cardVariants}
-                                        />
-                                    );
-                                })}
-                            </motion.div>
-                        </div>
-                    )}
-
-                    {/* ── Empty search result ── */}
-                    {!loading && !error && showAll && filteredCourses.length === 0 && (
-                        <motion.div
-                            variants={cardVariants}
-                            className="flex flex-col items-center justify-center py-16 text-center"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-base-300 flex items-center justify-center mb-5">
-                                <Frown className="w-8 h-8 text-base-content/30" />
-                            </div>
-                            <h3 className="text-lg font-black text-base-content mb-2">Không tìm thấy môn học</h3>
-                            <p className="text-sm text-base-content/50 font-medium mb-5 max-w-sm">
-                                Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm kết quả.
-                            </p>
-                            <button
-                                onClick={() => { handleResetFilters(); setShowAll(false); }}
-                                className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none rounded-xl font-bold"
-                            >
-                                Xóa bộ lọc
-                            </button>
-                        </motion.div>
-                    )}
-
-                    {/* ── Category Sections (when NOT searching/filtering) ── */}
-                    {!loading && !error && !showAll && subjects.length > 0 && (
-                        <div className="mb-8 space-y-8">
-                            {/* Top Bán Chạy */}
-                            <CategorySection
-                                title="Top Bán Chạy"
-                                icon={<Flame className="w-5 h-5" />}
-                                iconBg="from-orange-500 to-red-500"
-                                courses={topSellers}
-                                mapApiToExpert={mapApiToExpert}
-                                containerVariants={containerVariants}
-                                cardVariants={cardVariants}
-                            />
-
-                            {/* Top Đánh Giá Cao */}
-                            <CategorySection
-                                title="Top Đánh Giá Cao"
-                                icon={<ThumbsUp className="w-5 h-5" />}
-                                iconBg="from-violet-500 to-purple-500"
-                                courses={topRated}
-                                mapApiToExpert={mapApiToExpert}
-                                containerVariants={containerVariants}
-                                cardVariants={cardVariants}
-                            />
-
-                            {/* Khóa Học Miễn Phí */}
-                            <CategorySection
-                                title="Khóa Học Miễn Phí"
-                                icon={<Gift className="w-5 h-5" />}
-                                iconBg="from-emerald-500 to-teal-500"
-                                courses={freeCourses}
-                                mapApiToExpert={mapApiToExpert}
-                                containerVariants={containerVariants}
-                                cardVariants={cardVariants}
-                            />
-                        </div>
-                    )}
-
-                    {/* ── View All Button ── */}
-                    {!loading && !error && (
-                        <motion.div variants={cardVariants} className="flex justify-center mb-8">
-                            <button
-                                onClick={() => setShowAll(true)}
-                                className="btn bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg gap-2 px-8"
-                            >
-                                Xem tất cả {subjects.length} môn học
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
-                        </motion.div>
-                    )}
-
-                    {/* CTA: Become Expert */}
-                    {!loading && !error && filteredCourses.length > 0 && (
-                        <motion.div
-                            variants={cardVariants}
-                            className="mt-10"
-                        >
-                            <div className="bg-base-100 rounded-2xl border border-base-300 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center shadow-lg">
-                                        <GraduationCap className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-base font-black text-base-content">Bạn là chuyên gia?</h3>
-                                        <p className="text-sm text-base-content/50 font-medium">
-                                            Chia sẻ kiến thức, tạo thu nhập bền vững trên SKR.
-                                        </p>
-                                    </div>
-                                </div>
-                                <Link to="/signup">
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="btn btn-sm bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg gap-1"
-                                    >
-                                        Đăng ký làm Chuyên Gia
-                                        <ArrowRight className="w-4 h-4" />
-                                    </motion.button>
-                                </Link>
-                            </div>
-                        </motion.div>
-                    )}
+                    {pageContent}
                 </motion.main>
             </div>
         </div>
     );
 }
-
-// ─── Category Section Component ──────────────────────────
 
 function CategorySection({
     title,
@@ -526,38 +525,27 @@ function CategorySection({
 
     return (
         <section>
-            {/* Section Header */}
-            <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${iconBg} flex items-center justify-center shadow-lg text-white`}>
+            <div className="mb-4 flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${iconBg} text-white shadow-lg`}>
                     {icon}
                 </div>
-                <h2 className="text-xl font-black text-base-content tracking-tight">{title}</h2>
+                <h2 className="text-xl font-black tracking-tight text-base-content">{title}</h2>
             </div>
 
-            {/* Course Grid */}
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5"
+                className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4"
             >
                 {courses.map((course) => {
                     const expert = mapApiToExpert(course.creator);
-                    return (
-                        <CourseCard
-                            key={course.id}
-                            course={course}
-                            expert={expert}
-                            variants={cardVariants}
-                        />
-                    );
+                    return <CourseCard key={course.id} course={course} expert={expert} variants={cardVariants} />;
                 })}
             </motion.div>
         </section>
     );
 }
-
-// ─── Header (same pattern as Dashboard.Header) ──────────
 
 function CoursesPageHeader() {
     const { profile } = useCurrentUserProfile();
@@ -568,46 +556,43 @@ function CoursesPageHeader() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-8 py-4"
         >
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-black text-base-content">Môn Học</h2>
-                    <p className="text-sm text-base-content/60 font-medium">Khám phá và đăng ký khóa học mới</p>
+                    <p className="text-sm font-medium text-base-content/60">Khám phá và đăng ký khóa học mới</p>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {/* Search */}
                     <div className="relative hidden lg:block">
                         <input
                             type="text"
                             placeholder="Tìm môn học, flashcard, bài thi..."
-                            className="input input-bordered w-96 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
+                            className="input input-bordered w-96 rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500"
                         />
-                        <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+                        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-base-content/40" />
                     </div>
 
-                    {/* Notifications */}
                     <div className="indicator">
                         <span className="indicator-item badge badge-sm badge-primary">3</span>
                         <button className="btn btn-circle btn-ghost">
-                            <Bell className="w-5 h-5" />
+                            <Bell className="h-5 w-5" />
                         </button>
                     </div>
 
-                    {/* User Profile */}
-                    <div className="flex items-center gap-3 pl-4 border-l border-base-300">
+                    <div className="flex items-center gap-3 border-l border-base-300 pl-4">
                         <div className="text-right">
-                            <p className="font-bold text-sm text-base-content">{displayName}</p>
+                            <p className="text-sm font-bold text-base-content">{displayName}</p>
                             {profile.isPremium && (
                                 <div className="flex items-center justify-end gap-1">
-                                    <Star className="w-3 h-3 fill-orange-500 text-orange-500" />
-                                    <p className="text-xs text-orange-500 font-bold">Premium User</p>
+                                    <Star className="h-3 w-3 fill-orange-500 text-orange-500" />
+                                    <p className="text-xs font-bold text-orange-500">Premium User</p>
                                 </div>
                             )}
                         </div>
                         <div className="avatar">
-                            <div className="w-10 h-10 rounded-full ring ring-blue-500 ring-offset-2 ring-offset-base-100">
+                            <div className="w-10 rounded-full ring ring-blue-500 ring-offset-2 ring-offset-base-100">
                                 {profile.avatarUrl ? (
                                     <img src={profile.avatarUrl} alt={displayName} className="h-10 w-10 object-cover" />
                                 ) : (

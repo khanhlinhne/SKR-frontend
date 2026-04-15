@@ -1,17 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import {
     Search,
     Layers3,
-    BookOpen,
-    Clock,
     Users,
-    Star,
     Frown,
     ArrowRight,
-    Filter,
-    SortAsc,
 } from 'lucide-react';
 
 import { HomeFooter, HomeNavBar } from '@/features/home/components';
@@ -66,6 +61,44 @@ function extractSetsFromResponse(response) {
     const payload = response?.data?.data || response?.data || response;
     const items = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
     return items;
+}
+
+function matchesSearchQuery(set, query) {
+    if (!query) return true;
+
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return true;
+
+    return [
+        set.title,
+        set.description,
+        set.subject,
+        set.creatorName,
+        ...(set.tags || []),
+    ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+}
+
+function applyClientFilters(items, { searchQuery, subjectFilter, sortBy }) {
+    const filtered = items.filter((set) => {
+        const matchesSubject = !subjectFilter || set.subject === subjectFilter;
+        return matchesSubject && matchesSearchQuery(set, searchQuery);
+    });
+
+    filtered.sort((left, right) => {
+        if (sortBy === 'popular') {
+            return (right.studyCount || 0) - (left.studyCount || 0);
+        }
+
+        if (sortBy === 'cards') {
+            return (right.totalCards || 0) - (left.totalCards || 0);
+        }
+
+        return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
+    });
+
+    return filtered;
 }
 
 function FlashcardSetCard({ set, index, searchQuery }) {
@@ -208,7 +241,7 @@ function SearchFilters({ searchQuery, setSearchQuery, sortBy, setSortBy, subject
 }
 
 export default function PublicFlashcards() {
-    const [sets, setSets] = useState([]);
+    const [allSets, setAllSets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -222,41 +255,41 @@ export default function PublicFlashcards() {
             setError('');
 
             const params = {
-                limit: 24,
-                ...(searchQuery && { q: searchQuery }),
-                ...(subjectFilter && { subject: subjectFilter }),
-                ...(sortBy === 'popular' && { sortBy: 'studyCount', sortOrder: 'desc' }),
-                ...(sortBy === 'cards' && { sortBy: 'totalCards', sortOrder: 'desc' }),
-                ...(sortBy === 'recent' && { sortBy: 'createdAt', sortOrder: 'desc' }),
+                limit: 100,
+                ...(searchQuery && { search: searchQuery }),
             };
 
             const response = await flashcardApi.searchPublic(params);
             const items = extractSetsFromResponse(response);
             const mapped = items.map((item, index) => normalizePublicSet(item, index));
-            setSets(mapped);
+            setAllSets(mapped);
             setHasSearched(true);
         } catch (err) {
             console.error('Failed to fetch public flashcards:', err);
             setError(err.response?.data?.message || err.message || 'Không thể tải danh sách flashcard');
-            setSets([]);
+            setAllSets([]);
         } finally {
             setLoading(false);
         }
-    }, [searchQuery, sortBy, subjectFilter]);
+    }, [searchQuery]);
 
     useEffect(() => {
         const debounceTimer = setTimeout(() => {
-            if (searchQuery || subjectFilter) {
-                fetchPublicSets();
-            } else {
-                fetchPublicSets();
-            }
+            fetchPublicSets();
         }, 300);
 
         return () => clearTimeout(debounceTimer);
-    }, [fetchPublicSets, searchQuery, subjectFilter]);
+    }, [fetchPublicSets]);
 
-    const subjects = [...new Set(sets.map((s) => s.subject).filter(Boolean))];
+    const subjects = useMemo(
+        () => [...new Set(allSets.map((set) => set.subject).filter(Boolean))].sort((left, right) => left.localeCompare(right)),
+        [allSets],
+    );
+
+    const sets = useMemo(
+        () => applyClientFilters(allSets, { searchQuery, subjectFilter, sortBy }),
+        [allSets, searchQuery, subjectFilter, sortBy],
+    );
 
     return (
         <div className="apple-home apple-transition min-h-screen">

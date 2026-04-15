@@ -91,7 +91,7 @@ export default function HomeNavBar() {
 
                 <nav className="hidden items-center gap-8 lg:flex">
                     {navItems.map((item, index) => (
-                        item.href.startsWith('/') ? (
+                        (item.href.startsWith('/') || item.href === '#curriculum') ? (
                             <motion.div
                                 key={item.label}
                                 initial={{ opacity: 0, y: -8 }}
@@ -100,7 +100,7 @@ export default function HomeNavBar() {
                                 whileHover={{ y: -1 }}
                             >
                                 <Link
-                                    to={item.href}
+                                    to={item.href === '#curriculum' ? '/courses' : item.href}
                                     className="apple-transition apple-secondary-text text-sm font-medium hover:text-[var(--apple-text)]"
                                 >
                                     {item.label}
@@ -176,7 +176,7 @@ export default function HomeNavBar() {
                                     to="/signup"
                                     className="apple-primary-button apple-transition inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold"
                                 >
-                                    Bắt đầu
+                                    Đăng Ký
                                 </Link>
                             </motion.div>
                         </>
@@ -210,10 +210,10 @@ export default function HomeNavBar() {
             >
                 <div className="flex flex-col gap-2 py-4">
                     {navItems.map((item) => (
-                        item.href.startsWith('/') ? (
+                        (item.href.startsWith('/') || item.href === '#curriculum') ? (
                             <Link
                                 key={item.label}
-                                to={item.href}
+                                to={item.href === '#curriculum' ? '/courses' : item.href}
                                 onClick={() => setIsOpen(false)}
                                 className="apple-transition apple-subtle-hover mx-5 rounded-2xl px-4 py-3 text-sm font-medium apple-secondary-text hover:text-[var(--apple-text)]"
                             >

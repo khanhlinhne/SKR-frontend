@@ -1,18 +1,131 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, ShoppingCart, Star, Users } from 'lucide-react';
+import { Flame, Gift, ThumbsUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { trustNotes } from '@/features/home/constants';
 import { subjectApi } from '@/shared/api';
 import { OwlLoader } from '@/shared/ui/common';
-import { buildCourseBuyPath, mapCourseToPublicModel } from '@/features/courses/utils/publicCourseModel';
+import { CourseCard } from '@/features/courses/components';
 
-export default function ExpertCoursesSection({
-    badge = 'Môn học nổi bật',
-    titleMain = 'Nội dung được xếp để',
-    titleHighlight = 'dễ học, dễ dạy, dễ quay lại',
-    subtitle = 'Từ các môn nền tảng đến lộ trình chuyên sâu, SKR giúp người học tiếp cận nội dung có cấu trúc rõ ràng, dễ theo dõi tiến độ và dễ quay lại ôn tập.',
-} = {}) {
+const DEFAULT_BANNER = 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop';
+
+function mapApiToCourse(subject) {
+    const priceAmount = Number(subject.priceAmount) || 0;
+
+    return {
+        id: subject.subjectId,
+        subjectId: subject.subjectId,
+        title: subject.subjectName,
+        subjectName: subject.subjectName,
+        description: subject.subjectDescription,
+        category: subject.subjectName?.split(' ')[0] || 'Khác',
+        isFree: subject.isFree || priceAmount === 0,
+        priceAmount,
+        originalPrice: Number(subject.originalPrice) || 0,
+        discountPercent: Number(subject.discountPercent) || 0,
+        ratingAverage: Number(subject.ratingAverage) || 0,
+        ratingCount: Number(subject.ratingCount) || 0,
+        purchaseCount: Number(subject.purchaseCount) || 0,
+        totalChapters: Number(subject.totalChapters) || 0,
+        totalLessons: Number(subject.totalLessons) || 0,
+        totalVideos: Number(subject.totalVideos) || 0,
+        totalDocuments: Number(subject.totalDocuments) || 0,
+        totalQuestions: Number(subject.totalQuestions) || 0,
+        estimatedDurationHours: Number(subject.estimatedDurationHours) || 0,
+        level: 'Cơ bản',
+        gradient: 'from-blue-500 to-cyan-500',
+        bgGradient: 'from-blue-500/10 to-cyan-500/10',
+        icon: '📚',
+        tags: [],
+        bannerUrl: subject.subjectBannerUrl || DEFAULT_BANNER,
+        visibility: subject.status === 'published' ? 'public' : 'draft',
+        isPurchased: false,
+        publishedAt: subject.publishedAt,
+        creator: subject.creator,
+    };
+}
+
+function mapApiToExpert(creator) {
+    if (!creator) return null;
+
+    return {
+        id: creator.userId,
+        userId: creator.userId,
+        name: creator.displayName || creator.fullName || 'Chuyên gia',
+        avatar: creator.avatarUrl || 'https://i.pravatar.cc/150?img=11',
+        verified: true,
+    };
+}
+
+const MOCK_DEMO_COURSE = {
+    id: 1,
+    subjectId: 1,
+    title: 'Toán Cao Cấp - Giải Tích & Đại Số',
+    subjectName: 'Toán Cao Cấp - Giải Tích & Đại Số',
+    description: 'Khóa học toán cao cấp toàn diện dành cho sinh viên đại học.',
+    category: 'Toán học',
+    isFree: true,
+    priceAmount: 0,
+    originalPrice: 0,
+    discountPercent: 0,
+    ratingAverage: 4.9,
+    ratingCount: 1248,
+    purchaseCount: 3420,
+    totalChapters: 12,
+    totalLessons: 48,
+    totalVideos: 36,
+    totalDocuments: 8,
+    totalQuestions: 120,
+    estimatedDurationHours: 24,
+    level: 'Cơ bản -> Nâng cao',
+    gradient: 'from-blue-500 to-cyan-500',
+    bgGradient: 'from-blue-500/10 to-cyan-500/10',
+    icon: '📐',
+    tags: ['Đạo hàm', 'Tích phân', 'Ma trận'],
+    bannerUrl: DEFAULT_BANNER,
+    visibility: 'public',
+    isPurchased: false,
+    publishedAt: '2024-01-15T00:00:00Z',
+    creator: {
+        userId: 'expert-1',
+        displayName: 'TS. Nguyễn Văn Minh',
+        fullName: 'TS. Nguyễn Văn Minh',
+        avatarUrl: 'https://i.pravatar.cc/150?img=11',
+    },
+};
+
+function SectionBlock({ title, icon, iconBg, courses, variants }) {
+    if (!courses.length) return null;
+
+    return (
+        <section>
+            <div className="mb-5 flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${iconBg} text-white shadow-lg`}>
+                    {icon}
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-base-content">{title}</h3>
+            </div>
+
+            <motion.div
+                variants={variants.container}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.15 }}
+                className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4"
+            >
+                {courses.map((course) => (
+                    <CourseCard
+                        key={`${title}-${course.id}`}
+                        course={course}
+                        expert={mapApiToExpert(course.creator)}
+                        variants={variants.card}
+                    />
+                ))}
+            </motion.div>
+        </section>
+    );
+}
+
+export default function ExpertCoursesSection() {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -20,51 +133,33 @@ export default function ExpertCoursesSection({
     useEffect(() => {
         let isMounted = true;
 
-        const loadFeaturedCourses = async () => {
+        const loadCourses = async () => {
             try {
                 setLoading(true);
                 setError('');
 
-                const featuredResponse = await subjectApi.getAll({
+                const response = await subjectApi.getAll({
                     status: 'published',
-                    isFeatured: true,
-                    limit: 3,
-                    sortBy: 'displayOrder',
-                    sortOrder: 'asc',
+                    limit: 100,
+                    sortBy: 'purchaseCount',
+                    sortOrder: 'desc',
                 });
 
-                const featuredItems = featuredResponse.data?.items || [];
-                let selectedCourses = featuredItems;
+                const items = response.data?.items || response.data || [];
+                const mapped = [MOCK_DEMO_COURSE, ...items.map(mapApiToCourse)];
 
-                if (featuredItems.length < 3) {
-                    const fallbackResponse = await subjectApi.getAll({
-                        status: 'published',
-                        limit: 6,
-                        sortBy: 'purchaseCount',
-                        sortOrder: 'desc',
-                    });
-
-                    const fallbackItems = fallbackResponse.data?.items || [];
-                    const existingIds = new Set(featuredItems.map((item) => item.subjectId ?? item.courseId ?? item.id));
-
-                    selectedCourses = [
-                        ...featuredItems,
-                        ...fallbackItems.filter((item) => !existingIds.has(item.subjectId ?? item.courseId ?? item.id)),
-                    ].slice(0, 3);
+                if (isMounted) {
+                    const uniqueCourses = mapped.filter(
+                        (course, index, arr) => arr.findIndex((item) => item.id === course.id) === index
+                    );
+                    setCourses(uniqueCourses);
                 }
-
-                if (!isMounted) {
-                    return;
-                }
-
-                setCourses(selectedCourses.map((course, index) => mapCourseToPublicModel(course, index)));
             } catch (fetchError) {
-                if (!isMounted) {
-                    return;
+                console.error('Failed to load homepage courses:', fetchError);
+                if (isMounted) {
+                    setError('Chưa tải được danh sách môn học lúc này. Bạn có thể xem toàn bộ ở trang môn học.');
+                    setCourses([MOCK_DEMO_COURSE]);
                 }
-
-                console.error('Failed to load featured public courses:', fetchError);
-                setError('Chưa tải được danh sách khóa học nổi bật. Bạn có thể thử lại sau ít phút.');
             } finally {
                 if (isMounted) {
                     setLoading(false);
@@ -72,158 +167,96 @@ export default function ExpertCoursesSection({
             }
         };
 
-        void loadFeaturedCourses();
+        void loadCourses();
 
         return () => {
             isMounted = false;
         };
     }, []);
 
+    const topSellers = useMemo(
+        () => [...courses].sort((a, b) => b.purchaseCount - a.purchaseCount).slice(0, 4),
+        [courses]
+    );
+
+    const topRated = useMemo(
+        () => [...courses]
+            .filter((course) => course.ratingAverage > 0)
+            .sort((a, b) => b.ratingAverage - a.ratingAverage || b.ratingCount - a.ratingCount)
+            .slice(0, 4),
+        [courses]
+    );
+
+    const freeCourses = useMemo(
+        () => [...courses].filter((course) => course.isFree).sort((a, b) => b.purchaseCount - a.purchaseCount).slice(0, 4),
+        [courses]
+    );
+
+    const variants = {
+        container: {
+            hidden: { opacity: 0 },
+            visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.06, delayChildren: 0.08 },
+            },
+        },
+        card: {
+            hidden: { opacity: 0, y: 20 },
+            visible: {
+                opacity: 1,
+                y: 0,
+                transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] },
+            },
+        },
+    };
+
     return (
-        <section id="curriculum" className="px-6 py-20 lg:px-8 lg:py-28">
-            <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.82fr_1.18fr]">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.25 }}
-                    transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    className="lg:sticky lg:top-28 lg:self-start"
-                >
-                    <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium backdrop-blur-xl">
-                        {badge}
+        <section id="curriculum" className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+            <div className="mx-auto max-w-7xl space-y-10">
+                {loading ? (
+                    <div className="rounded-[32px] border border-base-300 bg-base-100 p-8 shadow-sm">
+                        <OwlLoader
+                            message="Đang tải các môn học nổi bật..."
+                            subMessage="SKR đang lấy danh sách top bán chạy, top đánh giá cao và khóa học miễn phí."
+                            className="py-8"
+                        />
                     </div>
-                    <h2 className="apple-main-text mt-6 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
-                        {titleMain}
-                        <br />
-                        <span className="apple-highlight-text">{titleHighlight}</span>
-                    </h2>
-                    <p className="apple-secondary-text mt-6 text-lg leading-8">{subtitle}</p>
-
-                    <div className="mt-10 space-y-4">
-                        {trustNotes.map((note, index) => (
-                            <motion.div
-                                key={note.title}
-                                initial={{ opacity: 0, y: 18 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, amount: 0.2 }}
-                                transition={{ duration: 0.45, delay: index * 0.06 }}
-                                whileHover={{ y: -4 }}
-                                className="apple-panel apple-card-shadow apple-transition rounded-[28px] border p-5 backdrop-blur-xl"
-                            >
-                                <note.icon className="apple-muted-text h-5 w-5" />
-                                <h3 className="apple-main-text mt-4 text-lg font-semibold tracking-[-0.02em]">{note.title}</h3>
-                                <p className="apple-secondary-text mt-2 text-sm leading-6">{note.description}</p>
-                            </motion.div>
-                        ))}
+                ) : error ? (
+                    <div className="rounded-[32px] border border-base-300 bg-base-100 p-8 shadow-sm">
+                        <p className="text-xl font-semibold text-base-content">Chưa hiển thị được danh sách môn học</p>
+                        <p className="mt-3 text-sm leading-7 text-base-content/60">{error}</p>
+                        <Link
+                            to="/courses"
+                            className="mt-6 inline-flex h-11 items-center rounded-full bg-black px-5 text-sm font-semibold text-white transition hover:opacity-90"
+                        >
+                            Xem tất cả môn học
+                        </Link>
                     </div>
-                </motion.div>
-
-                <div className="space-y-5">
-                    {loading ? (
-                        <div className="apple-panel apple-card-shadow rounded-[32px] border p-8">
-                            <OwlLoader
-                                message="Đang tải khóa học nổi bật..."
-                                subMessage="SKR đang lấy một vài khóa học public nổi bật từ dữ liệu thật."
-                                className="py-8"
-                            />
-                        </div>
-                    ) : error ? (
-                        <div className="apple-panel apple-card-shadow rounded-[32px] border p-8">
-                            <p className="apple-main-text text-xl font-semibold">Chưa hiển thị được khóa học nổi bật</p>
-                            <p className="apple-secondary-text mt-3 text-sm leading-7">{error}</p>
-                            <Link
-                                to="/courses"
-                                className="apple-primary-button apple-transition mt-6 inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold"
-                            >
-                                Xem toàn bộ khóa học
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                        </div>
-                    ) : (
-                        courses.map((course, index) => (
-                            <motion.article
-                                key={course.id}
-                                initial={{ opacity: 0, y: 28 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true, amount: 0.2 }}
-                                transition={{ duration: 0.55, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                                whileHover={{ y: -6 }}
-                                className={`apple-card-shadow apple-transition overflow-hidden rounded-[32px] border p-7 sm:p-8 ${course.accent.surfaceClass}`}
-                            >
-                                <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-                                    <div className="max-w-2xl">
-                                        <div className="apple-chip inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]">
-                                            {course.instructorName}
-                                        </div>
-                                        <h3 className="apple-main-text mt-5 text-3xl font-semibold tracking-[-0.03em]">
-                                            {course.title}
-                                        </h3>
-                                        <p className="apple-secondary-text mt-3 text-base leading-7">{course.subtitle}</p>
-
-                                        <div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold">
-                                            <span className="apple-chip inline-flex items-center gap-1.5 rounded-full px-3 py-2 backdrop-blur-xl">
-                                                <Users className="h-3.5 w-3.5" />
-                                                {course.socialProof}
-                                            </span>
-                                            <span className="apple-chip inline-flex items-center gap-1.5 rounded-full px-3 py-2 backdrop-blur-xl">
-                                                <Star className="h-3.5 w-3.5" />
-                                                {course.ratingLabel}
-                                            </span>
-                                            <span className="apple-chip rounded-full px-3 py-2 backdrop-blur-xl">
-                                                {course.level}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="apple-panel relative overflow-hidden rounded-[28px] border backdrop-blur-xl">
-                                        <motion.img
-                                            src={course.bannerUrl}
-                                            alt={`Minh họa cho khóa học ${course.title}`}
-                                            className="aspect-[16/10] w-full object-cover"
-                                            whileHover={{ scale: 1.06 }}
-                                            transition={{ duration: 0.45, ease: 'easeOut' }}
-                                        />
-                                        <div className="apple-img-overlay absolute inset-0" />
-                                        <div className="apple-glass-overlay apple-glass-border absolute left-4 top-4 rounded-full border px-3 py-1.5 text-xs font-medium text-white backdrop-blur-xl">
-                                            {course.accent.badge}
-                                        </div>
-                                        <div className="apple-glass-overlay apple-glass-border absolute bottom-4 left-4 rounded-2xl border px-4 py-3 backdrop-blur-xl">
-                                            <p className="text-xs font-medium text-white/72">Học phí</p>
-                                            <p className="mt-1 text-lg font-semibold text-white">{course.formattedPrice}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="apple-border mt-8 flex flex-col gap-6 border-t pt-6">
-                                    <div className="flex flex-wrap gap-3">
-                                        {course.stats.map((item) => (
-                                            <span key={item} className="apple-chip rounded-full px-4 py-2 text-sm backdrop-blur-xl">
-                                                {item}
-                                            </span>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                                        <Link
-                                            to={`/courses/${course.id}`}
-                                            className="apple-secondary-button apple-transition inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold"
-                                        >
-                                            Xem khóa học
-                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Link>
-                                        <Link
-                                            to={buildCourseBuyPath(course.id)}
-                                            className="apple-primary-button apple-transition inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold hover:-translate-y-px"
-                                        >
-                                            <ShoppingCart className="mr-2 h-4 w-4" />
-                                            Mua ngay
-                                        </Link>
-                                    </div>
-                                </div>
-                            </motion.article>
-                        ))
-                    )}
-                </div>
+                ) : (
+                    <>
+                        <SectionBlock
+                            title="Top Bán Chạy"
+                            icon={<Flame className="h-5 w-5" />}
+                            iconBg="from-orange-500 to-red-500"
+                            courses={topSellers}
+                            variants={variants}
+                        />
+                        <SectionBlock
+                            title="Top Đánh Giá Cao"
+                            icon={<ThumbsUp className="h-5 w-5" />}
+                            iconBg="from-violet-500 to-purple-500"
+                            courses={topRated}
+                            variants={variants}
+                        />
+                        <SectionBlock
+                            title="Khóa Học Miễn Phí"
+                            icon={<Gift className="h-5 w-5" />}
+                            iconBg="from-emerald-500 to-teal-500"
+                            courses={freeCourses}
+                            variants={variants}
+                        />
+                    </>
+                )}
             </div>
         </section>
     );

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { DashboardSidebar } from '@/features/learner/components';
 import { createStudyReviewTransport } from '@/features/flashcards/utils/studyReviewTransport';
 import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
-import { flashcardApi, subjectApi } from '@/shared/api';
+import { enrollmentApi, flashcardApi } from '@/shared/api';
 import { mapWithConcurrency } from '@/shared/utils/mapWithConcurrency.js';
 import { isTokenValid } from '@/shared/utils/tokenManager';
 import Icon from '@/shared/ui/icons/Icon';
@@ -21,7 +21,7 @@ import {
     CreateDeckModal,
     FlashcardsHeader,
 } from '@/features/flashcards/components';
-import { OwlLoader, StatCard, ViewToggle, FilterSortControls, SectionHeader } from '@/shared/ui/common';
+import { OwlDialog, OwlLoader, StatCard, ViewToggle, FilterSortControls, SectionHeader, useOwlDialog } from '@/shared/ui/common';
 
 const FALLBACK_DECK_COLORS = ['blue', 'green', 'purple', 'orange', 'yellow', 'red'];
 const SUBJECT_PICKER_LIMIT = 40;
@@ -300,6 +300,10 @@ export default function Flashcards() {
     const [hasAnimated, setHasAnimated] = useState(false);
     const [deletingDeckId, setDeletingDeckId] = useState(null);
     const [deckDeleteCandidate, setDeckDeleteCandidate] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingDeck, setEditingDeck] = useState(null);
+    const [editingDeckId, setEditingDeckId] = useState(null);
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
 
     const reviewTransportRef = useRef(null);
     const pendingDeckProgressRef = useRef(null);
@@ -312,6 +316,7 @@ export default function Flashcards() {
     const deepLinkDeckId = searchParams.get('deckId') || searchParams.get('deck');
     const deepLinkAutoStudy = ['1', 'true', 'yes'].includes((searchParams.get('study') || '').toLowerCase());
     const deepLinkSignature = `${normalizeComparableId(deepLinkDeckId)}:${deepLinkAutoStudy ? '1' : '0'}`;
+    const currentUserId = readCurrentUserId();
 
     const fetchDecks = useCallback(async () => {
         try {
@@ -338,33 +343,25 @@ export default function Flashcards() {
         }
     }, []);
 
-    const fetchSubjects = useCallback(async (options = {}) => {
-        const forceRefresh = options.forceRefresh === true;
-
+    const fetchSubjects = useCallback(async () => {
         try {
-            const response = await subjectApi.getAll(
-                {
-                    limit: SUBJECT_PICKER_LIMIT,
-                    status: 'published',
-                    sortBy: 'purchaseCount',
-                    sortOrder: 'desc',
-                },
-                { forceRefresh },
-            );
+            const response = await enrollmentApi.getMyEnrollments({ limit: SUBJECT_PICKER_LIMIT });
             const payload = response?.data || response || {};
-            const items = Array.isArray(payload.items) ? payload.items : [];
+            const items = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
 
             setSubjectOptions(
                 items
                     .map((subject) => ({
-                        value: subject.subjectId || subject.courseId || '',
-                        label: subject.subjectName || subject.courseName || '',
-                        courseId: subject.subjectId || subject.courseId || null,
+                        value: subject.courseId || subject.subjectId || subject.id || '',
+                        label: subject.courseName || subject.subjectName || subject.title || '',
+                        courseId: subject.courseId || subject.subjectId || subject.id || null,
+                        isOwnedByUser: true,
                     }))
-                    .filter((option) => option.value && option.label),
+                    .filter((option) => option.value && option.label)
+                    .filter((option, index, arr) => arr.findIndex((item) => isSameEntityId(item.value, option.value)) === index),
             );
         } catch (err) {
-            console.error('Failed to fetch subjects:', err);
+            console.error('Failed to fetch learner-owned subjects:', err);
             setSubjectOptions([]);
         }
     }, []);
@@ -1079,6 +1076,10 @@ export default function Flashcards() {
 
         try {
             setError(null);
+            const isOwnedCourse = subjectOptions.some((option) => isSameEntityId(option.courseId, deckData.courseId));
+            if (!deckData.courseId || !isOwnedCourse) {
+                throw new Error('Bạn chỉ được tạo flashcard cho môn học đã mua và thuộc quyền của tài khoản hiện tại.');
+            }
 
             const cards = Array.isArray(deckData.cards)
                 ? deckData.cards.filter((card) => card.frontText?.trim() && card.backText?.trim())
@@ -1151,6 +1152,199 @@ export default function Flashcards() {
                 err.response = { data: { message } };
             }
             setError(message);
+        }
+    };
+
+    const handleOpenEditDeck = async (deck) => {
+        const requestDeckId = deck?.id == null ? '' : String(deck.id).trim();
+        const normalizedDeckId = normalizeComparableId(requestDeckId);
+
+        if (!normalizedDeckId || editingDeckId === normalizedDeckId) {
+            return;
+        }
+
+        if (!deck?.isOwned) {
+            openDialog({
+                variant: 'error',
+                title: 'Con cú chưa thể mở chỉnh sửa',
+                message: 'Bạn chỉ được chỉnh sửa bộ flashcard do chính mình tạo.',
+                details: 'Quy tắc hiện tại:\n- Chỉ owner của bộ flashcard mới có quyền cập nhật nội dung.\n- Các bộ public của người khác vẫn chỉ xem và học được.',
+                confirmLabel: 'Đã hiểu',
+            });
+            return;
+        }
+
+        try {
+            setError(null);
+            setEditingDeckId(normalizedDeckId);
+
+            const itemsResponse = await flashcardApi.getItems(requestDeckId, { limit: 100 });
+            const deckItems = extractItemsFromResponse(itemsResponse);
+            const matchedSubject =
+                subjectOptions.find((option) => isSameEntityId(option.courseId, deck.subjectId)) ||
+                subjectOptions.find((option) => isSameEntityId(option.value, deck.subjectId));
+
+            setEditingDeck({
+                id: requestDeckId,
+                deckId: requestDeckId,
+                name: deck.name || '',
+                description: deck.description || deck.raw?.setDescription || '',
+                visibility: deck.visibility || deck.raw?.visibility || 'private',
+                subjectValue: matchedSubject?.value || deck.subjectId || '',
+                courseId: matchedSubject?.courseId || deck.subjectId || null,
+                cards: deckItems.map((item) => ({
+                    itemId: item.id,
+                    front: item.front || '',
+                    back: item.back || '',
+                    frontImageUrl: item.frontImageUrl || '',
+                    backImageUrl: item.backImageUrl || '',
+                })),
+            });
+            setShowEditModal(true);
+        } catch (err) {
+            console.error('Failed to open edit deck modal:', err);
+            const message = err.response?.data?.message || err.message || 'Không thể tải dữ liệu bộ flashcard để chỉnh sửa.';
+            openDialog({
+                variant: 'error',
+                title: 'Con cú chưa mở được bộ flashcard',
+                message: 'Dữ liệu hiện tại chưa tải xong nên chưa thể vào chế độ cập nhật.',
+                details: `Chi tiết lỗi:\n- ${message}`,
+                confirmLabel: 'Đã hiểu',
+            });
+        } finally {
+            setEditingDeckId(null);
+        }
+    };
+
+    const handleCloseEditModal = () => {
+        if (editingDeckId) {
+            return;
+        }
+
+        setShowEditModal(false);
+        setEditingDeck(null);
+    };
+
+    const handleUpdateDeck = async (deckData) => {
+        const requestDeckId = deckData?.deckId == null ? '' : String(deckData.deckId).trim();
+        const normalizedDeckId = normalizeComparableId(requestDeckId);
+
+        if (!normalizedDeckId) {
+            const message = 'Không tìm thấy mã bộ flashcard để cập nhật.';
+            openDialog({
+                variant: 'error',
+                title: 'Con cú chưa thể cập nhật flashcard',
+                message: 'Thiếu thông tin nhận diện của bộ flashcard.',
+                details: `Chi tiết lỗi:\n- ${message}`,
+                confirmLabel: 'Đã hiểu',
+            });
+            throw new Error(message);
+        }
+
+        try {
+            setError(null);
+
+            const targetDeck = decks.find((deck) => isSameEntityId(deck.id, normalizedDeckId));
+            if (!targetDeck?.isOwned) {
+                throw new Error('Bạn chỉ được cập nhật bộ flashcard do chính mình tạo.');
+            }
+
+            const isOwnedCourse = subjectOptions.some((option) => isSameEntityId(option.courseId, deckData.courseId));
+            if (!deckData.courseId || !isOwnedCourse) {
+                throw new Error('Bạn chỉ được cập nhật flashcard cho môn học đã mua và thuộc quyền của tài khoản hiện tại.');
+            }
+
+            const cards = Array.isArray(deckData.cards)
+                ? deckData.cards.filter((card) => card.frontText?.trim() && card.backText?.trim())
+                : [];
+
+            await flashcardApi.updateSet(requestDeckId, {
+                setTitle: deckData.name?.trim(),
+                setDescription: deckData.description?.trim() || null,
+                courseId: deckData.courseId || null,
+                visibility: deckData.visibility || 'private',
+                status: cards.length > 0 ? 'active' : 'draft',
+                tags: deckData.subject ? [deckData.subject] : null,
+            });
+
+            const existingCards = Array.isArray(editingDeck?.cards) ? editingDeck.cards : [];
+            const existingItemIds = existingCards
+                .map((card) => card.itemId || card.id || null)
+                .filter(Boolean);
+            const submittedItemIds = new Set(
+                cards
+                    .map((card) => normalizeComparableId(card.itemId))
+                    .filter(Boolean),
+            );
+            const removedItemIds = existingItemIds.filter(
+                (itemId) => !submittedItemIds.has(normalizeComparableId(itemId)),
+            );
+
+            await mapWithConcurrency(
+                removedItemIds,
+                async (itemId) => flashcardApi.deleteItem(requestDeckId, itemId),
+                {
+                    concurrency: CREATE_ITEM_CONCURRENCY,
+                    retries: 1,
+                    retryDelayMs: 150,
+                },
+            );
+
+            await mapWithConcurrency(
+                cards,
+                async (card, index) => {
+                    const basePayload = {
+                        frontText: card.frontText.trim(),
+                        backText: card.backText.trim(),
+                        cardOrder: card.cardOrder ?? index,
+                    };
+                    const imagePayload = {
+                        ...basePayload,
+                        frontImageUrl: card.frontImageUrl || null,
+                        backImageUrl: card.backImageUrl || null,
+                        frontImage: card.frontImageUrl || null,
+                        backImage: card.backImageUrl || null,
+                        frontMediaUrl: card.frontImageUrl || null,
+                        backMediaUrl: card.backImageUrl || null,
+                    };
+
+                    if (card.itemId) {
+                        return flashcardApi.updateItem(requestDeckId, card.itemId, imagePayload);
+                    }
+
+                    return flashcardApi.createItem(requestDeckId, imagePayload);
+                },
+                {
+                    concurrency: CREATE_ITEM_CONCURRENCY,
+                    retries: 1,
+                    retryDelayMs: 150,
+                },
+            );
+
+            await fetchDecks();
+            openDialog({
+                variant: 'success',
+                title: 'Con cú đã cập nhật flashcard',
+                message: `Bộ "${deckData.name?.trim() || targetDeck.name}" đã được lưu lại thành công.`,
+                details: 'Bạn có thể tiếp tục học ngay với nội dung mới nhất.',
+                confirmLabel: 'Tuyệt vời',
+                confirmTone: 'success',
+            });
+            setEditingDeck(null);
+            setShowEditModal(false);
+            return true;
+        } catch (err) {
+            console.error('Failed to update deck:', err);
+            const message = err.response?.data?.message || err.message || 'Không thể cập nhật flashcard lúc này.';
+            setError(message);
+            openDialog({
+                variant: 'error',
+                title: 'Con cú gặp trục trặc khi cập nhật',
+                message: 'Bộ flashcard chưa được lưu vì có lỗi xảy ra.',
+                details: `Chi tiết lỗi:\n- ${message}`,
+                confirmLabel: 'Đã hiểu',
+            });
+            throw new Error(message);
         }
     };
 
@@ -1439,6 +1633,7 @@ export default function Flashcards() {
                                         index={index}
                                         variants={cardVariants}
                                         onStartStudy={handleStartStudy}
+                                        onEdit={deck.isOwned ? () => void handleOpenEditDeck(deck) : undefined}
                                         onDelete={deck.isOwned ? () => openDeleteDeckConfirm(deck.id) : undefined}
                                         isDeleting={isSameEntityId(deck.id, deletingDeckId)}
                                     />
@@ -1453,6 +1648,7 @@ export default function Flashcards() {
                                         deck={deck}
                                         variants={cardVariants}
                                         onStartStudy={handleStartStudy}
+                                        onEdit={deck.isOwned ? () => void handleOpenEditDeck(deck) : undefined}
                                         onDelete={deck.isOwned ? () => openDeleteDeckConfirm(deck.id) : undefined}
                                         isDeleting={isSameEntityId(deck.id, deletingDeckId)}
                                     />
@@ -1516,8 +1712,36 @@ export default function Flashcards() {
                     onClose={() => setShowCreateModal(false)}
                     onCreate={handleCreateDeck}
                     subjects={subjectOptions}
+                    currentUserId={currentUserId}
                 />
             )}
+
+            {showEditModal && editingDeck && (
+                <CreateDeckModal
+                    isOpen={showEditModal}
+                    onClose={handleCloseEditModal}
+                    onUpdate={handleUpdateDeck}
+                    subjects={subjectOptions}
+                    currentUserId={currentUserId}
+                    mode="edit"
+                    initialDeck={editingDeck}
+                />
+            )}
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onConfirm={handleDialogConfirm}
+                onClose={closeDialog}
+            />
         </div>
     );
 }

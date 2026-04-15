@@ -102,7 +102,7 @@ export default function AssignmentBuilderModal({
 
     const handleGenerateWithAI = async () => {
         if (!aiPrompt.trim()) {
-            setSubmitError('Hay nhap chu de hoac mo ta ngan de AI tao assignment.');
+            setSubmitError('Hãy nhập chủ đề hoặc mô tả ngắn để AI tạo assignment.');
             return;
         }
 
@@ -122,7 +122,7 @@ export default function AssignmentBuilderModal({
                 sourceType: 'ai',
             }));
         } catch (error) {
-            setSubmitError(error?.message || 'Khong the tao assignment bang AI luc nay.');
+            setSubmitError(error?.message || 'Không thể tạo assignment bằng AI lúc này.');
         } finally {
             setAiGenerating(false);
         }
@@ -150,12 +150,12 @@ export default function AssignmentBuilderModal({
         };
 
         if (!payload.title || !payload.description) {
-            setSubmitError('Can co ten assignment va de bai de luu.');
+            setSubmitError('Cần có tên assignment và đề bài để lưu.');
             return;
         }
 
         if (payload.rubricCriteria.length === 0) {
-            setSubmitError('Can it nhat 1 tieu chi cham diem.');
+            setSubmitError('Cần ít nhất 1 tiêu chí chấm điểm.');
             return;
         }
 
@@ -176,14 +176,14 @@ export default function AssignmentBuilderModal({
                                 <ClipboardCheck className="h-5 w-5" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-base-content">Thiet ke assignment</h3>
+                                <h3 className="text-lg font-black text-base-content">Thiết kế assignment</h3>
                                 <p className="mt-1 text-xs font-medium text-base-content/55">
-                                    {contextTitle || 'Nhap de bai, huong dan nop bai va rubric cham diem cho hoc vien.'}
+                                    {contextTitle || 'Nhập đề bài, hướng dẫn nộp bài và rubric chấm điểm cho học viên.'}
                                 </p>
                             </div>
                         </div>
                         <button type="button" onClick={onClose} className="btn btn-ghost btn-sm rounded-xl font-bold">
-                            Dong
+                            Đóng
                         </button>
                     </div>
                 </div>
@@ -193,40 +193,40 @@ export default function AssignmentBuilderModal({
                         <div className="space-y-5">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <label className="form-control md:col-span-2">
-                                    <span className="label-text pb-2 text-sm font-bold">Ten assignment *</span>
+                                    <span className="label-text pb-2 text-sm font-bold">Tên assignment *</span>
                                     <input
                                         type="text"
                                         value={form.title}
                                         onChange={(event) => updateField('title', event.target.value)}
-                                        placeholder="VD: Phan tich component React va de xuat cach tach state"
+                                        placeholder="VD: Phân tích component React và đề xuất cách tách state"
                                         className="input input-bordered w-full rounded-2xl"
                                     />
                                 </label>
 
                                 <label className="form-control md:col-span-2">
-                                    <span className="label-text pb-2 text-sm font-bold">De bai *</span>
+                                    <span className="label-text pb-2 text-sm font-bold">Đề bài *</span>
                                     <textarea
                                         rows={5}
                                         value={form.description}
                                         onChange={(event) => updateField('description', event.target.value)}
-                                        placeholder="Mo ta ro bai toan ma hoc vien can giai quyet."
+                                        placeholder="Mô tả rõ bài toán mà học viên cần giải quyết."
                                         className="textarea textarea-bordered w-full rounded-2xl resize-none"
                                     />
                                 </label>
 
                                 <label className="form-control md:col-span-2">
-                                    <span className="label-text pb-2 text-sm font-bold">Huong dan nop bai</span>
+                                    <span className="label-text pb-2 text-sm font-bold">Hướng dẫn nộp bài</span>
                                     <textarea
                                         rows={3}
                                         value={form.instructions}
                                         onChange={(event) => updateField('instructions', event.target.value)}
-                                        placeholder="VD: Tra loi toi da 500 tu, chia thanh 3 y chinh, neu co vi du thi ghi ro."
+                                        placeholder="VD: Trả lời tối đa 500 từ, chia thành 3 ý chính, nếu có ví dụ thì ghi rõ."
                                         className="textarea textarea-bordered w-full rounded-2xl resize-none"
                                     />
                                 </label>
 
                                 <label className="form-control">
-                                    <span className="label-text pb-2 text-sm font-bold">Tong diem</span>
+                                    <span className="label-text pb-2 text-sm font-bold">Tổng điểm</span>
                                     <input
                                         type="number"
                                         min={1}
@@ -238,23 +238,23 @@ export default function AssignmentBuilderModal({
                                 </label>
 
                                 <label className="form-control">
-                                    <span className="label-text pb-2 text-sm font-bold">Dinh dang nop bai</span>
+                                    <span className="label-text pb-2 text-sm font-bold">Định dạng nộp bài</span>
                                     <input
                                         type="text"
                                         value={form.submissionFormat}
                                         onChange={(event) => updateField('submissionFormat', event.target.value)}
-                                        placeholder="Tra loi bang van ban"
+                                        placeholder="Trả lời bằng văn bản"
                                         className="input input-bordered w-full rounded-2xl"
                                     />
                                 </label>
 
                                 <label className="form-control md:col-span-2">
-                                    <span className="label-text pb-2 text-sm font-bold">Trong tam review AI</span>
+                                    <span className="label-text pb-2 text-sm font-bold">Trọng tâm review AI</span>
                                     <textarea
                                         rows={2}
                                         value={form.reviewFocus}
                                         onChange={(event) => updateField('reviewFocus', event.target.value)}
-                                        placeholder="VD: Tap trung vao logic, kha nang phan tich trade-off va muc do ap dung dung React."
+                                        placeholder="VD: Tập trung vào logic, khả năng phân tích trade-off và mức độ áp dụng đúng React."
                                         className="textarea textarea-bordered w-full rounded-2xl resize-none"
                                     />
                                 </label>
@@ -263,8 +263,8 @@ export default function AssignmentBuilderModal({
                             <div className="rounded-3xl border border-base-300 bg-base-200/35 p-4">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <div>
-                                        <p className="text-sm font-black text-base-content">Rubric cham diem</p>
-                                        <p className="text-xs text-base-content/55">Moi tieu chi nen co ten ro va mo ta ngan gon.</p>
+                                        <p className="text-sm font-black text-base-content">Rubric chấm điểm</p>
+                                        <p className="text-xs text-base-content/55">Mỗi tiêu chí nên có tên rõ và mô tả ngắn gọn.</p>
                                     </div>
                                     <button
                                         type="button"
@@ -272,7 +272,7 @@ export default function AssignmentBuilderModal({
                                         className="btn btn-sm rounded-xl border-none bg-base-100 font-bold text-base-content shadow-sm"
                                     >
                                         <Plus className="h-4 w-4" />
-                                        Them tieu chi
+                                        Thêm tiêu chí
                                     </button>
                                 </div>
 
@@ -281,7 +281,7 @@ export default function AssignmentBuilderModal({
                                         <div key={criterion.criterionId} className="rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm">
                                             <div className="mb-3 flex items-center justify-between gap-3">
                                                 <p className="text-xs font-black uppercase tracking-[0.16em] text-base-content/45">
-                                                    {`Tieu chi ${index + 1}`}
+                                                    {`Tiêu chí ${index + 1}`}
                                                 </p>
                                                 <button
                                                     type="button"
@@ -297,7 +297,7 @@ export default function AssignmentBuilderModal({
                                                     type="text"
                                                     value={criterion.title}
                                                     onChange={(event) => updateCriterion(criterion.criterionId, 'title', event.target.value)}
-                                                    placeholder="VD: Do dung yeu cau"
+                                                    placeholder="VD: Độ đúng yêu cầu"
                                                     className="input input-bordered w-full rounded-xl"
                                                 />
                                                 <input
@@ -312,7 +312,7 @@ export default function AssignmentBuilderModal({
                                                 rows={2}
                                                 value={criterion.description}
                                                 onChange={(event) => updateCriterion(criterion.criterionId, 'description', event.target.value)}
-                                                placeholder="Mo ta ngan gon de AI va expert biet can cham dieu gi."
+                                                placeholder="Mô tả ngắn gọn để AI và expert biết cần chấm điều gì."
                                                 className="textarea textarea-bordered mt-3 w-full rounded-xl resize-none"
                                             />
                                         </div>
@@ -328,9 +328,9 @@ export default function AssignmentBuilderModal({
                                         <WandSparkles className="h-4.5 w-4.5" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-black text-base-content">Tao assignment bang AI</p>
+                                        <p className="text-sm font-black text-base-content">Tạo assignment bằng AI</p>
                                         <p className="mt-1 text-xs leading-5 text-base-content/60">
-                                            Dua cho AI chu de, bai hoc hoac nang luc can danh gia. AI se goi y de bai va rubric de ban chinh lai.
+                                            Đưa cho AI chủ đề, bài học hoặc năng lực cần đánh giá. AI sẽ gợi ý đề bài và rubric để bạn chỉnh lại.
                                         </p>
                                     </div>
                                 </div>
@@ -340,7 +340,7 @@ export default function AssignmentBuilderModal({
                                         rows={5}
                                         value={aiPrompt}
                                         onChange={(event) => setAiPrompt(event.target.value)}
-                                        placeholder="VD: Tao assignment cho bai React co ban, yeu cau hoc vien giai thich state, props va de xuat cach tach component cho mot giao dien don gian."
+                                        placeholder="VD: Tạo assignment cho bài React cơ bản, yêu cầu học viên giải thích state, props và đề xuất cách tách component cho một giao diện đơn giản."
                                         className="textarea textarea-bordered w-full rounded-2xl resize-none bg-base-100"
                                     />
                                     <div className="grid gap-3 sm:grid-cols-[120px,1fr]">
@@ -359,7 +359,7 @@ export default function AssignmentBuilderModal({
                                             className="btn rounded-2xl border-none bg-gradient-to-r from-violet-600 to-fuchsia-600 font-bold text-white shadow-lg shadow-violet-500/25"
                                         >
                                             {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                            Tao de bai + rubric
+                                            Tạo đề bài + rubric
                                         </button>
                                     </div>
                                 </div>
@@ -369,28 +369,28 @@ export default function AssignmentBuilderModal({
                                 <p className="text-sm font-black text-base-content">Preview nhanh</p>
                                 <div className="mt-4 space-y-3">
                                     <div className="rounded-2xl bg-base-200/50 p-3">
-                                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">De bai</p>
+                                        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Đề bài</p>
                                         <p className="mt-2 text-sm font-bold text-base-content">
-                                            {form.title || 'Ten assignment se hien thi o day'}
+                                            {form.title || 'Tên assignment sẽ hiển thị ở đây'}
                                         </p>
                                         <p className="mt-2 text-sm leading-6 text-base-content/65">
-                                            {form.description || 'Mo ta assignment se xuat hien o day de ban preview nhanh.'}
+                                            {form.description || 'Mô tả assignment sẽ xuất hiện ở đây để bạn preview nhanh.'}
                                         </p>
                                     </div>
 
                                     <div className="rounded-2xl bg-base-200/50 p-3">
                                         <div className="flex items-center justify-between gap-3">
-                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Cham diem</p>
+                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Chấm điểm</p>
                                             <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-600">
-                                                {`${form.maxScore} diem`}
+                                                {`${form.maxScore} điểm`}
                                             </span>
                                         </div>
                                         <div className="mt-3 space-y-2">
                                             {form.rubricCriteria.map((criterion) => (
                                                 <div key={criterion.criterionId} className="rounded-xl border border-base-300 bg-base-100 px-3 py-2">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <p className="text-sm font-bold text-base-content">{criterion.title || 'Tieu chi chua dat ten'}</p>
-                                                        <span className="text-xs font-bold text-base-content/45">{`${criterion.maxPoints || 0} diem`}</span>
+                                                        <p className="text-sm font-bold text-base-content">{criterion.title || 'Tiêu chí chưa đặt tên'}</p>
+                                                        <span className="text-xs font-bold text-base-content/45">{`${criterion.maxPoints || 0} điểm`}</span>
                                                     </div>
                                                     {criterion.description && (
                                                         <p className="mt-1 text-xs leading-5 text-base-content/60">{criterion.description}</p>
@@ -412,7 +412,7 @@ export default function AssignmentBuilderModal({
 
                     <div className="flex items-center justify-end gap-3 border-t border-base-300 px-6 py-4">
                         <button type="button" onClick={onClose} className="btn btn-ghost rounded-2xl font-bold">
-                            Huy
+                            Hủy
                         </button>
                         <button
                             type="submit"
@@ -420,7 +420,7 @@ export default function AssignmentBuilderModal({
                             className="btn rounded-2xl border-none bg-gradient-to-r from-amber-500 to-orange-600 font-bold text-white shadow-lg shadow-amber-500/25"
                         >
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-                            Luu assignment
+                            Lưu assignment
                         </button>
                     </div>
                 </form>

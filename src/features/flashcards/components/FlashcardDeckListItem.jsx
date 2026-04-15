@@ -13,6 +13,7 @@ const DECK_COLOR_STYLES = {
 export default function FlashcardDeckListItem({
     deck,
     onStartStudy,
+    onEdit,
     onDelete,
     onMenuClick,
     isDeleting = false,
@@ -81,6 +82,20 @@ export default function FlashcardDeckListItem({
                     <Icon name="Play" size="sm" />
                     Học
                 </motion.button>
+
+                {onEdit && (
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit();
+                        }}
+                        className="btn btn-ghost btn-sm btn-circle text-blue-600 hover:bg-blue-500/10"
+                        title="Chỉnh sửa bộ flashcard"
+                    >
+                        <Icon name="Edit3" size="sm" />
+                    </button>
+                )}
 
                 {onDelete && (
                     <button

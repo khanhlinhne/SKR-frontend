@@ -1,8 +1,175 @@
-const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const DEFAULT_GEMINI_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+];
 
 function readApiKey() {
     return String(import.meta.env.VITE_GEMINI_API_KEY || '').trim();
+}
+
+function readModelCandidates() {
+    const rawConfiguredModels = String(
+        import.meta.env.VITE_GEMINI_MODEL_LIST
+        || import.meta.env.VITE_GEMINI_FALLBACK_MODELS
+        || '',
+    ).trim();
+
+    const candidates = (rawConfiguredModels ? rawConfiguredModels.split(',') : DEFAULT_GEMINI_MODELS)
+        .map((model) => String(model || '').trim())
+        .filter(Boolean);
+
+    return [...new Set(candidates)];
+}
+
+function buildGeminiApiUrl(model) {
+    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
+
+function createGeminiError(message, options = {}) {
+    const error = new Error(message);
+    error.geminiStatus = options.status ?? 0;
+    error.retryable = options.retryable;
+    error.model = options.model || '';
+    return error;
+}
+
+function extractGeminiErrorMessage(payload, fallbackMessage = '') {
+    if (typeof payload?.error?.message === 'string' && payload.error.message.trim()) {
+        return payload.error.message.trim();
+    }
+
+    if (Array.isArray(payload?.error?.details)) {
+        const detailMessage = payload.error.details
+            .map((detail) => String(detail?.message || detail?.reason || '').trim())
+            .find(Boolean);
+        if (detailMessage) {
+            return detailMessage;
+        }
+    }
+
+    return fallbackMessage;
+}
+
+function shouldRetryGeminiError(error) {
+    if (error?.retryable === false) {
+        return false;
+    }
+
+    if (error?.retryable === true) {
+        return true;
+    }
+
+    const status = Number(error?.geminiStatus || error?.status || 0);
+    if ([400, 401, 403].includes(status)) {
+        return false;
+    }
+
+    if (status === 404 || status === 408 || status === 429 || status >= 500) {
+        return true;
+    }
+
+    const normalizedMessage = String(error?.message || '').trim().toLowerCase();
+    return /(quota|rate limit|too many requests|resource exhausted|temporarily unavailable|overloaded|deadline exceeded|timed out|unavailable|model.+not found|not found)/.test(normalizedMessage);
+}
+
+async function requestGeminiResponse({ model, apiKey, prompt, temperature }) {
+    let response;
+    try {
+        response = await fetch(buildGeminiApiUrl(model), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey,
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        parts: [{ text: prompt }],
+                    },
+                ],
+                generationConfig: {
+                    temperature,
+                    responseMimeType: 'application/json',
+                },
+            }),
+        });
+    } catch (error) {
+        throw createGeminiError(
+            error?.message || `Khong the ket noi den Gemini model ${model}.`,
+            { model, retryable: true },
+        );
+    }
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw createGeminiError(
+            extractGeminiErrorMessage(payload, `Gemini model ${model} khong tra ve ket qua hop le.`),
+            {
+                model,
+                status: response.status,
+                retryable: response.status === 404 || response.status === 408 || response.status === 429 || response.status >= 500,
+            },
+        );
+    }
+
+    const responseText = extractResponseText(payload);
+    if (!responseText) {
+        throw createGeminiError(
+            `Gemini model ${model} khong tra ve noi dung.`,
+            { model, retryable: true },
+        );
+    }
+
+    return responseText;
+}
+
+async function runGeminiTask({ taskLabel, prompt, temperature, resolveResult }) {
+    const apiKey = readApiKey();
+    if (!apiKey) {
+        throw createGeminiError('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.', { retryable: false });
+    }
+
+    const models = readModelCandidates();
+    if (models.length === 0) {
+        throw createGeminiError('Chua cau hinh model Gemini de goi AI.', { retryable: false });
+    }
+
+    const attempts = [];
+
+    for (let index = 0; index < models.length; index += 1) {
+        const model = models[index];
+
+        try {
+            const responseText = await requestGeminiResponse({
+                model,
+                apiKey,
+                prompt,
+                temperature,
+            });
+
+            return resolveResult(responseText, model);
+        } catch (error) {
+            const errorMessage = String(error?.message || `Gemini model ${model} da that bai.`).trim();
+            attempts.push(`${model}: ${errorMessage}`);
+
+            if (index < models.length - 1 && shouldRetryGeminiError(error)) {
+                console.warn(`[geminiApi] ${taskLabel} failed with ${model}, trying next model.`, errorMessage);
+                continue;
+            }
+
+            const usedModels = models.join(', ');
+            const finalMessage = attempts.length > 1
+                ? `Khong the ${taskLabel} bang AI luc nay. Da thu cac model: ${usedModels}. Loi cuoi: ${errorMessage}`
+                : errorMessage;
+            throw createGeminiError(finalMessage, {
+                model,
+                status: error?.geminiStatus || 0,
+                retryable: false,
+            });
+        }
+    }
+
+    throw createGeminiError(`Khong the ${taskLabel} bang AI luc nay.`, { retryable: false });
 }
 
 function buildFlashcardPrompt({ sourceText, count, contextTitle }) {
@@ -168,49 +335,21 @@ function normalizeGeneratedCards(cards) {
 }
 
 async function generateFlashcards({ sourceText, count = 5, contextTitle = '' }) {
-    const apiKey = readApiKey();
-    if (!apiKey) {
-        throw new Error('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.');
-    }
-
     const prompt = buildFlashcardPrompt({ sourceText, count, contextTitle });
-    const response = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
+    return runGeminiTask({
+        taskLabel: 'tao flashcard',
+        prompt,
+        temperature: 0.7,
+        resolveResult: (responseText) => {
+            const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON flashcard tra ve tu Gemini.');
+            const normalizedCards = normalizeGeneratedCards(parsed?.cards);
+            if (normalizedCards.length === 0) {
+                throw createGeminiError('Gemini chua tao duoc the flashcard hop le tu noi dung nay.', { retryable: true });
+            }
+
+            return normalizedCards;
         },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [{ text: prompt }],
-                },
-            ],
-            generationConfig: {
-                temperature: 0.7,
-                responseMimeType: 'application/json',
-            },
-        }),
     });
-
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-        throw new Error(payload?.error?.message || 'Gemini khong tra ve ket qua hop le.');
-    }
-
-    const responseText = extractResponseText(payload);
-    if (!responseText) {
-        throw new Error('Gemini khong tra ve noi dung de tao flashcard.');
-    }
-
-    const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON flashcard tra ve tu Gemini.');
-
-    const normalizedCards = normalizeGeneratedCards(parsed?.cards);
-    if (normalizedCards.length === 0) {
-        throw new Error('Gemini chua tao duoc the flashcard hop le tu noi dung nay.');
-    }
-
-    return normalizedCards;
 }
 
 function normalizeQuestionType(value) {
@@ -347,141 +486,59 @@ function normalizeAssignmentGrade(grade, assignment = null) {
 }
 
 async function generateQuizQuestions({ sourceText, count = 3, contextTitle = '' }) {
-    const apiKey = readApiKey();
-    if (!apiKey) {
-        throw new Error('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.');
-    }
-
     const prompt = buildQuizPrompt({ sourceText, count, contextTitle });
-    const response = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
+    return runGeminiTask({
+        taskLabel: 'tao cau hoi',
+        prompt,
+        temperature: 0.8,
+        resolveResult: (responseText) => {
+            const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cau hoi tra ve tu Gemini.');
+            const normalizedQuestions = normalizeGeneratedQuestions(parsed?.questions);
+            if (normalizedQuestions.length === 0) {
+                throw createGeminiError('Gemini chua tao duoc cau hoi hop le tu noi dung nay.', { retryable: true });
+            }
+
+            return normalizedQuestions;
         },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [{ text: prompt }],
-                },
-            ],
-            generationConfig: {
-                temperature: 0.8,
-                responseMimeType: 'application/json',
-            },
-        }),
     });
-
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-        throw new Error(payload?.error?.message || 'Gemini khong tra ve ket qua hop le.');
-    }
-
-    const responseText = extractResponseText(payload);
-    if (!responseText) {
-        throw new Error('Gemini khong tra ve noi dung de tao cau hoi.');
-    }
-
-    const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cau hoi tra ve tu Gemini.');
-
-    const normalizedQuestions = normalizeGeneratedQuestions(parsed?.questions);
-    if (normalizedQuestions.length === 0) {
-        throw new Error('Gemini chua tao duoc cau hoi hop le tu noi dung nay.');
-    }
-
-    return normalizedQuestions;
 }
 
 async function generateAssignmentDraft({ sourceText, criteriaCount = 4, contextTitle = '' }) {
-    const apiKey = readApiKey();
-    if (!apiKey) {
-        throw new Error('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.');
-    }
-
     const prompt = buildAssignmentPrompt({ sourceText, criteriaCount, contextTitle });
-    const response = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
+    return runGeminiTask({
+        taskLabel: 'tao assignment',
+        prompt,
+        temperature: 0.8,
+        resolveResult: (responseText) => {
+            const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON assignment tra ve tu Gemini.');
+            const normalizedAssignment = normalizeGeneratedAssignmentDraft(parsed?.assignment);
+
+            if (!normalizedAssignment.title || !normalizedAssignment.description || normalizedAssignment.rubricCriteria.length === 0) {
+                throw createGeminiError('Gemini chua tao duoc assignment hop le tu noi dung nay.', { retryable: true });
+            }
+
+            return normalizedAssignment;
         },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [{ text: prompt }],
-                },
-            ],
-            generationConfig: {
-                temperature: 0.8,
-                responseMimeType: 'application/json',
-            },
-        }),
     });
-
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-        throw new Error(payload?.error?.message || 'Gemini khong tra ve ket qua hop le.');
-    }
-
-    const responseText = extractResponseText(payload);
-    if (!responseText) {
-        throw new Error('Gemini khong tra ve noi dung de tao assignment.');
-    }
-
-    const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON assignment tra ve tu Gemini.');
-    const normalizedAssignment = normalizeGeneratedAssignmentDraft(parsed?.assignment);
-
-    if (!normalizedAssignment.title || !normalizedAssignment.description || normalizedAssignment.rubricCriteria.length === 0) {
-        throw new Error('Gemini chua tao duoc assignment hop le tu noi dung nay.');
-    }
-
-    return normalizedAssignment;
 }
 
 async function gradeAssignmentSubmission({ assignment, learnerAnswer, language = 'vi' }) {
-    const apiKey = readApiKey();
-    if (!apiKey) {
-        throw new Error('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.');
-    }
-
     const prompt = buildAssignmentGradingPrompt({ assignment, learnerAnswer, language });
-    const response = await fetch(GEMINI_API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
+    return runGeminiTask({
+        taskLabel: 'cham assignment',
+        prompt,
+        temperature: 0.4,
+        resolveResult: (responseText) => {
+            const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cham assignment tra ve tu Gemini.');
+            const normalizedGrade = normalizeAssignmentGrade(parsed?.grade, assignment);
+
+            if (!normalizedGrade.summary && normalizedGrade.rubricScores.length === 0) {
+                throw createGeminiError('Gemini chua cham duoc bai assignment hop le.', { retryable: true });
+            }
+
+            return normalizedGrade;
         },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [{ text: prompt }],
-                },
-            ],
-            generationConfig: {
-                temperature: 0.4,
-                responseMimeType: 'application/json',
-            },
-        }),
     });
-
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-        throw new Error(payload?.error?.message || 'Gemini khong tra ve ket qua hop le.');
-    }
-
-    const responseText = extractResponseText(payload);
-    if (!responseText) {
-        throw new Error('Gemini khong tra ve noi dung cham assignment.');
-    }
-
-    const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cham assignment tra ve tu Gemini.');
-    const normalizedGrade = normalizeAssignmentGrade(parsed?.grade, assignment);
-
-    if (!normalizedGrade.summary && normalizedGrade.rubricScores.length === 0) {
-        throw new Error('Gemini chua cham duoc bai assignment hop le.');
-    }
-
-    return normalizedGrade;
 }
 
 const geminiApi = {

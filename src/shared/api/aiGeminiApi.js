@@ -82,7 +82,19 @@ function extractQuestionsPayload(response) {
 
 function shouldFallbackToDirectGemini(error) {
     const status = error?.response?.status;
-    return !status || [404, 405, 500, 501, 503].includes(status);
+    const message = String(
+        error?.response?.data?.message
+        || error?.message
+        || '',
+    ).trim().toLowerCase();
+
+    return !status
+        || status === 404
+        || status === 405
+        || status === 408
+        || status === 429
+        || status >= 500
+        || /(quota|rate limit|too many requests|resource exhausted|temporarily unavailable|unavailable|overloaded)/.test(message);
 }
 
 const aiGeminiApi = {

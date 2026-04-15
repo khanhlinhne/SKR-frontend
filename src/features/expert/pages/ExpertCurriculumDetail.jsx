@@ -624,15 +624,15 @@ function AddFlashcardCardModal({
                         <Sparkles className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0">
-                        <h3 className="font-black text-xl text-base-content">{isEditMode ? 'Chinh sua the flashcard' : 'Them the flashcard'}</h3>
+                        <h3 className="font-black text-xl text-base-content">{isEditMode ? 'Chỉnh sửa thẻ flashcard' : 'Thêm thẻ flashcard'}</h3>
                         <p className="mt-1 text-sm text-base-content/55">
                             {isEditMode
-                                ? 'Cap nhat lai noi dung mat truoc, mat sau va hinh anh cua the nay.'
-                                : 'Nhap nhanh mat truoc va mat sau de tao nhieu the lien tiep cho bai hoc.'}
+                                ? 'Cập nhật lại nội dung mặt trước, mặt sau và hình ảnh của thẻ này.'
+                                : 'Nhập nhanh mặt trước và mặt sau để tạo nhiều thẻ liên tiếp cho bài học.'}
                         </p>
                         {setTitle && (
                             <p className="mt-2 text-xs text-base-content/50">
-                                Bo: <span className="font-bold text-indigo-600">{setTitle}</span>
+                                Bộ: <span className="font-bold text-indigo-600">{setTitle}</span>
                             </p>
                         )}
                     </div>
@@ -644,7 +644,7 @@ function AddFlashcardCardModal({
                             className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
                         >
                             <Plus className="w-4 h-4" />
-                            Them the
+                            Thêm thẻ
                         </button>
                     )}
                 </div>
@@ -653,13 +653,13 @@ function AddFlashcardCardModal({
                         <div className="rounded-[28px] border border-indigo-100 bg-gradient-to-r from-indigo-50/90 via-violet-50/60 to-white p-4 shadow-sm">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="min-w-0">
-                                    <p className="text-sm font-black text-base-content">Tao noi dung bang Gemini</p>
+                                    <p className="text-sm font-black text-base-content">Tạo nội dung bằng Gemini</p>
                                     <p className="mt-1 text-xs text-base-content/55">
-                                        Dan chu de, doan ghi chu hoac noi dung bai hoc. Gemini se tao bo the tieng Viet de ban chinh sua va luu ngay trong modal nay.
+                                        Dán chủ đề, đoạn ghi chú hoặc nội dung bài học. Gemini sẽ tạo bộ thẻ tiếng Việt để bạn chỉnh sửa và lưu ngay trong modal này.
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2 self-start">
-                                    <label className="text-xs font-bold text-base-content/55">So the</label>
+                                    <label className="text-xs font-bold text-base-content/55">Số thẻ</label>
                                     <input
                                         type="number"
                                         min={1}
@@ -675,19 +675,19 @@ function AddFlashcardCardModal({
                                         className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-indigo-600 to-violet-600 font-bold text-white shadow-lg shadow-indigo-500/20"
                                     >
                                         {aiGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                        {aiGenerating ? 'Dang tao...' : 'Tao bang Gemini'}
+                                        {aiGenerating ? 'Đang tạo...' : 'Tạo bằng Gemini'}
                                     </button>
                                 </div>
                             </div>
                             <textarea
                                 value={aiPrompt}
                                 onChange={(e) => setAiPrompt(e.target.value)}
-                                placeholder="VD: Tao 5 the flashcard ve JSX trong React, tap trung vao khai niem, cu phap va khi nao nen dung..."
+                                placeholder="VD: Tạo 5 thẻ flashcard về JSX trong React, tập trung vào khái niệm, cú pháp và khi nào nên dùng..."
                                 className="textarea textarea-bordered mt-4 min-h-[120px] w-full rounded-2xl border-indigo-100 bg-white/90 text-sm font-medium resize-none focus:border-indigo-300 focus:outline-none"
                                 rows={4}
                             />
                             <p className="mt-2 text-[11px] font-medium text-base-content/45">
-                                Neu ben duoi da co the nhap tay, ket qua moi se duoc them tiep vao cuoi danh sach thay vi ghi de.
+                                Nếu bên dưới đã có thẻ nhập tay, kết quả mới sẽ được thêm tiếp vào cuối danh sách thay vì ghi đè.
                             </p>
                         </div>
                     )}
@@ -697,7 +697,7 @@ function AddFlashcardCardModal({
                                 <div className="mb-4 flex items-center justify-between gap-3">
                                     <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
                                         <Sparkles className="w-3.5 h-3.5" />
-                                        The {index + 1}
+                                        Thẻ {index + 1}
                                     </div>
                                     {!isEditMode && (
                                         <button
@@ -717,7 +717,7 @@ function AddFlashcardCardModal({
                                         <textarea
                                             value={card.frontText}
                                             onChange={(e) => updateCard(card.id, 'frontText', e.target.value)}
-                                            placeholder="VD: React Hook la gi?"
+                                            placeholder="VD: React Hook là gì?"
                                             className="textarea textarea-bordered min-h-[150px] w-full rounded-2xl border-indigo-100 bg-indigo-50/30 text-sm font-medium resize-none focus:border-indigo-300 focus:outline-none"
                                             rows={6}
                                             autoFocus={index === 0}
@@ -2505,7 +2505,7 @@ export default function ExpertCurriculumDetail() {
                                                                                                 {lessonAssignment?.title || lesson.lessonName || 'Assignment'}
                                                                                             </h4>
                                                                                             <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
-                                                                                                {lessonAssignment?.description || 'Tao de bai, huong dan nop bai va rubric de hoc vien lam bai trong phan learn. Sau khi nop, AI se cham va tra ve review cho expert xem lai.'}
+                                                                                                {lessonAssignment?.description || 'Tạo đề bài, hướng dẫn nộp bài và rubric để học viên làm bài trong phần learn. Sau khi nộp, AI sẽ chấm và trả về review cho expert xem lại.'}
                                                                                             </p>
                                                                                         </div>
                                                                                         <div className="flex flex-wrap items-center gap-2">
@@ -2522,33 +2522,33 @@ export default function ExpertCurriculumDetail() {
                                                                                                 className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-rose-500 to-orange-500 font-bold text-white shadow-lg shadow-rose-500/20"
                                                                                             >
                                                                                                 <ClipboardCheck className="h-4 w-4" />
-                                                                                                {lessonAssignment ? 'Chinh assignment' : 'Tao assignment'}
+                                                                                                {lessonAssignment ? 'Chỉnh assignment' : 'Tạo assignment'}
                                                                                             </button>
                                                                                             <Link
                                                                                                 to="/expert/assignments"
                                                                                                 className="btn btn-sm rounded-xl border border-rose-200 bg-white font-bold text-rose-600"
                                                                                                 onClick={(e) => e.stopPropagation()}
                                                                                             >
-                                                                                                Xem bai nop
+                                                                                                Xem bài nộp
                                                                                             </Link>
                                                                                         </div>
                                                                                     </div>
                                                                                     <div className="grid gap-3 border-t border-rose-100/80 bg-white/80 p-4 sm:grid-cols-2 xl:grid-cols-4">
                                                                                         <div className="rounded-xl border border-rose-100 bg-rose-50/70 p-3">
-                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-700/70">Tong diem</p>
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-700/70">Tổng điểm</p>
                                                                                             <p className="mt-1 text-2xl font-black text-base-content">{lessonAssignment?.maxScore || 100}</p>
                                                                                         </div>
                                                                                         <div className="rounded-xl border border-rose-100 bg-white p-3">
-                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Tieu chi</p>
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Tiêu chí</p>
                                                                                             <p className="mt-1 text-2xl font-black text-base-content">{lessonAssignment?.rubricCriteria?.length || 0}</p>
                                                                                         </div>
                                                                                         <div className="rounded-xl border border-rose-100 bg-white p-3">
-                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Nguon tao</p>
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Nguồn tạo</p>
                                                                                             <p className="mt-1 text-base font-black capitalize text-base-content">{lessonAssignment?.sourceType || 'manual'}</p>
                                                                                         </div>
                                                                                         <div className="rounded-xl border border-rose-100 bg-white p-3">
-                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trang thai</p>
-                                                                                            <p className="mt-1 text-base font-black text-base-content">{lessonAssignment ? 'San sang nop bai' : 'Chua soan de'}</p>
+                                                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trạng thái</p>
+                                                                                            <p className="mt-1 text-base font-black text-base-content">{lessonAssignment ? 'Sẵn sàng nộp bài' : 'Chưa soạn đề'}</p>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -2556,13 +2556,13 @@ export default function ExpertCurriculumDetail() {
                                                                                 {lessonAssignment ? (
                                                                                     <div className="grid gap-3 lg:grid-cols-[1.1fr,0.9fr]">
                                                                                         <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
-                                                                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Huong dan cho hoc vien</p>
+                                                                                            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Hướng dẫn cho học viên</p>
                                                                                             <p className="mt-3 text-sm leading-6 text-base-content/75">
-                                                                                                {lessonAssignment.instructions || lessonAssignment.submissionFormat || 'Chua co huong dan chi tiet.'}
+                                                                                                {lessonAssignment.instructions || lessonAssignment.submissionFormat || 'Chưa có hướng dẫn chi tiết.'}
                                                                                             </p>
                                                                                             {lessonAssignment.reviewFocus && (
                                                                                                 <div className="mt-4 rounded-xl bg-base-200/60 px-3 py-3">
-                                                                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/40">Trong tam AI review</p>
+                                                                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/40">Trọng tâm AI review</p>
                                                                                                     <p className="mt-2 text-xs leading-5 text-base-content/65">{lessonAssignment.reviewFocus}</p>
                                                                                                 </div>
                                                                                             )}
@@ -2571,7 +2571,7 @@ export default function ExpertCurriculumDetail() {
                                                                                             <div className="flex items-center justify-between gap-3">
                                                                                                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Rubric</p>
                                                                                                 <span className="rounded-full bg-rose-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-rose-600">
-                                                                                                    {`${lessonAssignment.maxScore || 100} diem`}
+                                                                                                    {`${lessonAssignment.maxScore || 100} điểm`}
                                                                                                 </span>
                                                                                             </div>
                                                                                             <div className="mt-3 space-y-2.5">
@@ -2579,7 +2579,7 @@ export default function ExpertCurriculumDetail() {
                                                                                                     <div key={criterion.criterionId} className="rounded-xl border border-base-300 bg-base-200/30 px-3 py-3">
                                                                                                         <div className="flex items-center justify-between gap-2">
                                                                                                             <p className="text-sm font-bold text-base-content">{criterion.title}</p>
-                                                                                                            <span className="text-xs font-bold text-base-content/45">{`${criterion.maxPoints} diem`}</span>
+                                                                                                            <span className="text-xs font-bold text-base-content/45">{`${criterion.maxPoints} điểm`}</span>
                                                                                                         </div>
                                                                                                         {criterion.description && (
                                                                                                             <p className="mt-1 text-xs leading-5 text-base-content/60">{criterion.description}</p>
@@ -2591,8 +2591,8 @@ export default function ExpertCurriculumDetail() {
                                                                                     </div>
                                                                                 ) : (
                                                                                     <div className="rounded-2xl border border-dashed border-rose-300 bg-white px-4 py-5 text-center">
-                                                                                        <p className="text-sm font-bold text-base-content">Lesson nay chua co de bai assignment.</p>
-                                                                                        <p className="mt-1 text-xs text-base-content/55">Mo modal o tren de nhap de bai thu cong hoac nho AI tao goi y rubric.</p>
+                                                                                        <p className="text-sm font-bold text-base-content">Lesson này chưa có đề bài assignment.</p>
+                                                                                        <p className="mt-1 text-xs text-base-content/55">Mở modal ở trên để nhập đề bài thủ công hoặc nhờ AI tạo gợi ý rubric.</p>
                                                                                     </div>
                                                                                 )}
                                                                             </div>

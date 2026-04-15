@@ -1,5 +1,27 @@
 import axiosClient from "./axiosClient";
 
+function normalizeLessonMutationPayload(data) {
+    if (!data || typeof data !== 'object' || (typeof FormData !== 'undefined' && data instanceof FormData)) {
+        return data;
+    }
+
+    const payload = { ...data };
+    const resolvedLessonType = String(
+        payload.lessonType
+        ?? payload.type
+        ?? payload.lesson_type
+        ?? ''
+    ).trim().toLowerCase();
+
+    if (resolvedLessonType) {
+        payload.lessonType = resolvedLessonType;
+        payload.type = resolvedLessonType;
+        payload.lesson_type = resolvedLessonType;
+    }
+
+    return payload;
+}
+
 const courseApi = {
     // Lay danh sach khoa hoc
     getAll(params) {
@@ -55,11 +77,17 @@ const courseApi = {
     },
 
     createLesson(courseId, chapterId, data) {
-        return axiosClient.post(`/courses/${courseId}/chapters/${chapterId}/lessons`, data);
+        return axiosClient.post(
+            `/courses/${courseId}/chapters/${chapterId}/lessons`,
+            normalizeLessonMutationPayload(data),
+        );
     },
 
     updateLesson(courseId, chapterId, lessonId, data) {
-        return axiosClient.patch(`/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`, data);
+        return axiosClient.patch(
+            `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}`,
+            normalizeLessonMutationPayload(data),
+        );
     },
 
     deleteLesson(courseId, chapterId, lessonId) {

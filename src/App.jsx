@@ -13,6 +13,7 @@ const VerifyEmail = lazy(() => import('@/features/auth/pages/VerifyEmail'));
 const ResetPassword = lazy(() => import('@/features/auth/pages/ResetPassword'));
 
 const Dashboard = lazy(() => import('@/features/dashboard/pages/Dashboard'));
+const LearnerAIAssistant = lazy(() => import('@/features/learner/pages/LearnerAIAssistant'));
 const MyCourses = lazy(() => import('@/features/my-courses/pages/MyCourses'));
 const Profile = lazy(() => import('@/features/profile/pages/Profile'));
 const Flashcards = lazy(() => import('@/features/flashcards/pages/Flashcards'));
@@ -21,7 +22,7 @@ const PublicFlashcardDetail = lazy(() => import('@/features/flashcards/pages/Pub
 const Checkout = lazy(() => import('@/features/checkout/pages/Checkout'));
 const Orders = lazy(() => import('@/features/orders/pages/Orders'));
 const OrderDetail = lazy(() => import('@/features/orders/pages/OrderDetail'));
-const Courses = lazy(() => import('@/features/courses/pages/Courses'));
+const PublicCoursesPage = lazy(() => import('@/features/courses/pages/PublicCoursesPage'));
 const PublicCourseDetail = lazy(() => import('@/features/courses/pages/PublicCourseDetail'));
 const Learn = lazy(() => import('@/features/learn/pages/Learn'));
 const Tests = lazy(() => import('@/features/tests/pages/Tests'));
@@ -80,7 +81,7 @@ function App() {
                 <Route path="/auth/callback" element={<GoogleCallback />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/courses" element={<Courses />} />
+                <Route path="/courses" element={<PublicCoursesPage />} />
                 <Route path="/courses/:id" element={<PublicCourseDetail />} />
                 <Route path="/flashcards/explore" element={<PublicFlashcards />} />
                 <Route path="/flashcards/:slug" element={<PublicFlashcardDetail />} />
@@ -89,6 +90,7 @@ function App() {
                 {/* ==================== PROTECTED ROUTES ==================== */}
                 {/* Yêu cầu đăng nhập */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/ai-assistant" element={<ProtectedRoute><LearnerAIAssistant /></ProtectedRoute>} />
                 <Route path="/my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />

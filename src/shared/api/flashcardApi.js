@@ -141,8 +141,19 @@ const flashcardApi = {
      * GET /api/public/flashcard-sets
      * @param {Object} params - { q, search, page, limit, sortBy, sortOrder }
      */
-    searchPublic(params) {
-        return axiosClient.get("/public/flashcard-sets", { params });
+    searchPublic(params = {}) {
+        const normalizedParams = { ...params };
+
+        if (normalizedParams.q && !normalizedParams.search) {
+            normalizedParams.search = normalizedParams.q;
+        }
+
+        delete normalizedParams.q;
+        delete normalizedParams.subject;
+        delete normalizedParams.sortBy;
+        delete normalizedParams.sortOrder;
+
+        return axiosClient.get("/public/flashcard-sets", { params: normalizedParams });
     },
 
     /**
