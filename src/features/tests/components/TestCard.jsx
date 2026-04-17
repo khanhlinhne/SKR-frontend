@@ -25,7 +25,7 @@ function DeleteButton({ onDelete, test, deleting, compact = false }) {
             disabled={deleting}
             className={compact
                 ? 'btn btn-sm btn-circle btn-ghost text-red-500 hover:bg-red-50'
-                : 'absolute right-4 top-5 z-10 btn btn-sm btn-circle bg-base-100/95 border border-base-300 text-red-500 shadow-sm hover:bg-red-50 hover:border-red-200'}
+                : 'btn btn-sm btn-circle bg-base-100/95 border border-base-300 text-red-500 shadow-sm hover:bg-red-50 hover:border-red-200'}
             title="Xóa bài thi"
         >
             {deleting ? <span className="loading loading-spinner loading-xs" /> : <Icon name="Trash2" size="sm" />}
@@ -47,7 +47,7 @@ function EditButton({ onEdit, test, editing, compact = false }) {
             disabled={editing}
             className={compact
                 ? 'btn btn-sm btn-circle btn-ghost text-blue-500 hover:bg-blue-50'
-                : 'absolute right-16 top-5 z-10 btn btn-sm btn-circle bg-base-100/95 border border-base-300 text-blue-500 shadow-sm hover:bg-blue-50 hover:border-blue-200'}
+                : 'btn btn-sm btn-circle bg-base-100/95 border border-base-300 text-blue-500 shadow-sm hover:bg-blue-50 hover:border-blue-200'}
             title="Chỉnh sửa bài thi"
         >
             {editing ? <span className="loading loading-spinner loading-xs" /> : <Icon name="Pencil" size="sm" />}
@@ -58,12 +58,17 @@ function EditButton({ onEdit, test, editing, compact = false }) {
 export default function TestCard({ test, variants, onDelete, deleting = false, onEdit, editing = false }) {
     const difficulty = DIFFICULTY_CONFIG[test.difficultyLevels?.[0]] || {};
     const hasAttempts = (test.attemptsCount || 0) > 0;
+    const hasActions = Boolean(onEdit || onDelete);
     const animationProps = variants ? { variants, initial: 'hidden', animate: 'visible' } : {};
 
     return (
         <motion.div {...animationProps} className="relative">
-            <EditButton onEdit={onEdit} test={test} editing={editing} />
-            <DeleteButton onDelete={onDelete} test={test} deleting={deleting} />
+            {hasActions && (
+                <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+                    <EditButton onEdit={onEdit} test={test} editing={editing} />
+                    <DeleteButton onDelete={onDelete} test={test} deleting={deleting} />
+                </div>
+            )}
 
             <Link to={`/tests/${test.practiceTestId}`} className="block">
                 <motion.div
@@ -74,7 +79,7 @@ export default function TestCard({ test, variants, onDelete, deleting = false, o
                     <div className={`h-2 bg-gradient-to-r ${DEFAULT_GRADIENT}`} />
 
                     <div className="p-5">
-                        <div className="flex items-center justify-between mb-3 pr-12">
+                        <div className={`flex items-center justify-between gap-3 mb-3 ${hasActions ? 'pr-24' : ''}`}>
                             <div className="flex items-center gap-2">
                                 <span className="text-lg">{DEFAULT_ICON}</span>
                                 <span className="text-xs font-bold text-base-content/60 uppercase tracking-wider">
@@ -82,7 +87,7 @@ export default function TestCard({ test, variants, onDelete, deleting = false, o
                                 </span>
                             </div>
                             {difficulty.badge && (
-                                <span className={`badge badge-sm font-bold ${difficulty.badge}`}>
+                                <span className={`badge badge-sm font-bold shrink-0 ${difficulty.badge}`}>
                                     {difficulty.label}
                                 </span>
                             )}

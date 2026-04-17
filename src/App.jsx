@@ -25,6 +25,7 @@ const OrderDetail = lazy(() => import('@/features/orders/pages/OrderDetail'));
 const PublicCoursesPage = lazy(() => import('@/features/courses/pages/PublicCoursesPage'));
 const PublicCourseDetail = lazy(() => import('@/features/courses/pages/PublicCourseDetail'));
 const Learn = lazy(() => import('@/features/learn/pages/Learn'));
+const LearnQuizTaking = lazy(() => import('@/features/learn/pages/LearnQuizTaking'));
 const Tests = lazy(() => import('@/features/tests/pages/Tests'));
 const TestDetail = lazy(() => import('@/features/tests/pages/TestDetail'));
 const QuizTaking = lazy(() => import('@/features/tests/components/QuizTaking'));
@@ -98,6 +99,7 @@ function App() {
                 <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                 <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
                 <Route path="/courses/:id/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+                <Route path="/courses/:id/learn/quiz/:chapterId/:lessonId" element={<ProtectedRoute><LearnQuizTaking /></ProtectedRoute>} />
                 <Route path="/tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
                 <Route path="/tests/:id" element={<ProtectedRoute><TestDetail /></ProtectedRoute>} />
                 <Route path="/tests/:id/take" element={<ProtectedRoute><QuizTaking /></ProtectedRoute>} />

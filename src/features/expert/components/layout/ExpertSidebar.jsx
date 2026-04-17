@@ -3,20 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { clearTokens } from '@/shared/utils/tokenManager';
 import {
-    BarChart3,
     BookOpen,
     ClipboardCheck,
-    DollarSign,
-    FolderOpen,
     GraduationCap,
-    Inbox,
     LayoutDashboard,
     LogOut,
-    MessageCircleQuestion,
     PanelLeftClose,
     PanelLeftOpen,
     Settings,
-    Sparkles,
     UserCircle,
 } from 'lucide-react';
 
@@ -53,27 +47,11 @@ export default function ExpertSidebar() {
                 { icon: LayoutDashboard, label: 'Tổng quan', path: '/expert' },
                 { icon: BookOpen, label: 'Chương trình học', path: '/expert/curriculum' },
                 { icon: ClipboardCheck, label: 'Bài nộp Assignment', path: '/expert/assignments' },
-                { icon: Sparkles, label: 'Trợ lý AI', path: '/expert/ai-assistant' },
-                { icon: FolderOpen, label: 'Thư viện tài nguyên', path: '/expert/assets' },
             ],
         },
         {
-            title: 'Cộng tác',
+            title: 'Chuyên gia',
             items: [
-                { icon: Inbox, label: 'Yêu cầu từ Admin', path: '/expert/requests', badge: 3 },
-            ],
-        },
-        {
-            title: 'Phân tích',
-            items: [
-                { icon: BarChart3, label: 'Dữ liệu & Thống kê', path: '/expert/analytics' },
-                { icon: MessageCircleQuestion, label: 'Hỏi đáp học viên', path: '/expert/qa' },
-            ],
-        },
-        {
-            title: 'Tài chính',
-            items: [
-                { icon: DollarSign, label: 'Doanh thu', path: '/expert/revenue' },
                 { icon: UserCircle, label: 'Hồ sơ chuyên gia', path: '/expert/profile' },
             ],
         },
@@ -169,11 +147,6 @@ export default function ExpertSidebar() {
                                         >
                                             <item.icon className="h-5 w-5 flex-shrink-0" />
                                             {!collapsed && <span className="truncate whitespace-nowrap">{item.label}</span>}
-                                            {!collapsed && item.badge && (
-                                                <span className="badge badge-xs badge-secondary ml-auto flex-shrink-0 font-bold">
-                                                    {item.badge}
-                                                </span>
-                                            )}
 
                                             {collapsed && (
                                                 <div className="pointer-events-none absolute left-full z-[60] ml-3 whitespace-nowrap rounded-xl bg-base-content px-3 py-1.5 text-xs font-bold text-base-100 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">

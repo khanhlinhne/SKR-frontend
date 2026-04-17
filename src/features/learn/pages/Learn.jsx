@@ -511,10 +511,10 @@ export default function Learn() {
     }, [activeChapter, activeLesson]);
 
     const handleQuizStart = useCallback(() => {
-        setQuizResult(null);
-        setQuizAttemptSeed(prev => prev + 1);
-        setQuizView('taking');
-    }, []);
+        if (!currentChapter?.chapterId || !currentLesson?.lessonId) return;
+        const quizUrl = `/courses/${id}/learn/quiz/${currentChapter.chapterId}/${currentLesson.lessonId}?gradient=${encodeURIComponent(courseDisplay?.gradient || 'from-violet-500 to-purple-500')}`;
+        window.open(quizUrl, '_blank');
+    }, [id, currentChapter?.chapterId, currentLesson?.lessonId, courseDisplay?.gradient]);
 
     const handleQuizSubmit = useCallback((result) => {
         setQuizResult(result);

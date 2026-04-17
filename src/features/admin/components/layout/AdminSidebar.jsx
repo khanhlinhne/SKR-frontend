@@ -6,17 +6,12 @@ import {
     LayoutDashboard,
     Users,
     BookOpen,
-    ShoppingCart,
     BarChart3,
     Settings,
     LogOut,
     Shield,
     PanelLeftClose,
     PanelLeftOpen,
-    FileText,
-    CreditCard,
-    MessageSquare,
-    Bell,
 } from 'lucide-react';
 
 const SIDEBAR_KEY = 'skr-admin-sidebar-collapsed';
@@ -25,7 +20,11 @@ export default function AdminSidebar() {
     const location = useLocation();
     const navigate = useNavigate();
     const [collapsed, setCollapsed] = useState(() => {
-        try { return localStorage.getItem(SIDEBAR_KEY) === 'true'; } catch { return false; }
+        try {
+            return localStorage.getItem(SIDEBAR_KEY) === 'true';
+        } catch {
+            return false;
+        }
     });
 
     const handleLogout = () => {
@@ -34,18 +33,18 @@ export default function AdminSidebar() {
     };
 
     useEffect(() => {
-        try { localStorage.setItem(SIDEBAR_KEY, collapsed); } catch { /* ignore persistence errors */ }
+        try {
+            localStorage.setItem(SIDEBAR_KEY, collapsed);
+        } catch {
+            // ignore persistence errors
+        }
     }, [collapsed]);
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
         { icon: Users, label: 'Người dùng', path: '/admin/users' },
         { icon: BookOpen, label: 'Khóa học', path: '/admin/courses' },
-        { icon: FileText, label: 'Bài thi', path: '/admin/tests' },
-        { icon: CreditCard, label: 'Đơn hàng', path: '/admin/orders' },
         { icon: BarChart3, label: 'Thống kê', path: '/admin/analytics' },
-        { icon: MessageSquare, label: 'Phản hồi', path: '/admin/feedback' },
-        { icon: Bell, label: 'Thông báo', path: '/admin/notifications' },
     ];
 
     const isActive = (path) => {
@@ -58,14 +57,13 @@ export default function AdminSidebar() {
             initial={{ x: -300 }}
             animate={{ x: 0, width: collapsed ? 72 : 260 }}
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-r border-base-300 flex flex-col flex-shrink-0 overflow-hidden h-full"
+            className="flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-base-300 bg-base-100"
         >
-            {/* Logo */}
-            <div className={`border-b border-base-300 flex-shrink-0 ${collapsed ? 'p-3 flex justify-center' : 'p-5'}`}>
+            <div className={`flex-shrink-0 border-b border-base-300 ${collapsed ? 'flex justify-center p-3' : 'p-5'}`}>
                 <div className="flex items-center gap-3">
                     <Link to="/admin" className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-cyan-600 shadow-lg">
+                            <Shield className="h-6 w-6 text-white" strokeWidth={2.5} />
                         </div>
                     </Link>
                     {!collapsed && (
@@ -77,7 +75,7 @@ export default function AdminSidebar() {
                         >
                             <Link to="/admin">
                                 <h1 className="text-xl font-black text-base-content">SKR Admin</h1>
-                                <p className="text-[10px] font-bold text-base-content/60 uppercase tracking-wider whitespace-nowrap">
+                                <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wider text-base-content/60">
                                     Management Panel
                                 </p>
                             </Link>
@@ -86,52 +84,40 @@ export default function AdminSidebar() {
                 </div>
             </div>
 
-            {/* Toggle collapse button */}
-            <div className={`px-3 pt-3 flex ${collapsed ? 'justify-center' : 'justify-end'}`}>
+            <div className={`flex px-3 pt-3 ${collapsed ? 'justify-center' : 'justify-end'}`}>
                 <button
-                    onClick={() => setCollapsed(prev => !prev)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-base-content/40 hover:text-base-content hover:bg-base-200 transition-all"
+                    onClick={() => setCollapsed((prev) => !prev)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/40 transition-all hover:bg-base-200 hover:text-base-content"
                     title={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
                 >
-                    {collapsed
-                        ? <PanelLeftOpen className="w-4 h-4" />
-                        : <PanelLeftClose className="w-4 h-4" />
-                    }
+                    {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                 </button>
             </div>
 
-            {/* Menu */}
-            <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
-                {menuItems.map((item, i) => (
+            <nav className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
+                {menuItems.map((item, index) => (
                     <motion.div
                         key={item.path}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + i * 0.04 }}
+                        transition={{ delay: 0.3 + index * 0.04 }}
                     >
                         <Link
                             to={item.path}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all relative group
-                                ${collapsed ? 'justify-center' : ''}
-                                ${isActive(item.path)
+                            className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
+                                collapsed ? 'justify-center' : ''
+                            } ${
+                                isActive(item.path)
                                     ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-lg'
                                     : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
-                                }`}
+                            }`}
                         >
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            {!collapsed && (
-                                <span className="truncate whitespace-nowrap">{item.label}</span>
-                            )}
-                            {!collapsed && item.badge && (
-                                <span className="ml-auto badge badge-xs badge-warning font-bold flex-shrink-0">
-                                    {item.badge}
-                                </span>
-                            )}
-                            {/* Tooltip when collapsed */}
+                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                            {!collapsed && <span className="truncate whitespace-nowrap">{item.label}</span>}
                             {collapsed && (
-                                <div className="absolute left-full ml-3 px-3 py-1.5 rounded-xl bg-base-content text-base-100 text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-[60] shadow-xl">
+                                <div className="pointer-events-none absolute left-full z-[60] ml-3 whitespace-nowrap rounded-xl bg-base-content px-3 py-1.5 text-xs font-bold text-base-100 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                                     {item.label}
-                                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 rotate-45 bg-base-content" />
+                                    <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 rotate-45 bg-base-content" />
                                 </div>
                             )}
                         </Link>
@@ -139,37 +125,39 @@ export default function AdminSidebar() {
                 ))}
             </nav>
 
-            {/* Bottom Menu */}
-            <div className="px-2 py-2 space-y-0.5 border-t border-base-300">
+            <div className="space-y-0.5 border-t border-base-300 px-2 py-2">
                 <Link
                     to="/admin/settings"
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all relative group
-                        ${collapsed ? 'justify-center' : ''}
-                        ${isActive('/admin/settings')
+                    className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
+                        collapsed ? 'justify-center' : ''
+                    } ${
+                        isActive('/admin/settings')
                             ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-lg'
                             : 'text-base-content/60 hover:bg-base-200 hover:text-base-content'
-                        }`}
+                    }`}
                 >
-                    <Settings className="w-5 h-5 flex-shrink-0" />
+                    <Settings className="h-5 w-5 flex-shrink-0" />
                     {!collapsed && <span className="truncate">Cài đặt</span>}
                     {collapsed && (
-                        <div className="absolute left-full ml-3 px-3 py-1.5 rounded-xl bg-base-content text-base-100 text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-[60] shadow-xl">
+                        <div className="pointer-events-none absolute left-full z-[60] ml-3 whitespace-nowrap rounded-xl bg-base-content px-3 py-1.5 text-xs font-bold text-base-100 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                             Cài đặt
-                            <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 rotate-45 bg-base-content" />
+                            <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 rotate-45 bg-base-content" />
                         </div>
                     )}
                 </Link>
+
                 <button
                     onClick={handleLogout}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm text-red-500 hover:bg-red-500/10 transition-all relative group
-                        ${collapsed ? 'justify-center' : ''}`}
+                    className={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-red-500 transition-all hover:bg-red-500/10 ${
+                        collapsed ? 'justify-center' : ''
+                    }`}
                 >
-                    <LogOut className="w-5 h-5 flex-shrink-0" />
+                    <LogOut className="h-5 w-5 flex-shrink-0" />
                     {!collapsed && <span>Đăng xuất</span>}
                     {collapsed && (
-                        <div className="absolute left-full ml-3 px-3 py-1.5 rounded-xl bg-base-content text-base-100 text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-[60] shadow-xl">
+                        <div className="pointer-events-none absolute left-full z-[60] ml-3 whitespace-nowrap rounded-xl bg-base-content px-3 py-1.5 text-xs font-bold text-base-100 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                             Đăng xuất
-                            <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 rotate-45 bg-base-content" />
+                            <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 rotate-45 bg-base-content" />
                         </div>
                     )}
                 </button>

@@ -157,8 +157,8 @@ function CourseCard({ course }) {
                             </div>
                         )}
 
-                        {/* Action hint */}
-                        <div className="flex items-center justify-between pt-1">
+                        {/* Action buttons — icon-only, expand on hover */}
+                        <div className="flex items-center justify-between pt-2">
                             {course.priceAmount > 0 ? (
                                 <span className="text-xs font-black text-emerald-600">
                                     {Number(course.priceAmount).toLocaleString('vi-VN')}đ
@@ -166,9 +166,27 @@ function CourseCard({ course }) {
                             ) : (
                                 <span className="badge badge-xs badge-ghost font-bold">Miễn phí</span>
                             )}
-                            <div className="flex items-center gap-1 text-xs font-bold text-violet-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span>{hasContent ? 'Quản lý nội dung' : 'Bắt đầu soạn'}</span>
-                                <ChevronRight className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                {/* DS đăng ký */}
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); navigate('/expert/analytics', { state: { courseId: course.courseId || course.id } }); }}
+                                    className="flex items-center gap-0 h-7 rounded-lg bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold shadow-md px-2 overflow-hidden transition-all duration-300 group/a hover:gap-1 hover:px-2.5 cursor-pointer"
+                                >
+                                    <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="max-w-0 overflow-hidden whitespace-nowrap text-[10px] font-bold transition-all duration-300 group-hover/a:max-w-[6rem]">
+                                        DS đăng ký
+                                    </span>
+                                </button>
+                                {/* Nội dung */}
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/expert/curriculum/${course.courseId || course.id}`); }}
+                                    className="flex items-center gap-0 h-7 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-md px-2 overflow-hidden transition-all duration-300 group/b hover:gap-1 hover:px-2.5 cursor-pointer"
+                                >
+                                    <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="max-w-0 overflow-hidden whitespace-nowrap text-[10px] font-bold transition-all duration-300 group-hover/b:max-w-[6rem]">
+                                        Nội dung
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -245,27 +263,35 @@ function CourseListItem({ course }) {
                         </div>
                     </div>
 
-                    {/* Right side */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    {/* Right side — price + action buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         {course.priceAmount > 0 ? (
-                            <span className="text-sm font-black text-emerald-600">
+                            <span className="text-sm font-black text-emerald-600 mr-1">
                                 {Number(course.priceAmount).toLocaleString('vi-VN')}đ
                             </span>
                         ) : (
-                            <span className="badge badge-sm badge-ghost font-bold">Miễn phí</span>
+                            <span className="badge badge-sm badge-ghost font-bold mr-1">Miễn phí</span>
                         )}
-                        {hasContent ? (
-                            <span className="badge badge-sm bg-violet-600 text-white border-none font-bold gap-1 hidden sm:flex">
-                                <Pencil className="w-3 h-3" />
-                                Chỉnh sửa
+                        {/* DS đăng ký */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); navigate('/expert/analytics', { state: { courseId: course.courseId || course.id } }); }}
+                            className="flex items-center gap-0 h-8 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold shadow-md shadow-violet-500/20 px-2.5 overflow-hidden transition-all duration-300 group/a hover:gap-1.5 hover:px-3 cursor-pointer"
+                        >
+                            <Users className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-bold transition-all duration-300 group-hover/a:max-w-[7rem]">
+                                DS đăng ký
                             </span>
-                        ) : (
-                            <span className="badge badge-sm bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none font-bold gap-1 hidden sm:flex">
-                                <Plus className="w-3 h-3" />
-                                Thêm nội dung
+                        </button>
+                        {/* Nội dung */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/expert/curriculum/${course.courseId || course.id}`); }}
+                            className="flex items-center gap-0 h-8 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold shadow-md shadow-emerald-500/20 px-2.5 overflow-hidden transition-all duration-300 group/b hover:gap-1.5 hover:px-3 cursor-pointer"
+                        >
+                            <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-bold transition-all duration-300 group-hover/b:max-w-[7rem]">
+                                Nội dung
                             </span>
-                        )}
-                        <ChevronRight className="w-4 h-4 text-base-content/30 group-hover:text-violet-600 transition-colors" />
+                        </button>
                     </div>
                 </div>
             </div>

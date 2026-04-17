@@ -21,7 +21,6 @@ function normalizeLessonMutationPayload(data) {
 
     return payload;
 }
-
 const courseApi = {
     // Lay danh sach khoa hoc
     getAll(params) {
@@ -123,6 +122,12 @@ const courseApi = {
     // Questions
     addQuestion(courseId, chapterId, lessonId, data) {
         return axiosClient.post(`/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/questions`, data);
+    },
+    updateQuestion(courseId, chapterId, lessonId, questionId, data) {
+        return axiosClient.patch(
+            `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/questions/${questionId}`,
+            data,
+        );
     },
     deleteQuestion(courseId, chapterId, lessonId, questionId) {
         return axiosClient.delete(`/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/questions/${questionId}`);

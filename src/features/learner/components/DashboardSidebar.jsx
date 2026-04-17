@@ -9,10 +9,6 @@ import {
     CreditCard,
     FileText,
     Brain,
-    MessageSquare,
-    Calendar,
-    Trophy,
-    ShoppingBag,
     User,
     Settings,
     LogOut,
@@ -54,11 +50,7 @@ export default function DashboardSidebar() {
         { icon: BookOpen, label: 'Môn học', path: '/courses' },
         { icon: CreditCard, label: 'Flashcards', path: '/flashcards' },
         { icon: FileText, label: 'Thi thử', path: '/tests' },
-        { icon: ShoppingBag, label: 'Đơn hàng', path: '/orders' },
         { icon: Brain, label: 'AI Assistant', path: '/ai-assistant', badge: 'Premium' },
-        { icon: MessageSquare, label: 'Cộng đồng', path: '/community' },
-        { icon: Calendar, label: 'Lịch học', path: '/schedule' },
-        { icon: Trophy, label: 'Thành tích', path: '/achievements' },
     ];
 
     const bottomItems = [
