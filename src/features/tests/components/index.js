@@ -2,6 +2,9 @@
 export { default as TestCard, TestListItem } from './TestCard';
 export { default as TestsHeader } from './TestsHeader';
 export { default as CreateTestModal } from './CreateTestModal';
+export { default as TestsStatsBar } from './TestsStatsBar';
+export { default as TestsFilters } from './TestsFilters';
+export { default as TestsModalLayer } from './TestsModalLayer';
 export { default as QuizTaking } from './QuizTaking';
 export { default as QuizResults } from './QuizResults';
 export {

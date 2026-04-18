@@ -29,7 +29,7 @@ export default function OwlConfirmDialog({ dialog, onCancel, onConfirm }) {
                 <div className="p-6">
                     <div className="flex items-start gap-4">
                         <div className={`relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br ${toneStyles.accent} shadow-lg ring-1 ring-base-300`}>
-                            <span className="text-3xl leading-none">ðŸ¦‰</span>
+                            <span className="text-3xl leading-none">🦉</span>
                             <div className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full bg-base-100 shadow-md ring-1 ring-base-200">
                                 <Trash2 className="h-3.5 w-3.5 text-red-500" />
                             </div>
@@ -42,7 +42,7 @@ export default function OwlConfirmDialog({ dialog, onCancel, onConfirm }) {
                                 </span>
                             )}
                             <h3 className="mt-3 text-xl font-black leading-tight text-base-content">
-                                {dialog.title || 'Ban muon tiep tuc chu?'}
+                                {dialog.title || 'Bạn muốn tiếp tục chứ?'}
                             </h3>
                             {dialog.description && (
                                 <p className="mt-3 text-sm leading-6 text-base-content/65">
@@ -63,14 +63,14 @@ export default function OwlConfirmDialog({ dialog, onCancel, onConfirm }) {
                             onClick={onCancel}
                             className="btn btn-sm rounded-xl border-base-300 bg-base-100 font-bold text-base-content/70 hover:bg-base-200"
                         >
-                            {dialog.cancelLabel || 'Giá»¯ láº¡i'}
+                            {dialog.cancelLabel || 'Giữ lại'}
                         </button>
                         <button
                             type="button"
                             onClick={onConfirm}
                             className={`btn btn-sm border-none rounded-xl bg-gradient-to-r font-bold text-white shadow-lg ${toneStyles.button}`}
                         >
-                            {dialog.confirmLabel || 'XÃ¡c nháº­n'}
+                            {dialog.confirmLabel || 'Xác nhận'}
                         </button>
                     </div>
                 </div>

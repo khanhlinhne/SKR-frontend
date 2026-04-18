@@ -6,3 +6,8 @@ export { default as LearnHeader } from './LearnHeader';
 export { default as LearnProgressView } from './LearnProgressView';
 export { default as LearnQuizFlow } from './LearnQuizFlow';
 export { default as LearnAssignmentFlow } from './LearnAssignmentFlow';
+export { default as LearnTransitionState } from './LearnTransitionState';
+export { default as FlashcardLessonPlayer } from './FlashcardLessonPlayer';
+export { default as LearnQuizTakingView } from './LearnQuizTakingView';
+export { default as LearnQuizResultsView } from './LearnQuizResultsView';
+export { default as LearnQuizReviewView } from './LearnQuizReviewView';

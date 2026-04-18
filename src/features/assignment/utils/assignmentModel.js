@@ -26,10 +26,23 @@ export function createDefaultRubricCriterion(index, totalPoints = 100) {
 
 export function normalizeRubricCriteria(criteria, maxScore = 100) {
     const items = Array.isArray(criteria) ? criteria : [];
+    
     const fallback = [
-        { title: 'Muc do dung yeu cau', description: 'Tra loi dung trong tam va giai quyet bai toan.', maxPoints: 40 },
-        { title: 'Lap luan va giai thich', description: 'Dien giai ro rang, co logic va de theo doi.', maxPoints: 35 },
-        { title: 'Trinh bay', description: 'Cau truc gon, de doc va de danh gia.', maxPoints: 25 },
+        { 
+            title: 'Mức độ đúng yêu cầu', 
+            description: 'Trả lời đúng trọng tâm và giải quyết bài toán.', 
+            maxPoints: 40 
+        },
+        { 
+            title: 'Lập luận và giải thích', 
+            description: 'Diễn giải rõ ràng, có logic và dễ theo dõi.', 
+            maxPoints: 35 
+        },
+        { 
+            title: 'Trình bày', 
+            description: 'Cấu trúc gọn gàng, dễ đọc và dễ đánh giá.', 
+            maxPoints: 25 
+        },
     ];
 
     const normalized = (items.length > 0 ? items : fallback)
@@ -39,12 +52,13 @@ export function normalizeRubricCriteria(criteria, maxScore = 100) {
             description: String(criterion?.description || criterion?.criterionDescription || '').trim(),
             maxPoints: Math.max(0, toNumber(
                 criterion?.maxPoints ?? criterion?.score ?? criterion?.weight,
-                0,
+                0
             )),
         }))
         .filter((criterion) => criterion.title);
 
     const total = normalized.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
+
     if (normalized.length === 0) {
         return normalizeRubricCriteria(fallback, maxScore);
     }
@@ -65,7 +79,7 @@ export function createDefaultAssignmentDraft() {
         title: '',
         description: '',
         instructions: '',
-        submissionFormat: 'Tra loi bang van ban, co the chia thanh cac y nho de de cham diem.',
+        submissionFormat: 'Trả lời bằng văn bản, có thể chia thành các ý nhỏ để dễ chấm điểm.',
         maxScore: 100,
         rubricCriteria: normalizeRubricCriteria([], 100),
         sourceType: 'manual',
@@ -81,15 +95,15 @@ export function normalizeAssignmentDetail(source = {}, context = {}) {
             ?? source?.totalPoints
             ?? context?.maxScore
             ?? 100,
-            100,
-        ),
+            100
+        )
     );
 
     const rubricCriteria = normalizeRubricCriteria(
         source?.rubricCriteria
         ?? source?.rubric
         ?? source?.criteria,
-        maxScore,
+        maxScore
     );
 
     return {
@@ -103,11 +117,13 @@ export function normalizeAssignmentDetail(source = {}, context = {}) {
         submissionFormat: String(
             source?.submissionFormat
             || source?.answerFormat
-            || 'Tra loi bang van ban, co the chia thanh cac y nho de de cham diem.',
+            || 'Trả lời bằng văn bản, có thể chia thành các ý nhỏ để dễ chấm điểm.'
         ).trim(),
         maxScore,
         rubricCriteria,
-        sourceType: String(source?.sourceType || source?.createdBy || context?.sourceType || 'manual').trim().toLowerCase() || 'manual',
+        sourceType: String(source?.sourceType || source?.createdBy || context?.sourceType || 'manual')
+            .trim()
+            .toLowerCase() || 'manual',
         reviewFocus: String(source?.reviewFocus || source?.feedbackFocus || '').trim(),
         totalSubmissions: Math.max(0, toNumber(source?.totalSubmissions ?? source?.submissionCount, 0)),
         updatedAtUtc: source?.updatedAtUtc || source?.updatedAt || new Date().toISOString(),
@@ -124,9 +140,10 @@ export function normalizeSubmissionRubricScores(scores, assignment = null) {
             criterion.criterionId === score?.criterionId
             || criterion.title === score?.criterionTitle
         )) || assignmentCriteria[index];
+
         const maxPoints = Math.max(
             0,
-            toNumber(score?.maxPoints ?? matchedCriterion?.maxPoints, matchedCriterion?.maxPoints ?? 0),
+            toNumber(score?.maxPoints ?? matchedCriterion?.maxPoints, matchedCriterion?.maxPoints ?? 0)
         );
 
         return {
@@ -135,7 +152,7 @@ export function normalizeSubmissionRubricScores(scores, assignment = null) {
                 score?.criterionTitle
                 || score?.title
                 || matchedCriterion?.title
-                || `Tieu chi ${index + 1}`,
+                || `Tiêu chí ${index + 1}`
             ).trim(),
             feedback: String(score?.feedback || score?.comment || '').trim(),
             awardedPoints: clampScore(score?.awardedPoints ?? score?.score, maxPoints),
@@ -147,6 +164,7 @@ export function normalizeSubmissionRubricScores(scores, assignment = null) {
         return normalized;
     }
 
+    // Nếu không có điểm nào, trả về khung tiêu chí mặc định
     return assignmentCriteria.map((criterion) => ({
         criterionId: criterion.criterionId,
         criterionTitle: criterion.title,
@@ -157,7 +175,10 @@ export function normalizeSubmissionRubricScores(scores, assignment = null) {
 }
 
 export function normalizeAssignmentSubmission(source = {}, context = {}) {
-    const assignment = context?.assignment ? normalizeAssignmentDetail(context.assignment, context) : null;
+    const assignment = context?.assignment 
+        ? normalizeAssignmentDetail(context.assignment, context) 
+        : null;
+
     const maxScore = Math.max(
         1,
         toNumber(
@@ -166,20 +187,22 @@ export function normalizeAssignmentSubmission(source = {}, context = {}) {
             ?? assignment?.maxScore
             ?? context?.maxScore
             ?? 100,
-            100,
-        ),
+            100
+        )
     );
+
     const rubricScores = normalizeSubmissionRubricScores(
         source?.rubricScores
         ?? source?.rubricBreakdown
         ?? source?.criteriaScores,
-        assignment,
+        assignment
     );
+
     const score = clampScore(
         source?.score
         ?? source?.awardedScore
         ?? rubricScores.reduce((sum, item) => sum + item.awardedPoints, 0),
-        maxScore,
+        maxScore
     );
 
     return {
@@ -193,7 +216,7 @@ export function normalizeAssignmentSubmission(source = {}, context = {}) {
         lessonTitle: String(source?.lessonTitle || context?.lessonTitle || assignment?.title || '').trim(),
         assignmentTitle: String(source?.assignmentTitle || assignment?.title || context?.assignmentTitle || '').trim(),
         learnerId: source?.learnerId || source?.userId || source?.studentId || null,
-        learnerName: String(source?.learnerName || source?.studentName || source?.userName || 'Hoc vien').trim(),
+        learnerName: String(source?.learnerName || source?.studentName || source?.userName || 'Học viên').trim(),
         learnerAvatarUrl: source?.learnerAvatarUrl || source?.studentAvatarUrl || source?.avatarUrl || '',
         answerText: String(source?.answerText || source?.submissionText || source?.answer || '').trim(),
         submittedAtUtc: source?.submittedAtUtc || source?.submittedAt || source?.createdAt || new Date().toISOString(),
@@ -222,7 +245,7 @@ export function formatAssignmentScore(score, maxScore) {
 export function summarizeAnswer(answerText, maxLength = 140) {
     const text = String(answerText || '').trim().replace(/\s+/g, ' ');
     if (!text) {
-        return 'Chua co noi dung nop bai.';
+        return 'Chưa có nội dung nộp bài.';
     }
 
     if (text.length <= maxLength) {

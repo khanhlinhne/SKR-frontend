@@ -8,11 +8,36 @@ import {
 import { resolveFlashcardImageUrl } from '@/features/flashcards/utils/imageUrl';
 
 export const lessonTypeConfig = {
-    video: { label: 'Video', icon: PlayCircle, color: 'text-blue-500 bg-blue-500/10', gradient: 'from-blue-500 to-cyan-500' },
-    document: { label: 'TÃ i liá»‡u', icon: FileText, color: 'text-emerald-500 bg-emerald-500/10', gradient: 'from-emerald-500 to-teal-500' },
-    flashcard: { label: 'Flashcard', icon: Sparkles, color: 'text-indigo-500 bg-indigo-500/10', gradient: 'from-indigo-500 to-violet-500' },
-    quiz: { label: 'Kiá»ƒm tra', icon: HelpCircle, color: 'text-amber-500 bg-amber-500/10', gradient: 'from-amber-500 to-orange-500' },
-    assignment: { label: 'Assignment', icon: ClipboardCheck, color: 'text-rose-500 bg-rose-500/10', gradient: 'from-rose-500 to-orange-500' },
+    video: {
+        label: 'Video',
+        icon: PlayCircle,
+        color: 'text-blue-500 bg-blue-500/10',
+        gradient: 'from-blue-500 to-cyan-500'
+    },
+    document: {
+        label: 'Tài liệu',
+        icon: FileText,
+        color: 'text-emerald-500 bg-emerald-500/10',
+        gradient: 'from-emerald-500 to-teal-500'
+    },
+    flashcard: {
+        label: 'Flashcard',
+        icon: Sparkles,
+        color: 'text-indigo-500 bg-indigo-500/10',
+        gradient: 'from-indigo-500 to-violet-500'
+    },
+    quiz: {
+        label: 'Kiểm tra',
+        icon: HelpCircle,
+        color: 'text-amber-500 bg-amber-500/10',
+        gradient: 'from-amber-500 to-orange-500'
+    },
+    assignment: {
+        label: 'Bài tập',
+        icon: ClipboardCheck,
+        color: 'text-rose-500 bg-rose-500/10',
+        gradient: 'from-rose-500 to-orange-500'
+    },
 };
 
 export const addableLessonTypes = ['video', 'flashcard', 'quiz', 'assignment'];
@@ -58,10 +83,10 @@ export function createFlashcardDraftFromItem(item, fallbackId = 1) {
         frontText: item?.frontText || item?.front || '',
         backText: item?.backText || item?.back || '',
         frontImageUrl: resolveFlashcardImageUrl(
-            item?.frontImageUrl || item?.frontImage || item?.frontMediaUrl || item?.frontImagePath || '',
+            item?.frontImageUrl || item?.frontImage || item?.frontMediaUrl || item?.frontImagePath || ''
         ),
         backImageUrl: resolveFlashcardImageUrl(
-            item?.backImageUrl || item?.backImage || item?.backMediaUrl || item?.backImagePath || '',
+            item?.backImageUrl || item?.backImage || item?.backMediaUrl || item?.backImagePath || ''
         ),
     };
 }
@@ -83,21 +108,21 @@ export function validateLessonForm(form, existingLessons = []) {
     let summary = '';
 
     if (!lessonCode) {
-        fieldErrors.lessonCode = 'CÃº cáº§n mÃ£ bÃ i giáº£ng Ä‘á»ƒ sáº¯p xáº¿p vÃ  phÃ¢n biá»‡t ná»™i dung trong chÆ°Æ¡ng.';
+        fieldErrors.lessonCode = 'Cần nhập mã bài giảng để sắp xếp và phân biệt nội dung trong chương.';
     } else if (lessonCode.length < 2) {
-        fieldErrors.lessonCode = 'MÃ£ bÃ i giáº£ng nÃªn cÃ³ Ã­t nháº¥t 2 kÃ½ tá»±, vÃ­ dá»¥ LS01 hoáº·c QUIZ01.';
+        fieldErrors.lessonCode = 'Mã bài giảng nên có ít nhất 2 ký tự, ví dụ: LS01 hoặc QUIZ01.';
     } else if (!LESSON_CODE_PATTERN.test(lessonCode)) {
-        fieldErrors.lessonCode = 'MÃ£ bÃ i giáº£ng chá»‰ nÃªn gá»“m chá»¯ cÃ¡i, sá»‘, dáº¥u gáº¡ch ngang hoáº·c gáº¡ch dÆ°á»›i.';
+        fieldErrors.lessonCode = 'Mã bài giảng chỉ nên gồm chữ cái, số, dấu gạch ngang hoặc gạch dưới.';
     } else if (existingLessons.some((lesson) => String(lesson?.lessonCode || '').trim().toLowerCase() === normalizedCode)) {
-        fieldErrors.lessonCode = 'MÃ£ bÃ i giáº£ng nÃ y Ä‘Ã£ tá»“n táº¡i trong chÆ°Æ¡ng. Báº¡n hÃ£y chá»n mÃ£ khÃ¡c Ä‘á»ƒ trÃ¡nh bá»‹ trÃ¹ng.';
+        fieldErrors.lessonCode = 'Mã bài giảng này đã tồn tại trong chương. Hãy chọn mã khác để tránh bị trùng.';
     }
 
     if (!lessonName) {
-        fieldErrors.lessonName = 'CÃº cáº§n tÃªn bÃ i giáº£ng Ä‘á»ƒ há»c viÃªn nháº­n ra Ä‘Ãºng ná»™i dung cáº§n há»c.';
+        fieldErrors.lessonName = 'Cần nhập tên bài giảng để học viên nhận ra đúng nội dung cần học.';
     } else if (lessonName.length < 3) {
-        fieldErrors.lessonName = 'TÃªn bÃ i giáº£ng hÆ¡i ngáº¯n. Báº¡n nÃªn nháº­p Ã­t nháº¥t 3 kÃ½ tá»± Ä‘á»ƒ hiá»ƒn thá»‹ rÃµ rÃ ng hÆ¡n.';
+        fieldErrors.lessonName = 'Tên bài giảng hơi ngắn. Nên nhập ít nhất 3 ký tự để hiển thị rõ ràng hơn.';
     } else if (existingLessons.some((lesson) => String(lesson?.lessonName || '').trim().toLowerCase() === normalizedName)) {
-        fieldErrors.lessonName = 'TÃªn bÃ i giáº£ng nÃ y Ä‘Ã£ cÃ³ trong chÆ°Æ¡ng. Báº¡n hÃ£y Ä‘á»•i tÃªn Ä‘á»ƒ ngÆ°á»i há»c khÃ´ng bá»‹ nháº§m.';
+        fieldErrors.lessonName = 'Tên bài giảng này đã có trong chương. Hãy đổi tên để người học không bị nhầm.';
     }
 
     if (fieldErrors.lessonCode) {
@@ -121,17 +146,17 @@ export function validateChapterForm(form) {
     let summary = '';
 
     if (!chapterCode) {
-        fieldErrors.chapterCode = 'Can nhap ma chuong de phan biet noi dung.';
+        fieldErrors.chapterCode = 'Cần nhập mã chương để phân biệt nội dung.';
     } else if (chapterCode.length < 2) {
-        fieldErrors.chapterCode = 'Ma chuong nen co it nhat 2 ky tu.';
+        fieldErrors.chapterCode = 'Mã chương nên có ít nhất 2 ký tự.';
     } else if (!LESSON_CODE_PATTERN.test(chapterCode)) {
-        fieldErrors.chapterCode = 'Ma chuong chi nen gom chu cai, so, dau gach ngang hoac gach duoi.';
+        fieldErrors.chapterCode = 'Mã chương chỉ nên gồm chữ cái, số, dấu gạch ngang hoặc gạch dưới.';
     }
 
     if (!chapterName) {
-        fieldErrors.chapterName = 'Can nhap ten chuong de hien thi trong giao trinh.';
+        fieldErrors.chapterName = 'Cần nhập tên chương để hiển thị trong giáo trình.';
     } else if (chapterName.length < 3) {
-        fieldErrors.chapterName = 'Ten chuong nen co it nhat 3 ky tu de hien thi ro rang hon.';
+        fieldErrors.chapterName = 'Tên chương nên có ít nhất 3 ký tự để hiển thị rõ ràng hơn.';
     }
 
     if (fieldErrors.chapterCode) {
@@ -164,11 +189,13 @@ export function getLessonDurationMinutes(source = {}) {
 
 export function formatDurationMinutes(minutes) {
     const normalized = normalizeDurationMinutes(minutes);
-    if (!normalized) return 'KhÃ´ng giá»›i háº¡n';
-    if (normalized < 60) return `${normalized} phÃºt`;
+    if (!normalized) return 'Không giới hạn';
+    if (normalized < 60) return `${normalized} phút`;
     const hours = Math.floor(normalized / 60);
     const remainingMinutes = normalized % 60;
-    return remainingMinutes > 0 ? `${hours} giá» ${remainingMinutes} phÃºt` : `${hours} giá»`;
+    return remainingMinutes > 0 
+        ? `${hours} giờ ${remainingMinutes} phút` 
+        : `${hours} giờ`;
 }
 
 export function buildQuestionEditorInitialState(question = {}) {
@@ -186,10 +213,12 @@ export function buildQuestionEditorInitialState(question = {}) {
         : [];
 
     if (questionType === 'true_false') {
-        const hasTrueCorrect = options.find((option) => String(option?.optionText || '').trim().toLowerCase() === 'dung' && option.isCorrect)
-            || options.find((option) => String(option?.optionText || '').trim().toLowerCase() === 'Ä‘Ãºng' && option.isCorrect);
+        const hasTrueCorrect = options.find((option) => 
+            String(option?.optionText || '').trim().toLowerCase() === 'đúng' && option.isCorrect
+        );
+
         options = [
-            { id: 'true-option', optionText: 'Dung', isCorrect: Boolean(hasTrueCorrect || options[0]?.isCorrect) },
+            { id: 'true-option', optionText: 'Đúng', isCorrect: Boolean(hasTrueCorrect || options[0]?.isCorrect) },
             { id: 'false-option', optionText: 'Sai', isCorrect: !(hasTrueCorrect || options[0]?.isCorrect) },
         ];
     }

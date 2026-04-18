@@ -14,8 +14,15 @@ export { default as EnrollmentTrend } from './EnrollmentTrend';
 export { default as RecentOrdersTable } from './RecentOrdersTable';
 export { default as RevenueBreakdown } from './RevenueBreakdown';
 export { default as BusinessKPICards } from './BusinessKPICards';
+export { default as AdminCourseDetailHeader } from './AdminCourseDetailHeader';
+export { default as AdminCoursesKPI } from './AdminCoursesKPI';
+export { default as AdminCoursesTable } from './AdminCoursesTable';
+export { default as AdminCoursesToolbar } from './AdminCoursesToolbar';
+export { default as AdminCourseCard } from './AdminCourseCard';
+export { default as PublishToggle } from './PublishToggle';
 export { default as CourseSummaryCard } from './CourseSummaryCard';
 export { default as ExpertAssignmentCard } from './ExpertAssignmentCard';
+export { default as CourseCreateModal } from './CourseCreateModal';
 export { default as CourseEditModal } from './CourseEditModal';
 
 export { containerVariants, cardVariants, statusConfig, mockCourseDetail } from './constants';

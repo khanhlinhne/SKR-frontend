@@ -22,12 +22,14 @@ export default function AddFlashcardCardModal({
 }) {
     const normalizedInitialCards = initialCards.length > 0 ? initialCards : DEFAULT_FLASHCARD_DRAFTS;
     const nextDraftIdRef = useRef(normalizedInitialCards.length + 1);
+
     const [cards, setCards] = useState(() => normalizedInitialCards);
     const [uploadingSlots, setUploadingSlots] = useState({});
     const [formError, setFormError] = useState('');
     const [aiPrompt, setAiPrompt] = useState('');
     const [aiCardCount, setAiCardCount] = useState(5);
     const [aiGenerating, setAiGenerating] = useState(false);
+
     const isEditMode = mode === 'edit';
 
     useEffect(() => {
@@ -37,21 +39,25 @@ export default function AddFlashcardCardModal({
             setUploadingSlots({});
             setFormError('');
             setAiCardCount(5);
-            setAiPrompt(setTitle ? setTitle.replace(/\s*-\s*Flashcard\s*$/i, '').trim() : '');
+            setAiPrompt(
+                setTitle ? setTitle.replace(/\s*-\s*Flashcard\s*$/i, '').trim() : ''
+            );
         }
     }, [normalizedInitialCards, open, setTitle]);
 
     if (!open) return null;
 
     const isDraftEmpty = (card) => (
-        !card.frontText.trim()
-        && !card.backText.trim()
-        && !card.frontImageUrl
-        && !card.backImageUrl
+        !card.frontText.trim() &&
+        !card.backText.trim() &&
+        !card.frontImageUrl &&
+        !card.backImageUrl
     );
 
     const updateCard = (cardId, field, value) => {
-        setCards((prev) => prev.map((card) => (card.id === cardId ? { ...card, [field]: value } : card)));
+        setCards((prev) =>
+            prev.map((card) => (card.id === cardId ? { ...card, [field]: value } : card))
+        );
     };
 
     const addCard = () => {
@@ -76,12 +82,12 @@ export default function AddFlashcardCardModal({
         if (!file) return;
 
         if (!file.type?.startsWith('image/')) {
-            setFormError('Ch? h? tr? t?p ?nh cho flashcard.');
+            setFormError('Chỉ hỗ trợ tập tin ảnh cho flashcard.');
             return;
         }
 
         if (file.size > MAX_FLASHCARD_IMAGE_SIZE_BYTES) {
-            setFormError('?nh qu� l?n. Vui l�ng ch?n ?nh du?i 5MB.');
+            setFormError('Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.');
             return;
         }
 
@@ -89,15 +95,22 @@ export default function AddFlashcardCardModal({
 
         setFormError('');
         setSlotUploading(cardId, side, true);
+
         try {
             const response = await uploadApi.uploadImage(file);
             const imageUrl = resolveFlashcardImageUrl(extractUploadedImageUrl(response));
+
             if (!imageUrl) {
-                throw new Error('C� chua nh?n du?c URL ?nh t? m�y ch?.');
+                throw new Error('Không nhận được URL ảnh từ máy chủ.');
             }
+
             updateCard(cardId, imageField, imageUrl);
         } catch (error) {
-            setFormError(error?.response?.data?.message || error?.message || 'C� chua t?i du?c ?nh l�n. B?n th? l?i nh�.');
+            setFormError(
+                error?.response?.data?.message ||
+                error?.message ||
+                'Không thể tải ảnh lên. Bạn thử lại nhé.'
+            );
         } finally {
             setSlotUploading(cardId, side, false);
         }
@@ -116,7 +129,7 @@ export default function AddFlashcardCardModal({
         });
 
         if (halfFilled.length > 0) {
-            setFormError('M?i th? c?n d? c? m?t tru?c v� m?t sau. B?n h�y di?n d? ho?c x�a d�ng c�n dang d?.');
+            setFormError('Mỗi thẻ cần đủ cả mặt trước và mặt sau. Hãy điền đủ hoặc xóa những thẻ còn dang dở.');
             return null;
         }
 
@@ -128,16 +141,16 @@ export default function AddFlashcardCardModal({
                 backText: card.backText.trim(),
                 frontImageUrl: resolveFlashcardImageUrl(card.frontImageUrl) || null,
                 backImageUrl: resolveFlashcardImageUrl(card.backImageUrl) || null,
-                cardOrder: card.cardOrder ?? ((nextOrder ?? 0) + index),
+                cardOrder: card.cardOrder ?? (nextOrder ?? 0) + index,
             }));
 
         if (validCards.length === 0) {
-            setFormError('H�y nh?p �t nh?t m?t th? ho�n ch?nh tru?c khi luu.');
+            setFormError('Hãy nhập ít nhất một thẻ hoàn chỉnh trước khi lưu.');
             return null;
         }
 
         if (Object.values(uploadingSlots).some(Boolean)) {
-            setFormError('?nh v?n dang t?i l�n. C� c?n b?n ch? ho�n t?t tru?c khi luu.');
+            setFormError('Ảnh vẫn đang tải lên. Vui lòng chờ hoàn tất trước khi lưu.');
             return null;
         }
 
@@ -151,17 +164,18 @@ export default function AddFlashcardCardModal({
         const sourceText = trimmedPrompt || fallbackPrompt;
 
         if (!sourceText) {
-            setFormError('H�y nh?p ch? d?, do?n ghi ch� ho?c d�n n?i dung b�i h?c d? Gemini t?o flashcard.');
+            setFormError('Hãy nhập chủ đề, đoạn ghi chú hoặc nội dung bài học để Gemini tạo flashcard.');
             return;
         }
 
         if (Object.values(uploadingSlots).some(Boolean)) {
-            setFormError('?nh v?n dang t?i l�n. H�y d?i xong r?i m?i d�ng Gemini d? tr�nh l?ch d? li?u.');
+            setFormError('Ảnh vẫn đang tải lên. Hãy đợi xong rồi mới dùng Gemini.');
             return;
         }
 
         setAiGenerating(true);
         setFormError('');
+
         try {
             const generatedCards = await geminiApi.generateFlashcards({
                 sourceText,
@@ -172,6 +186,7 @@ export default function AddFlashcardCardModal({
             setCards((prev) => {
                 let nextId = nextDraftIdRef.current;
                 const shouldReplaceInitialBlank = prev.length === 1 && isDraftEmpty(prev[0]);
+
                 const generatedDrafts = generatedCards.map((card, index) => ({
                     id: shouldReplaceInitialBlank && index === 0 ? prev[0].id : nextId++,
                     frontText: card.frontText,
@@ -184,7 +199,7 @@ export default function AddFlashcardCardModal({
                 return shouldReplaceInitialBlank ? generatedDrafts : [...prev, ...generatedDrafts];
             });
         } catch (error) {
-            setFormError(error?.message || 'Gemini chua t?o du?c n?i dung flashcard. B?n th? l?i v?i m� t? c? th? hon.');
+            setFormError(error?.message || 'Gemini chưa tạo được nội dung flashcard. Bạn thử lại với mô tả cụ thể hơn.');
         } finally {
             setAiGenerating(false);
         }
@@ -200,7 +215,10 @@ export default function AddFlashcardCardModal({
     const handleSubmitAndContinue = () => {
         const payload = buildPayload();
         if (!payload) return;
+
         onSubmit(payload, { keepOpen: true });
+
+        // Reset form để thêm tiếp
         nextDraftIdRef.current = 2;
         setCards([createFlashcardDraft(1)]);
         setUploadingSlots({});
@@ -220,19 +238,22 @@ export default function AddFlashcardCardModal({
                             <Sparkles className="h-4 w-4 text-white" />
                         </div>
                         <div className="min-w-0">
-                            <h3 className="text-xl font-black text-base-content">{isEditMode ? 'Ch?nh s?a th? flashcard' : 'Th�m th? flashcard'}</h3>
+                            <h3 className="text-xl font-black text-base-content">
+                                {isEditMode ? 'Chỉnh sửa thẻ flashcard' : 'Thêm thẻ flashcard'}
+                            </h3>
                             <p className="mt-1 text-sm text-base-content/55">
                                 {isEditMode
-                                    ? 'C?p nh?t l?i n?i dung m?t tru?c, m?t sau v� h�nh ?nh c?a th? n�y.'
-                                    : 'Nh?p nhanh m?t tru?c v� m?t sau d? t?o nhi?u th? li�n ti?p cho b�i h?c.'}
+                                    ? 'Cập nhật lại nội dung mặt trước, mặt sau và hình ảnh của thẻ này.'
+                                    : 'Nhập nhanh mặt trước và mặt sau để tạo nhiều thẻ liên tiếp cho bài học.'}
                             </p>
                             {setTitle && (
                                 <p className="mt-2 text-xs text-base-content/50">
-                                    B?: <span className="font-bold text-indigo-600">{setTitle}</span>
+                                    Bộ: <span className="font-bold text-indigo-600">{setTitle}</span>
                                 </p>
                             )}
                         </div>
                     </div>
+
                     {!isEditMode && (
                         <button
                             type="button"
@@ -240,28 +261,32 @@ export default function AddFlashcardCardModal({
                             className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
                         >
                             <Plus className="h-4 w-4" />
-                            Th�m th?
+                            Thêm thẻ
                         </button>
                     )}
                 </div>
+
                 <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                    {/* Phần tạo bằng Gemini */}
                     {!isEditMode && (
                         <div className="rounded-[28px] border border-indigo-100 bg-gradient-to-r from-indigo-50/90 via-violet-50/60 to-white p-4 shadow-sm">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div className="min-w-0">
-                                    <p className="text-sm font-black text-base-content">T?o n?i dung b?ng Gemini</p>
+                                    <p className="text-sm font-black text-base-content">Tạo nội dung bằng Gemini</p>
                                     <p className="mt-1 text-xs text-base-content/55">
-                                        D�n ch? d?, do?n ghi ch� ho?c n?i dung b�i h?c. Gemini s? t?o b? th? ti?ng Vi?t d? b?n ch?nh s?a v� luu ngay trong modal n�y.
+                                        Dán chủ đề, đoạn ghi chú hoặc nội dung bài học. Gemini sẽ tạo bộ thẻ tiếng Việt để bạn chỉnh sửa và lưu ngay.
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2 self-start">
-                                    <label className="text-xs font-bold text-base-content/55">S? th?</label>
+                                    <label className="text-xs font-bold text-base-content/55">Số thẻ</label>
                                     <input
                                         type="number"
                                         min={1}
                                         max={12}
                                         value={aiCardCount}
-                                        onChange={(event) => setAiCardCount(Math.max(1, Math.min(12, Number(event.target.value) || 1)))}
+                                        onChange={(event) =>
+                                            setAiCardCount(Math.max(1, Math.min(12, Number(event.target.value) || 1)))
+                                        }
                                         className="input input-sm w-20 rounded-xl border-indigo-200 bg-white font-bold text-indigo-600"
                                     />
                                     <button
@@ -270,30 +295,38 @@ export default function AddFlashcardCardModal({
                                         disabled={aiGenerating}
                                         className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-indigo-600 to-violet-600 font-bold text-white shadow-lg shadow-indigo-500/20"
                                     >
-                                        {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                                        {aiGenerating ? '�ang t?o...' : 'T?o b?ng Gemini'}
+                                        {aiGenerating ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Sparkles className="h-4 w-4" />
+                                        )}
+                                        {aiGenerating ? 'Đang tạo...' : 'Tạo bằng Gemini'}
                                     </button>
                                 </div>
                             </div>
+
                             <textarea
                                 value={aiPrompt}
                                 onChange={(event) => setAiPrompt(event.target.value)}
-                                placeholder="VD: T?o 5 th? flashcard v? JSX trong React, t?p trung v�o kh�i ni?m, c� ph�p v� khi n�o n�n d�ng..."
+                                placeholder="VD: Tạo 5 thẻ flashcard về JSX trong React, tập trung vào khái niệm, cú pháp và khi nào nên dùng..."
                                 className="textarea textarea-bordered mt-4 min-h-[120px] w-full rounded-2xl border-indigo-100 bg-white/90 text-sm font-medium resize-none focus:border-indigo-300 focus:outline-none"
                                 rows={4}
                             />
+
                             <p className="mt-2 text-[11px] font-medium text-base-content/45">
-                                N?u b�n du?i d� c� th? nh?p tay, k?t qu? m?i s? du?c th�m ti?p v�o cu?i danh s�ch thay v� ghi d�.
+                                Nếu bạn muốn nhập tay, kết quả mới sẽ được thêm tiếp vào cuối danh sách.
                             </p>
                         </div>
                     )}
+
+                    {/* Danh sách thẻ */}
                     <div className="max-h-[62vh] space-y-4 overflow-y-auto pr-1">
                         {cards.map((card, index) => (
                             <div key={card.id} className="rounded-[28px] border border-base-300/80 bg-white/95 p-4 shadow-sm">
                                 <div className="mb-4 flex items-center justify-between gap-3">
                                     <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
                                         <Sparkles className="h-3.5 w-3.5" />
-                                        Th? {index + 1}
+                                        Thẻ {index + 1}
                                     </div>
                                     {!isEditMode && (
                                         <button
@@ -305,23 +338,26 @@ export default function AddFlashcardCardModal({
                                         </button>
                                     )}
                                 </div>
+
                                 <div className="grid gap-4 xl:grid-cols-2">
+                                    {/* Mặt trước */}
                                     <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
                                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-indigo-500">
-                                            M?t tru?c <span className="text-red-500">*</span>
+                                            Mặt trước <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
                                             value={card.frontText}
                                             onChange={(event) => updateCard(card.id, 'frontText', event.target.value)}
-                                            placeholder="VD: React Hook l� g�?"
+                                            placeholder="VD: React Hook là gì?"
                                             className="textarea textarea-bordered min-h-[150px] w-full rounded-2xl border-indigo-100 bg-indigo-50/30 text-sm font-medium resize-none focus:border-indigo-300 focus:outline-none"
                                             rows={6}
                                             autoFocus={index === 0}
                                         />
+
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
                                             <label className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50">
                                                 <Upload className="h-4 w-4" />
-                                                T?i ?nh m?t tru?c
+                                                Tải ảnh mặt trước
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -333,45 +369,51 @@ export default function AddFlashcardCardModal({
                                                     }}
                                                 />
                                             </label>
+
                                             {uploadingSlots[`${card.id}-front`] && (
                                                 <span className="inline-flex items-center gap-1 text-xs text-base-content/50">
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    C� dang t?i ?nh...
+                                                    Đang tải ảnh...
                                                 </span>
                                             )}
+
                                             {card.frontImageUrl && (
                                                 <button
                                                     type="button"
                                                     onClick={() => clearCardImage(card.id, 'front')}
                                                     className="btn btn-ghost btn-xs rounded-full text-red-500"
                                                 >
-                                                    X�a ?nh
+                                                    Xóa ảnh
                                                 </button>
                                             )}
                                         </div>
+
                                         {card.frontImageUrl && (
                                             <img
                                                 src={resolveFlashcardImageUrl(card.frontImageUrl)}
-                                                alt={`Front preview ${index + 1}`}
+                                                alt={`Mặt trước thẻ ${index + 1}`}
                                                 className="mt-3 max-h-72 w-full rounded-2xl border border-base-300 bg-base-200/40 object-contain object-center"
                                             />
                                         )}
                                     </div>
+
+                                    {/* Mặt sau */}
                                     <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
                                         <label className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-violet-500">
-                                            M?t sau <span className="text-red-500">*</span>
+                                            Mặt sau <span className="text-red-500">*</span>
                                         </label>
                                         <textarea
                                             value={card.backText}
                                             onChange={(event) => updateCard(card.id, 'backText', event.target.value)}
-                                            placeholder="Gi?i th�ch ng?n g?n, ghi nh? ch�nh ho?c d�p �n..."
+                                            placeholder="Giải thích ngắn gọn, ghi nhớ chính hoặc đáp án..."
                                             className="textarea textarea-bordered min-h-[150px] w-full rounded-2xl border-violet-100 bg-violet-50/30 text-sm font-medium resize-none focus:border-violet-300 focus:outline-none"
                                             rows={6}
                                         />
+
                                         <div className="mt-3 flex flex-wrap items-center gap-2">
                                             <label className="btn btn-sm rounded-xl border-violet-200 bg-white font-bold text-violet-600 hover:bg-violet-50">
                                                 <Upload className="h-4 w-4" />
-                                                T?i ?nh m?t sau
+                                                Tải ảnh mặt sau
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -383,26 +425,29 @@ export default function AddFlashcardCardModal({
                                                     }}
                                                 />
                                             </label>
+
                                             {uploadingSlots[`${card.id}-back`] && (
                                                 <span className="inline-flex items-center gap-1 text-xs text-base-content/50">
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    C� dang t?i ?nh...
+                                                    Đang tải ảnh...
                                                 </span>
                                             )}
+
                                             {card.backImageUrl && (
                                                 <button
                                                     type="button"
                                                     onClick={() => clearCardImage(card.id, 'back')}
                                                     className="btn btn-ghost btn-xs rounded-full text-red-500"
                                                 >
-                                                    X�a ?nh
+                                                    Xóa ảnh
                                                 </button>
                                             )}
                                         </div>
+
                                         {card.backImageUrl && (
                                             <img
                                                 src={resolveFlashcardImageUrl(card.backImageUrl)}
-                                                alt={`Back preview ${index + 1}`}
+                                                alt={`Mặt sau thẻ ${index + 1}`}
                                                 className="mt-3 max-h-72 w-full rounded-2xl border border-base-300 bg-base-200/40 object-contain object-center"
                                             />
                                         )}
@@ -411,21 +456,31 @@ export default function AddFlashcardCardModal({
                             </div>
                         ))}
                     </div>
+
                     {formError && (
                         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
                             {formError}
                         </div>
                     )}
+
                     <div className="modal-action items-center justify-between">
                         <div className="text-xs text-base-content/45">
                             {isEditMode
-                                ? 'C?p nh?t tr?c ti?p th? dang ch?n trong b? flashcard'
+                                ? 'Cập nhật trực tiếp thẻ đang chọn trong bộ flashcard'
                                 : nextOrder != null
-                                    ? `Th? ti?p theo: ${nextOrder + 1}`
-                                    : 'B?n c� th? th�m nhi?u th? li�n ti?p'}
+                                    ? `Thẻ tiếp theo: ${nextOrder + 1}`
+                                    : 'Bạn có thể thêm nhiều thẻ liên tiếp'}
                         </div>
+
                         <div className="flex items-center gap-2">
-                            <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">H?y</button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="btn btn-sm btn-ghost rounded-xl font-bold"
+                            >
+                                Hủy
+                            </button>
+
                             {!isEditMode && (
                                 <button
                                     type="button"
@@ -434,21 +489,29 @@ export default function AddFlashcardCardModal({
                                     className="btn btn-sm rounded-xl border-indigo-200 bg-white font-bold text-indigo-600 hover:bg-indigo-50"
                                 >
                                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                                    Luu v� th�m ti?p
+                                    Lưu và thêm tiếp
                                 </button>
                             )}
+
                             <button
                                 type="submit"
                                 disabled={loading}
                                 className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-indigo-600 to-violet-600 font-bold gap-1.5 text-white"
                             >
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : isEditMode ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                {isEditMode ? 'Luu thay d?i' : 'Luu c�c th?'}
+                                {loading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : isEditMode ? (
+                                    <Check className="h-4 w-4" />
+                                ) : (
+                                    <Plus className="h-4 w-4" />
+                                )}
+                                {isEditMode ? 'Lưu thay đổi' : 'Lưu các thẻ'}
                             </button>
                         </div>
                     </div>
                 </form>
             </motion.div>
+
             <div className="modal-backdrop bg-black/40" onClick={onClose} />
         </div>
     );

@@ -1,4 +1,5 @@
 import axiosClient from "./axiosClient";
+import { normalizeLessonType } from '@/shared/utils/lessonType';
 
 function normalizeLessonMutationPayload(data) {
     if (!data || typeof data !== 'object' || (typeof FormData !== 'undefined' && data instanceof FormData)) {
@@ -6,12 +7,12 @@ function normalizeLessonMutationPayload(data) {
     }
 
     const payload = { ...data };
-    const resolvedLessonType = String(
+    const resolvedLessonType = normalizeLessonType(
         payload.lessonType
         ?? payload.type
         ?? payload.lesson_type
         ?? ''
-    ).trim().toLowerCase();
+    );
 
     if (resolvedLessonType) {
         payload.lessonType = resolvedLessonType;

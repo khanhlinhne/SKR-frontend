@@ -7,3 +7,7 @@ export { default as QuickStudySection } from './QuickStudySection';
 export { default as AISuggestions, SuggestionHighlight } from './AISuggestions';
 export { default as CreateDeckModal } from './CreateDeckModal';
 export { default as FlashcardsHeader } from './FlashcardsHeader';
+export { default as FlashcardsLibraryView } from './FlashcardsLibraryView';
+export { default as FlashcardsStudyView } from './FlashcardsStudyView';
+export { default as FlashcardsStatsBar } from './FlashcardsStatsBar';
+export { default as FlashcardDeleteModal } from './FlashcardDeleteModal';

@@ -32,14 +32,14 @@ export default function LearnHeader({ course, lessonTitle, progress = 0 }) {
                 {/* Left: Breadcrumb */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Link
-                        to={`/courses/${course?.id}`}
+                        to="/my-courses"
                         className="btn btn-circle btn-ghost btn-sm flex-shrink-0"
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </Link>
 
                     <div className="hidden sm:flex items-center gap-1.5 text-xs text-base-content/50 font-medium min-w-0">
-                        <Link to="/courses" className="hover:text-base-content transition-colors">
+                        <Link to="/my-courses" className="hover:text-base-content transition-colors">
                             Môn học
                         </Link>
                         <ChevronRight className="w-3 h-3 flex-shrink-0" />

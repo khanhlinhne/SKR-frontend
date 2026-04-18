@@ -58,9 +58,6 @@ export default function HomeFooter() {
                         <a href={resolveAnchorHref('#features')} className="apple-transition hover:text-[var(--apple-text)]">
                             Tính năng
                         </a>
-                        <a href={resolveAnchorHref('#pricing')} className="apple-transition hover:text-[var(--apple-text)]">
-                            Bảng giá
-                        </a>
                         <Link to="/login" className="apple-transition hover:text-[var(--apple-text)]">
                             Đăng nhập
                         </Link>

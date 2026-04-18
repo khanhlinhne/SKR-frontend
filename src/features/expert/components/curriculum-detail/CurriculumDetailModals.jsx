@@ -42,12 +42,12 @@ export function AddChapterModal({ open, onClose, onSubmit, loading }) {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
                         <FolderPlus className="w-4 h-4 text-white" />
                     </div>
-                    {'ThÃªm chÆ°Æ¡ng má»›i'}
+                    Thêm chương mới
                 </h3>
                 <form onSubmit={handleSubmit} className="mt-4 space-y-3">
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'MÃ£ chÆ°Æ¡ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Mã chương <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
@@ -60,11 +60,11 @@ export function AddChapterModal({ open, onClose, onSubmit, loading }) {
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'TÃªn chÆ°Æ¡ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Tên chương <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
-                            placeholder="VD: Giá»›i thiá»‡u React"
+                            placeholder="VD: Giới thiệu React"
                             value={form.chapterName}
                             onChange={e => setForm(f => ({ ...f, chapterName: e.target.value }))}
                             className="input input-bordered input-sm rounded-xl w-full font-medium"
@@ -74,10 +74,10 @@ export function AddChapterModal({ open, onClose, onSubmit, loading }) {
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'MÃ´ táº£ (tÃ¹y chá»n)'}</span>
+                            <span className="label-text font-bold text-xs">Mô tả (tùy chọn)</span>
                         </label>
                         <textarea
-                            placeholder="MÃ´ táº£ ná»™i dung chÆ°Æ¡ng..."
+                            placeholder="Mô tả nội dung chương..."
                             value={form.chapterDescription}
                             onChange={e => setForm(f => ({ ...f, chapterDescription: e.target.value }))}
                             className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none"
@@ -85,14 +85,14 @@ export function AddChapterModal({ open, onClose, onSubmit, loading }) {
                         />
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Há»§y'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
                         <button
                             type="submit"
                             disabled={loading || !form.chapterName.trim() || !form.chapterCode.trim()}
                             className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            {'ThÃªm chÆ°Æ¡ng'}
+                            Thêm chương
                         </button>
                     </div>
                 </form>
@@ -143,20 +143,20 @@ export function AddLessonModal({ open, onClose, onSubmit, loading, chapterName, 
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                         <BookOpen className="w-4 h-4 text-white" />
                     </div>
-                    {'ThÃªm bÃ i giáº£ng'}
+                    Thêm bài giảng
                 </h3>
                 {chapterName && (
                     <p className="text-xs text-base-content/50 mt-1">
-                        {'VÃ o chÆ°Æ¡ng:'} <span className="font-bold text-violet-600">{chapterName}</span>
+                        Vào chương: <span className="font-bold text-violet-600">{chapterName}</span>
                     </p>
                 )}
                 <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-3">
                     {formError && (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                             <div className="flex items-start gap-3">
-                                <span className="text-lg leading-none">ðŸ¦‰</span>
+                                <span className="text-lg leading-none">🦉</span>
                                 <div>
-                                    <p className="font-black">CÃº cáº§n báº¡n kiá»ƒm tra láº¡i má»™t chÃºt</p>
+                                    <p className="font-black">Cần bạn kiểm tra lại một chút</p>
                                     <p className="mt-1 leading-relaxed">{formError}</p>
                                 </div>
                             </div>
@@ -164,7 +164,7 @@ export function AddLessonModal({ open, onClose, onSubmit, loading, chapterName, 
                     )}
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'MÃ£ bÃ i giáº£ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Mã bài giảng <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
@@ -179,11 +179,11 @@ export function AddLessonModal({ open, onClose, onSubmit, loading, chapterName, 
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'TÃªn bÃ i giáº£ng'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Tên bài giảng <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
-                            placeholder="VD: React lÃ  gÃ¬?"
+                            placeholder="VD: React là gì?"
                             value={form.lessonName}
                             onChange={e => updateField('lessonName', e.target.value)}
                             className={`input input-bordered input-sm rounded-xl w-full font-medium ${fieldErrors.lessonName ? 'border-red-400 focus:border-red-500' : ''}`}
@@ -195,7 +195,7 @@ export function AddLessonModal({ open, onClose, onSubmit, loading, chapterName, 
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'Loáº¡i bÃ i giáº£ng'}</span>
+                            <span className="label-text font-bold text-xs">Loại bài giảng</span>
                         </label>
                         <div className="flex gap-2">
                             {addableLessonTypes.map((type) => {
@@ -220,14 +220,14 @@ export function AddLessonModal({ open, onClose, onSubmit, loading, chapterName, 
                         </div>
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Há»§y'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
                         <button
                             type="submit"
                             disabled={loading || !form.lessonName.trim() || !form.lessonCode.trim()}
                             className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                            {'ThÃªm bÃ i'}
+                            Thêm bài
                         </button>
                     </div>
                 </form>
@@ -286,7 +286,7 @@ export function EditChapterModal({ open, onClose, onSubmit, loading, initialValu
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
                         <Pencil className="w-4 h-4 text-white" />
                     </div>
-                    {'Chinh sua chuong'}
+                    Chỉnh sửa chương
                 </h3>
                 <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-3">
                     {formError && (
@@ -294,7 +294,7 @@ export function EditChapterModal({ open, onClose, onSubmit, loading, initialValu
                             <div className="flex items-start gap-3">
                                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                 <div>
-                                    <p className="font-black">Can kiem tra lai thong tin chuong</p>
+                                    <p className="font-black">Cần kiểm tra lại thông tin chương</p>
                                     <p className="mt-1 leading-relaxed">{formError}</p>
                                 </div>
                             </div>
@@ -302,7 +302,7 @@ export function EditChapterModal({ open, onClose, onSubmit, loading, initialValu
                     )}
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'Ma chuong'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Mã chương <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
@@ -317,11 +317,11 @@ export function EditChapterModal({ open, onClose, onSubmit, loading, initialValu
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'Ten chuong'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Tên chương <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
-                            placeholder="VD: Gioi thieu React"
+                            placeholder="VD: Giới thiệu React"
                             value={form.chapterName}
                             onChange={e => updateField('chapterName', e.target.value)}
                             className={`input input-bordered input-sm rounded-xl w-full font-medium ${fieldErrors.chapterName ? 'border-red-400 focus:border-red-500' : ''}`}
@@ -333,10 +333,10 @@ export function EditChapterModal({ open, onClose, onSubmit, loading, initialValu
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'Mo ta'}</span>
+                            <span className="label-text font-bold text-xs">Mô tả</span>
                         </label>
                         <textarea
-                            placeholder="Mo ta noi dung chuong..."
+                            placeholder="Mô tả nội dung chương..."
                             value={form.chapterDescription}
                             onChange={e => updateField('chapterDescription', e.target.value)}
                             className="textarea textarea-bordered rounded-xl text-sm font-medium resize-none"
@@ -344,14 +344,14 @@ export function EditChapterModal({ open, onClose, onSubmit, loading, initialValu
                         />
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Huy'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
                         <button
                             type="submit"
                             disabled={loading || !form.chapterName.trim() || !form.chapterCode.trim()}
                             className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            {'Luu chuong'}
+                            Lưu chương
                         </button>
                     </div>
                 </form>
@@ -421,11 +421,11 @@ export function EditLessonModal({
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                         <Pencil className="w-4 h-4 text-white" />
                     </div>
-                    {'Chinh sua bai hoc'}
+                    Chỉnh sửa bài học
                 </h3>
                 {chapterName && (
                     <p className="text-xs text-base-content/50 mt-1">
-                        {'Trong chuong:'} <span className="font-bold text-violet-600">{chapterName}</span>
+                        Trong chương: <span className="font-bold text-violet-600">{chapterName}</span>
                     </p>
                 )}
                 <form onSubmit={handleSubmit} noValidate className="mt-4 space-y-3">
@@ -434,7 +434,7 @@ export function EditLessonModal({
                             <div className="flex items-start gap-3">
                                 <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                                 <div>
-                                    <p className="font-black">Can kiem tra lai thong tin bai hoc</p>
+                                    <p className="font-black">Cần kiểm tra lại thông tin bài học</p>
                                     <p className="mt-1 leading-relaxed">{formError}</p>
                                 </div>
                             </div>
@@ -442,7 +442,7 @@ export function EditLessonModal({
                     )}
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'Ma bai hoc'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Mã bài học <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
@@ -457,11 +457,11 @@ export function EditLessonModal({
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text font-bold text-xs">{'Ten bai hoc'} <span className="text-red-500">*</span></span>
+                            <span className="label-text font-bold text-xs">Tên bài học <span className="text-red-500">*</span></span>
                         </label>
                         <input
                             type="text"
-                            placeholder="VD: Props va State"
+                            placeholder="VD: Props và State"
                             value={form.lessonName}
                             onChange={e => updateField('lessonName', e.target.value)}
                             className={`input input-bordered input-sm rounded-xl w-full font-medium ${fieldErrors.lessonName ? 'border-red-400 focus:border-red-500' : ''}`}
@@ -472,14 +472,14 @@ export function EditLessonModal({
                         )}
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Huy'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
                         <button
                             type="submit"
                             disabled={loading || !form.lessonName.trim() || !form.lessonCode.trim()}
                             className="btn btn-sm bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none rounded-xl font-bold gap-1.5"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            {'Luu bai hoc'}
+                            Lưu bài học
                         </button>
                     </div>
                 </form>
@@ -503,7 +503,7 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                     questionType: value,
                     options: value === 'true_false'
                         ? [
-                            { id: 'true-option', optionText: 'Dung', isCorrect: true },
+                            { id: 'true-option', optionText: 'Đúng', isCorrect: true },
                             { id: 'false-option', optionText: 'Sai', isCorrect: false },
                         ]
                         : [
@@ -514,7 +514,6 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                         ],
                 };
             }
-
             return { ...prev, [field]: value };
         });
         setFormError('');
@@ -527,7 +526,6 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                 if (option.id !== optionId) {
                     return field === 'isCorrect' && value ? { ...option, isCorrect: false } : option;
                 }
-
                 return { ...option, [field]: value };
             }),
         }));
@@ -561,7 +559,7 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
 
         const questionText = form.questionText.trim();
         if (!questionText) {
-            setFormError('ðŸ¦‰ Hay nhap noi dung cau hoi truoc khi luu.');
+            setFormError('🦉 Hãy nhập nội dung câu hỏi trước khi lưu.');
             return;
         }
 
@@ -574,17 +572,17 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
             .filter((option) => option.optionText);
 
         if (form.questionType === 'multiple_choice' && normalizedOptions.length < 2) {
-            setFormError('ðŸ¦‰ Cau hoi trac nghiem can it nhat 2 dap an.');
+            setFormError('🦉 Câu hỏi trắc nghiệm cần ít nhất 2 đáp án.');
             return;
         }
 
         if (normalizedOptions.length === 0) {
-            setFormError('ðŸ¦‰ Hay nhap it nhat mot dap an hop le.');
+            setFormError('🦉 Hãy nhập ít nhất một đáp án hợp lệ.');
             return;
         }
 
         if (!normalizedOptions.some((option) => option.isCorrect)) {
-            setFormError('ðŸ¦‰ Can chon it nhat mot dap an dung.');
+            setFormError('🦉 Cần chọn ít nhất một đáp án đúng.');
             return;
         }
 
@@ -610,10 +608,10 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20">
                                 <Pencil className="h-4 w-4" />
                             </div>
-                            {'Chinh sua cau hoi'}
+                            Chỉnh sửa câu hỏi
                         </h3>
                         <p className="mt-1 text-xs font-medium text-base-content/50">
-                            {'ðŸ¦‰ Chinh lai noi dung, dap an dung va giai thich cho learner.'}
+                            🦉 Chỉnh lại nội dung, đáp án đúng và giải thích cho learner.
                         </p>
                     </div>
                     <button type="button" onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
@@ -625,27 +623,27 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                     {formError && (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                             <div className="flex items-start gap-3">
-                                <span className="text-lg leading-none">ðŸ¦‰</span>
+                                <span className="text-lg leading-none">🦉</span>
                                 <p className="leading-relaxed">{formError}</p>
                             </div>
                         </div>
                     )}
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">{'Noi dung cau hoi'}</span>
+                            <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">Nội dung câu hỏi</span>
                         </label>
                         <textarea
                             rows={3}
                             value={form.questionText}
                             onChange={(event) => updateField('questionText', event.target.value)}
                             className="textarea textarea-bordered w-full rounded-2xl text-sm font-medium resize-none"
-                            placeholder="Nhap noi dung cau hoi..."
+                            placeholder="Nhập nội dung câu hỏi..."
                         />
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                         <div className="form-control">
                             <label className="label py-1">
-                                <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">{'Loai cau hoi'}</span>
+                                <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">Loại câu hỏi</span>
                             </label>
                             <select value={form.questionType} onChange={(event) => updateField('questionType', event.target.value)} className="select select-bordered rounded-xl text-sm font-medium">
                                 <option value="multiple_choice">multiple_choice</option>
@@ -654,7 +652,7 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                         </div>
                         <div className="form-control">
                             <label className="label py-1">
-                                <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">{'Do kho'}</span>
+                                <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">Độ khó</span>
                             </label>
                             <select value={form.difficultyLevel} onChange={(event) => updateField('difficultyLevel', event.target.value)} className="select select-bordered rounded-xl text-sm font-medium">
                                 <option value="easy">easy</option>
@@ -666,20 +664,24 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                     <div className="space-y-3 rounded-2xl border border-base-300 bg-base-200/30 p-4">
                         <div className="flex items-center justify-between gap-3">
                             <div>
-                                <p className="text-sm font-black text-base-content">{'Dap an'}</p>
-                                <p className="text-xs text-base-content/55">{'ðŸ¦‰ Chon dap an dung bang nut tron mau xanh.'}</p>
+                                <p className="text-sm font-black text-base-content">Đáp án</p>
+                                <p className="text-xs text-base-content/55">🦉 Chọn đáp án đúng bằng nút tròn màu xanh.</p>
                             </div>
                             {form.questionType !== 'true_false' && form.options.length < 6 && (
                                 <button type="button" onClick={addOption} className="btn btn-sm rounded-xl border-none bg-blue-50 text-blue-600 hover:bg-blue-100">
                                     <Plus className="h-4 w-4" />
-                                    {'Them dap an'}
+                                    Thêm đáp án
                                 </button>
                             )}
                         </div>
                         <div className="space-y-2">
                             {form.options.map((option, optionIndex) => (
                                 <div key={option.id} className="flex items-center gap-2">
-                                    <button type="button" onClick={() => updateOption(option.id, 'isCorrect', true)} className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${option.isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-base-300 bg-white hover:border-emerald-400'}`}>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => updateOption(option.id, 'isCorrect', true)} 
+                                        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${option.isCorrect ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-base-300 bg-white hover:border-emerald-400'}`}
+                                    >
                                         {option.isCorrect && <CheckCircle2 className="h-4 w-4" />}
                                     </button>
                                     <input
@@ -688,7 +690,7 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                                         disabled={form.questionType === 'true_false'}
                                         onChange={(event) => updateOption(option.id, 'optionText', event.target.value)}
                                         className="input input-bordered flex-1 rounded-xl text-sm font-medium"
-                                        placeholder={`Dap an ${optionIndex + 1}`}
+                                        placeholder={`Đáp án ${optionIndex + 1}`}
                                     />
                                     {form.questionType !== 'true_false' && form.options.length > 2 && (
                                         <button type="button" onClick={() => removeOption(option.id)} className="btn btn-ghost btn-sm btn-circle text-red-500 hover:bg-red-50">
@@ -701,21 +703,21 @@ export function EditQuestionModal({ open, onClose, onSubmit, loading, initialVal
                     </div>
                     <div className="form-control">
                         <label className="label py-1">
-                            <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">{'Giai thich'}</span>
+                            <span className="label-text text-xs font-bold uppercase tracking-[0.16em] text-base-content/60">Giải thích</span>
                         </label>
                         <textarea
                             rows={3}
                             value={form.questionExplanation}
                             onChange={(event) => updateField('questionExplanation', event.target.value)}
                             className="textarea textarea-bordered w-full rounded-2xl text-sm font-medium resize-none"
-                            placeholder="Them giai thich cho dap an..."
+                            placeholder="Thêm giải thích cho đáp án..."
                         />
                     </div>
                     <div className="modal-action">
-                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">{'Huy'}</button>
+                        <button type="button" onClick={onClose} className="btn btn-sm btn-ghost rounded-xl font-bold">Hủy</button>
                         <button type="submit" disabled={loading} className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white shadow-lg shadow-amber-500/20">
                             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                            {'Luu cau hoi'}
+                            Lưu câu hỏi
                         </button>
                     </div>
                 </form>

@@ -10,7 +10,15 @@ import {
     lessonTypeConfig,
 } from '@/features/expert/components/curriculum-detail/curriculumDetailUtils';
 
-export default function LessonRow({ chapterId, lesson, lessonIndex, isSelected, lessonState, actions, getResolvedLessonType }) {
+export default function LessonRow({ 
+    chapterId, 
+    lesson, 
+    lessonIndex, 
+    isSelected, 
+    lessonState, 
+    actions, 
+    getResolvedLessonType 
+}) {
     const lessonId = lesson.lessonId || lesson.id;
     const resolvedLessonType = getResolvedLessonType(
         lesson,
@@ -55,7 +63,7 @@ export default function LessonRow({ chapterId, lesson, lessonIndex, isSelected, 
                         type="button"
                         onClick={() => actions.onEditLesson({ chapterId, lesson })}
                         className="btn btn-ghost btn-xs btn-circle"
-                        title="Chinh sua bai hoc"
+                        title="Chỉnh sửa bài học"
                     >
                         <Pencil className="h-3 w-3" />
                     </button>
@@ -63,7 +71,7 @@ export default function LessonRow({ chapterId, lesson, lessonIndex, isSelected, 
                         type="button"
                         onClick={() => actions.onDeleteLesson(chapterId, lesson)}
                         className="btn btn-ghost btn-xs btn-circle text-red-500"
-                        title="Xoa bai"
+                        title="Xóa bài học"
                         disabled={lessonState.saving}
                     >
                         <Trash2 className="h-3 w-3" />

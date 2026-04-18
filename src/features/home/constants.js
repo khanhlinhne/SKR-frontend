@@ -133,7 +133,6 @@ export const footerColumns = [
         links: [
             { label: 'Tính năng', href: '#features' },
             { label: 'Môn học', href: '#curriculum' },
-            { label: 'Bảng giá', href: '#pricing' },
         ],
     },
     {

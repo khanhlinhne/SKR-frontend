@@ -1,4 +1,4 @@
-﻿import { Hero, FeaturesSection, ExpertCoursesSection, PricingSection, CTASection, HomeNavBar, HomeFooter } from '@/features/home/components';
+import { Hero, FeaturesSection, ExpertCoursesSection, CTASection, HomeNavBar, HomeFooter } from '@/features/home/components';
 
 function hasBrokenEncoding(value) {
     if (typeof value === 'string') {
@@ -42,7 +42,6 @@ function Homepage() {
             <Hero {...heroData} />
             <FeaturesSection {...featuresData} />
             <ExpertCoursesSection {...expertsData} />
-            <PricingSection />
             <CTASection />
             <HomeFooter />
         </div>

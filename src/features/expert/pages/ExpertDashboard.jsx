@@ -1,32 +1,25 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ExpertLayout } from '@/features/expert/components';
 import {
+    AlertCircle,
     BookOpen,
-    Users,
+    CalendarDays,
     DollarSign,
+    RefreshCw,
     Star,
-    TrendingUp,
     TrendingDown,
-    ArrowUpRight,
-    MoreHorizontal,
-    Clock,
-    Eye,
-    PlayCircle,
-    FileText,
-    MessageCircleQuestion,
-    CheckCircle2,
-    Pencil,
-    Upload,
-    Sparkles,
+    TrendingUp,
+    Users,
 } from 'lucide-react';
+import { ExpertLayout } from '@/features/expert/components';
+import { expertDashboardApi } from '@/shared/api';
+import { OwlLoader } from '@/shared/ui/common';
 
-// ===== ANIMATION VARIANTS =====
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: { staggerChildren: 0.08, delayChildren: 0.15 },
+        transition: { staggerChildren: 0.08, delayChildren: 0.12 },
     },
 };
 
@@ -35,415 +28,559 @@ const cardVariants = {
     visible: {
         opacity: 1,
         y: 0,
-        transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+        transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] },
     },
 };
 
-// ===== MOCK DATA =====
-const statsData = [
-    {
-        id: 'courses',
-        label: 'Khóa học',
-        value: '12',
-        subLabel: '3 đang soạn',
-        change: '+2',
-        trend: 'up',
+const summaryCardConfig = {
+    courses: {
         icon: BookOpen,
-        bgGradient: 'from-violet-500 to-purple-600',
+        gradient: 'from-violet-500 to-purple-600',
     },
-    {
-        id: 'students',
-        label: 'Học viên',
-        value: '1,284',
-        subLabel: 'Đang theo học',
-        change: '+18.3%',
-        trend: 'up',
+    students: {
         icon: Users,
-        bgGradient: 'from-blue-500 to-cyan-600',
+        gradient: 'from-blue-500 to-cyan-600',
     },
-    {
-        id: 'revenue',
-        label: 'Doanh thu tháng',
-        value: '₫12.8M',
-        subLabel: 'Tháng 3/2026',
-        change: '+24.5%',
-        trend: 'up',
+    revenue: {
         icon: DollarSign,
-        bgGradient: 'from-emerald-500 to-teal-600',
+        gradient: 'from-emerald-500 to-teal-600',
     },
-    {
-        id: 'rating',
-        label: 'Đánh giá TB',
-        value: '4.82',
-        subLabel: '256 đánh giá',
-        change: '+0.12',
-        trend: 'up',
+    rating: {
         icon: Star,
-        bgGradient: 'from-amber-500 to-orange-600',
+        gradient: 'from-amber-500 to-orange-600',
     },
+};
+
+const courseAccentGradients = [
+    'from-violet-500 to-purple-600',
+    'from-blue-500 to-cyan-600',
+    'from-emerald-500 to-teal-600',
+    'from-amber-500 to-orange-600',
 ];
 
-const revenueMonthly = [
-    { month: 'T1', value: 5.2 },
-    { month: 'T2', value: 7.8 },
-    { month: 'T3', value: 6.4 },
-    { month: 'T4', value: 9.1 },
-    { month: 'T5', value: 8.3 },
-    { month: 'T6', value: 11.2 },
-    { month: 'T7', value: 10.5 },
-    { month: 'T8', value: 12.8 },
-    { month: 'T9', value: 11.9 },
-    { month: 'T10', value: 14.2 },
-    { month: 'T11', value: 13.5 },
-    { month: 'T12', value: 12.8 },
-];
-
-const myCourses = [
-    { id: 1, name: 'React & Next.js Masterclass', students: 432, rating: 4.9, revenue: '₫4.2M', status: 'published', completionRate: 78 },
-    { id: 2, name: 'Python cho Data Science', students: 289, rating: 4.7, revenue: '₫2.8M', status: 'published', completionRate: 65 },
-    { id: 3, name: 'UI/UX Design Fundamentals', students: 156, rating: 4.8, revenue: '₫1.5M', status: 'published', completionRate: 82 },
-    { id: 4, name: 'Machine Learning Căn bản', students: 0, rating: 0, revenue: '₫0', status: 'draft', completionRate: 0 },
-];
-
-const recentActivities = [
-    { id: 1, type: 'upload', message: 'Đã tải lên video bài giảng "Redux Toolkit"', time: '15 phút trước', icon: Upload },
-    { id: 2, type: 'question', message: 'Học viên hỏi về React Hooks tại bài 12', time: '1 giờ trước', icon: MessageCircleQuestion },
-    { id: 3, type: 'edit', message: 'Cập nhật nội dung chương 3 - State Management', time: '2 giờ trước', icon: Pencil },
-    { id: 4, type: 'review', message: '5 đánh giá mới cho khóa React Masterclass', time: '3 giờ trước', icon: Star },
-    { id: 5, type: 'ai', message: 'Trợ lý AI đã tạo 10 câu hỏi trắc nghiệm', time: '5 giờ trước', icon: Sparkles },
-    { id: 6, type: 'publish', message: 'Bài giảng "useEffect Deep Dive" đã được duyệt', time: '1 ngày trước', icon: CheckCircle2 },
-];
-
-const pendingQuestions = [
-    { id: 1, student: 'Trần Minh Khoa', avatar: 'https://i.pravatar.cc/150?img=3', question: 'Sự khác nhau giữa useMemo và useCallback?', course: 'React Masterclass', time: '30 phút trước', priority: 'high' },
-    { id: 2, student: 'Lê Thị Hồng', avatar: 'https://i.pravatar.cc/150?img=5', question: 'Cách tối ưu render trong React?', course: 'React Masterclass', time: '2 giờ trước', priority: 'medium' },
-    { id: 3, student: 'Nguyễn Văn Bình', avatar: 'https://i.pravatar.cc/150?img=8', question: 'Pandas DataFrame vs Series?', course: 'Python Data Science', time: '4 giờ trước', priority: 'low' },
-];
-
-// ===== MAIN COMPONENT =====
-export default function ExpertDashboard() {
-    const [timeRange, setTimeRange] = useState('month');
-
-    return (
-        <ExpertLayout>
-            <motion.div variants={containerVariants} initial="hidden" animate="visible">
-                {/* Page Title */}
-                <motion.div variants={cardVariants} className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h1 className="text-2xl lg:text-3xl font-black text-base-content">Tổng quan</h1>
-                        <p className="text-sm text-base-content/60 mt-1">
-                            Theo dõi hiệu suất và quản lý nội dung của bạn
-                        </p>
-                    </div>
-                    <div className="flex gap-2">
-                        {['week', 'month', 'year'].map((range) => (
-                            <button
-                                key={range}
-                                onClick={() => setTimeRange(range)}
-                                className={`btn btn-sm font-bold rounded-xl ${timeRange === range
-                                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white border-none shadow-lg shadow-violet-500/25'
-                                    : 'btn-ghost'
-                                }`}
-                            >
-                                {range === 'week' ? 'Tuần' : range === 'month' ? 'Tháng' : 'Năm'}
-                            </button>
-                        ))}
-                    </div>
-                </motion.div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6">
-                    {statsData.map((stat) => (
-                        <StatsCard key={stat.id} stat={stat} />
-                    ))}
-                </div>
-
-                {/* Mid Row: Revenue Chart + My Courses */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <RevenueChart data={revenueMonthly} />
-                    <MyCoursesCard courses={myCourses} />
-                </div>
-
-                {/* Bottom Row: Recent Activity + Pending Questions */}
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <RecentActivityTimeline activities={recentActivities} />
-                    <PendingQuestionsCard questions={pendingQuestions} />
-                </div>
-            </motion.div>
-        </ExpertLayout>
-    );
+function formatInteger(value) {
+    const number = Number(value ?? 0);
+    return Number.isFinite(number) ? number.toLocaleString('vi-VN') : '0';
 }
 
-// ===== SUB-COMPONENTS =====
+function formatCurrency(value, currencyCode = 'VND') {
+    const number = Number(value ?? 0);
+    if (!Number.isFinite(number)) {
+        return '0đ';
+    }
 
-function StatsCard({ stat }) {
-    const TrendIcon = stat.trend === 'up' ? TrendingUp : TrendingDown;
+    if (currencyCode === 'VND') {
+        return `${number.toLocaleString('vi-VN')}đ`;
+    }
+
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: currencyCode,
+        maximumFractionDigits: 0,
+    }).format(number);
+}
+
+function formatRating(value) {
+    const number = Number(value ?? 0);
+    return Number.isFinite(number) ? number.toFixed(1) : '0.0';
+}
+
+function formatPercent(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+        return null;
+    }
+
+    const sign = number > 0 ? '+' : '';
+    return `${sign}${number.toLocaleString('vi-VN', { maximumFractionDigits: 1 })}%`;
+}
+
+function getChangeTone(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number === 0) {
+        return 'neutral';
+    }
+
+    return number > 0 ? 'up' : 'down';
+}
+
+function formatDateTime(value) {
+    if (!value) {
+        return '--';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return '--';
+    }
+
+    return new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(date);
+}
+
+function formatShortDate(value) {
+    if (!value) {
+        return '--';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return '--';
+    }
+
+    return new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).format(date);
+}
+
+function formatPeriodLabel(period) {
+    if (period === 'week') {
+        return 'Theo tuần';
+    }
+
+    if (period === 'year') {
+        return 'Theo năm';
+    }
+
+    return 'Theo tháng';
+}
+
+function getFallbackSummaryCards(summary) {
+    return [
+        {
+            key: 'courses',
+            title: 'Khóa học',
+            value: summary?.courses?.total ?? 0,
+        },
+        {
+            key: 'students',
+            title: 'Học viên',
+            value: summary?.students?.total ?? 0,
+        },
+        {
+            key: 'revenue',
+            title: 'Doanh thu',
+            value: summary?.revenue?.totalInPeriod ?? 0,
+            currencyCode: summary?.revenue?.currencyCode ?? 'VND',
+            changePercent: summary?.revenue?.changePercent,
+        },
+        {
+            key: 'rating',
+            title: 'Đánh giá',
+            value: summary?.rating?.average ?? 0,
+        },
+    ];
+}
+
+function normalizeDashboardResponse(response) {
+    const payload = response?.data ?? {};
+    const ui = payload.ui ?? {};
+    const summary = payload.summary ?? {};
+    const summaryCards = Array.isArray(ui.summaryCards) && ui.summaryCards.length > 0
+        ? ui.summaryCards
+        : getFallbackSummaryCards(summary);
+    const studentLoginChart = ui.studentLoginChart ?? {};
+    const chartPoints = Array.isArray(studentLoginChart.points) && studentLoginChart.points.length > 0
+        ? studentLoginChart.points
+        : (Array.isArray(payload.studentLoginsByMonth) ? payload.studentLoginsByMonth : []);
+    const myCourses = ui.myCourses ?? {};
+    const topCourses = Array.isArray(myCourses.items) && myCourses.items.length > 0
+        ? myCourses.items
+        : (Array.isArray(payload.topCourses) ? payload.topCourses : []);
+
+    return {
+        period: payload.period ?? 'month',
+        periodBounds: payload.periodBounds ?? {},
+        summary,
+        pageTitle: ui.page?.sectionTitle ?? 'Tổng quan',
+        pageSubtitle: ui.page?.sectionSubtitle ?? 'Theo dõi khóa học và người học của bạn',
+        summaryCards,
+        studentLoginChart: {
+            title: studentLoginChart.title ?? 'Biểu đồ học viên đăng nhập',
+            subtitle: studentLoginChart.subtitle ?? 'Số học viên đăng nhập theo tháng',
+            legendLabel: studentLoginChart.legendLabel ?? 'Học viên đăng nhập',
+            points: chartPoints,
+        },
+        myCourses: {
+            title: myCourses.title ?? 'Khóa học của tôi',
+            items: topCourses,
+        },
+    };
+}
+
+function formatSummaryValue(card) {
+    if (card.key === 'revenue') {
+        return formatCurrency(card.value, card.currencyCode);
+    }
+
+    if (card.key === 'rating') {
+        return formatRating(card.value);
+    }
+
+    return formatInteger(card.value);
+}
+
+function getSummaryDescription(card, dashboard) {
+    if (card.key === 'courses') {
+        return `${formatInteger(dashboard.summary?.courses?.total)} khóa học đang quản lý`;
+    }
+
+    if (card.key === 'students') {
+        return `${formatInteger(dashboard.summary?.students?.total)} học viên tích lũy`;
+    }
+
+    if (card.key === 'revenue') {
+        return `Trong kỳ ${formatPeriodLabel(dashboard.period).toLowerCase()}`;
+    }
+
+    if (card.key === 'rating') {
+        return `${formatInteger(dashboard.summary?.rating?.ratedCourseCount)} khóa học có đánh giá`;
+    }
+
+    return '';
+}
+
+function StatsCard({ card, dashboard }) {
+    const config = summaryCardConfig[card.key] ?? summaryCardConfig.courses;
+    const Icon = config.icon;
+    const changeText = formatPercent(card.changePercent);
+    const tone = getChangeTone(card.changePercent);
+    const TrendIcon = tone === 'down' ? TrendingDown : TrendingUp;
 
     return (
         <motion.div
             variants={cardVariants}
-            className="bg-base-100 rounded-2xl p-5 shadow-lg border border-base-300 hover:shadow-xl transition-shadow group"
+            className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-lg"
         >
-            <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.bgGradient} flex items-center justify-center shadow-lg`}>
-                    <stat.icon className="w-6 h-6 text-white" />
+            <div className="mb-5 flex items-start justify-between gap-3">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${config.gradient} shadow-lg`}>
+                    <Icon className="h-6 w-6 text-white" />
                 </div>
-                <button className="btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreHorizontal className="w-4 h-4" />
-                </button>
+                {changeText && (
+                    <span
+                        className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${
+                            tone === 'up'
+                                ? 'bg-emerald-500/10 text-emerald-600'
+                                : tone === 'down'
+                                    ? 'bg-red-500/10 text-red-500'
+                                    : 'bg-base-200 text-base-content/60'
+                        }`}
+                    >
+                        <TrendIcon className="h-3.5 w-3.5" />
+                        {changeText}
+                    </span>
+                )}
             </div>
-            <p className="text-xs text-base-content/60 font-bold uppercase tracking-wider mb-1">
-                {stat.label}
+
+            <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-base-content/45">
+                {card.title}
             </p>
-            <div className="flex items-end justify-between">
+            <h3 className="text-3xl font-black text-base-content">{formatSummaryValue(card)}</h3>
+            <p className="mt-1 text-sm font-medium text-base-content/55">
+                {getSummaryDescription(card, dashboard)}
+            </p>
+        </motion.div>
+    );
+}
+
+function StudentLoginChartCard({ chart }) {
+    const points = Array.isArray(chart.points) ? chart.points : [];
+    const maxValue = Math.max(1, ...points.map((item) => Number(item.total ?? 0)));
+    const totalLogins = points.reduce((sum, item) => sum + Number(item.total ?? 0), 0);
+
+    return (
+        <motion.div
+            variants={cardVariants}
+            className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg lg:col-span-2"
+        >
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <h3 className="text-2xl lg:text-3xl font-black text-base-content">{stat.value}</h3>
-                    <p className="text-[11px] text-base-content/50 font-medium mt-0.5">{stat.subLabel}</p>
+                    <h3 className="text-xl font-black text-base-content">{chart.title}</h3>
+                    <p className="mt-1 text-sm text-base-content/60">{chart.subtitle}</p>
                 </div>
-                <span className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-lg ${stat.trend === 'up'
-                    ? 'text-emerald-600 bg-emerald-500/10'
-                    : 'text-red-500 bg-red-500/10'
-                }`}>
-                    <TrendIcon className="w-3 h-3" />
-                    {stat.change}
-                </span>
+                <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 px-3 py-1.5 text-xs font-bold text-violet-600">
+                    <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
+                    {chart.legendLabel}
+                </div>
+            </div>
+
+            {points.length === 0 ? (
+                <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-dashed border-base-300 bg-base-200/40 px-6 text-center text-sm text-base-content/55">
+                    Chưa có dữ liệu đăng nhập để hiển thị biểu đồ.
+                </div>
+            ) : (
+                <div className="rounded-2xl bg-gradient-to-b from-violet-500/[0.05] to-transparent p-4">
+                    <div className="flex items-end gap-2" style={{ height: '240px' }}>
+                        {points.map((item, index) => {
+                            const total = Number(item.total ?? 0);
+                            const height = Math.max(total > 0 ? 12 : 4, Math.round((total / maxValue) * 180));
+                            const isLatest = index === points.length - 1;
+
+                            return (
+                                <div key={`${item.year}-${item.month}-${item.label}`} className="group relative flex h-full min-w-0 flex-1 items-end justify-center">
+                                    <div className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-10 w-max -translate-x-1/2 rounded-xl bg-base-content px-3 py-2 text-xs font-bold text-base-100 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
+                                        <p>{item.label}: {formatInteger(total)} học viên</p>
+                                        <p className="mt-0.5 text-[10px] font-medium text-base-100/80">
+                                            {item.month}/{item.year}
+                                        </p>
+                                    </div>
+                                    <motion.div
+                                        initial={{ height: 0 }}
+                                        animate={{ height }}
+                                        transition={{
+                                            delay: 0.2 + index * 0.04,
+                                            duration: 0.55,
+                                            ease: [0.25, 0.46, 0.45, 0.94],
+                                        }}
+                                        className={`w-full rounded-t-[18px] transition-colors ${
+                                            isLatest
+                                                ? 'bg-gradient-to-t from-violet-600 to-fuchsia-500 shadow-lg shadow-violet-500/25'
+                                                : 'bg-violet-500/25 group-hover:bg-violet-500/45'
+                                        }`}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-3 flex gap-2">
+                        {points.map((item) => (
+                            <div key={`${item.year}-${item.month}-label`} className="flex-1 text-center">
+                                <span className="text-[10px] font-bold text-base-content/45">{item.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-base-300 pt-4">
+                <p className="text-sm text-base-content/60">
+                    Ghi nhận <span className="font-black text-base-content">{formatInteger(totalLogins)}</span> học viên đăng nhập trong 12 mốc gần nhất
+                </p>
+                <p className="text-xs font-medium text-base-content/45">
+                    Mốc cao nhất: {formatInteger(maxValue)} học viên
+                </p>
             </div>
         </motion.div>
     );
 }
 
-function RevenueChart({ data }) {
-    const maxValue = Math.max(...data.map(d => d.value));
-
+function MyCoursesCard({ coursesTitle, courses }) {
     return (
         <motion.div
             variants={cardVariants}
-            className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300 lg:col-span-2"
+            className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg"
         >
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
-                <div>
-                    <h3 className="text-lg font-black text-base-content">Biểu đồ Doanh thu</h3>
-                    <p className="text-sm text-base-content/60">Thu nhập 12 tháng qua</p>
-                </div>
-                <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
-                        Doanh thu (triệu ₫)
-                    </span>
-                </div>
+            <div className="mb-5 flex items-center justify-between gap-3">
+                <h3 className="text-xl font-black text-base-content">{coursesTitle}</h3>
+                <span className="rounded-full bg-base-200 px-3 py-1 text-xs font-bold text-base-content/60">
+                    {formatInteger(courses.length)} khóa
+                </span>
             </div>
 
-            <div className="relative px-1">
-                <div className="flex items-end gap-2" style={{ height: '192px' }}>
-                    {data.map((item, i) => {
-                        const heightPx = Math.round((item.value / (maxValue * 1.15)) * 180);
-                        const isHighlighted = i === data.length - 1;
-
-                        return (
-                            <div key={i} className="flex-1 flex items-end justify-center min-w-0 group relative h-full">
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-base-content text-base-100 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                                    ₫{item.value}M
-                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-base-content rotate-45" />
-                                </div>
-                                <motion.div
-                                    initial={{ height: 0 }}
-                                    animate={{ height: heightPx }}
-                                    transition={{ delay: 0.4 + i * 0.05, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-                                    className={`w-full rounded-t-lg transition-colors ${isHighlighted
-                                        ? 'bg-gradient-to-t from-violet-600 to-fuchsia-500 shadow-lg'
-                                        : 'bg-violet-500/30 group-hover:bg-violet-500/60'
-                                    }`}
-                                    style={{ minHeight: heightPx > 0 ? '4px' : '0' }}
-                                />
-                            </div>
-                        );
-                    })}
+            {courses.length === 0 ? (
+                <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-base-300 bg-base-200/40 px-6 text-center text-sm text-base-content/55">
+                    Chưa có khóa học nổi bật trong kỳ này.
                 </div>
-                <div className="flex gap-2 mt-2">
-                    {data.map((item, i) => (
-                        <div key={i} className="flex-1 text-center">
-                            <span className="text-[10px] text-base-content/50 font-bold">{item.month}</span>
+            ) : (
+                <div className="space-y-3">
+                    {courses.map((course, index) => (
+                        <div
+                            key={course.courseId || `${course.courseCode}-${index}`}
+                            className="flex items-start gap-3 rounded-2xl border border-base-300/70 bg-base-100 p-4 transition-colors hover:bg-base-200/40"
+                        >
+                            <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${courseAccentGradients[index % courseAccentGradients.length]} text-sm font-black text-white shadow-lg`}>
+                                #{course.rank ?? index + 1}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <h4 className="truncate text-sm font-black text-base-content">
+                                            {course.courseName}
+                                        </h4>
+                                        <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-violet-600">
+                                            {course.courseCode || 'Đang cập nhật mã khóa học'}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-black text-base-content">
+                                            {formatCurrency(course.revenue)}
+                                        </p>
+                                        <p className="mt-1 text-[11px] font-medium text-base-content/45">
+                                            Doanh thu
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-base-content/60">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 font-semibold text-blue-600">
+                                        <Users className="h-3.5 w-3.5" />
+                                        {formatInteger(course.studentCount)} học viên
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 font-semibold text-amber-600">
+                                        <Star className="h-3.5 w-3.5 fill-current" />
+                                        {formatRating(course.rating)}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     ))}
                 </div>
+            )}
+        </motion.div>
+    );
+}
+
+function ReportingPeriodCard({ period, periodBounds }) {
+    return (
+        <motion.div
+            variants={cardVariants}
+            className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg"
+        >
+            <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
+                    <CalendarDays className="h-5 w-5" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-black text-base-content">Kỳ báo cáo</h3>
+                    <p className="text-sm text-base-content/60">{formatPeriodLabel(period)}</p>
+                </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl bg-base-200/60 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-base-content/45">Kỳ hiện tại</p>
+                    <p className="mt-2 text-sm font-bold text-base-content">
+                        {formatDateTime(periodBounds.currentStartUtc)}
+                    </p>
+                    <p className="mt-1 text-sm text-base-content/60">
+                        đến {formatDateTime(periodBounds.currentEndUtc)}
+                    </p>
+                </div>
+
+                <div className="rounded-2xl bg-base-200/60 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-base-content/45">Kỳ trước</p>
+                    <p className="mt-2 text-sm font-bold text-base-content">
+                        {formatDateTime(periodBounds.previousStartUtc)}
+                    </p>
+                    <p className="mt-1 text-sm text-base-content/60">
+                        đến {formatDateTime(periodBounds.previousEndUtc)}
+                    </p>
+                </div>
             </div>
         </motion.div>
     );
 }
 
-function MyCoursesCard({ courses }) {
-    const statusConfig = {
-        published: { label: 'Đã xuất bản', color: 'text-emerald-600 bg-emerald-500/10' },
-        draft: { label: 'Bản nháp', color: 'text-amber-600 bg-amber-500/10' },
-        archived: { label: 'Lưu trữ', color: 'text-slate-500 bg-slate-500/10' },
-    };
+export default function ExpertDashboard() {
+    const [dashboard, setDashboard] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const fetchDashboard = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await expertDashboardApi.getMe();
+            setDashboard(normalizeDashboardResponse(response));
+        } catch (err) {
+            console.error('[ExpertDashboard] fetch error:', err);
+            setError(err?.response?.data?.message || err?.message || 'Không thể tải dashboard chuyên gia lúc này.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchDashboard();
+    }, [fetchDashboard]);
 
     return (
-        <motion.div
-            variants={cardVariants}
-            className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300"
-        >
-            <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-black text-base-content">Khóa học của tôi</h3>
-                <button className="btn btn-ghost btn-xs font-bold text-violet-600">
-                    Xem tất cả
-                    <ArrowUpRight className="w-3 h-3" />
-                </button>
-            </div>
+        <ExpertLayout>
+            {loading ? (
+                <div className="flex items-center justify-center py-20">
+                    <OwlLoader
+                        message="Đang tải dashboard chuyên gia..."
+                        subMessage="SKR đang đồng bộ dữ liệu khóa học và học viên của bạn."
+                        className="py-8"
+                    />
+                </div>
+            ) : error ? (
+                <div className="rounded-3xl border border-red-500/20 bg-base-100 p-10 text-center shadow-lg">
+                    <AlertCircle className="mx-auto mb-3 h-10 w-10 text-red-500" />
+                    <h2 className="text-xl font-black text-base-content">Không thể tải dữ liệu</h2>
+                    <p className="mt-2 text-sm text-base-content/55">{error}</p>
+                    <button
+                        type="button"
+                        onClick={fetchDashboard}
+                        className="btn mt-5 rounded-2xl border-none bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 text-white shadow-lg shadow-violet-500/25"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                        Thử lại
+                    </button>
+                </div>
+            ) : dashboard ? (
+                <motion.div variants={containerVariants} initial="hidden" animate="visible">
+                    <motion.div variants={cardVariants} className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-black text-base-content lg:text-3xl">
+                                {dashboard.pageTitle}
+                            </h1>
+                            <p className="mt-1 text-sm text-base-content/60">
+                                {dashboard.pageSubtitle}
+                            </p>
+                        </div>
 
-            <div className="space-y-3">
-                {courses.map((course, i) => {
-                    const status = statusConfig[course.status];
-                    return (
-                        <motion.div
-                            key={course.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.6 + i * 0.1 }}
-                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-base-200 transition-colors cursor-pointer group"
-                        >
-                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${i === 0 ? 'from-violet-500 to-purple-600' : i === 1 ? 'from-blue-500 to-cyan-600' : i === 2 ? 'from-emerald-500 to-teal-600' : 'from-slate-400 to-slate-500'} flex items-center justify-center shadow-md`}>
-                                {course.status === 'draft'
-                                    ? <Pencil className="w-5 h-5 text-white" />
-                                    : <PlayCircle className="w-5 h-5 text-white" />
-                                }
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-sm text-base-content truncate">{course.name}</h4>
-                                <p className="text-xs text-base-content/60">
-                                    {course.students > 0 ? `${course.students} học viên • ⭐ ${course.rating}` : 'Chưa xuất bản'}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="rounded-2xl border border-base-300 bg-base-100 px-4 py-3 shadow-sm">
+                                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-base-content/45">
+                                    Kỳ hiện tại
+                                </p>
+                                <p className="mt-1 text-sm font-bold text-base-content">
+                                    {formatShortDate(dashboard.periodBounds.currentStartUtc)} - {formatShortDate(dashboard.periodBounds.currentEndUtc)}
                                 </p>
                             </div>
-                            <div className="text-right flex-shrink-0">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${status.color}`}>
-                                    {status.label}
-                                </span>
-                                {course.revenue !== '₫0' && (
-                                    <p className="text-xs font-black text-base-content mt-0.5">{course.revenue}</p>
-                                )}
-                            </div>
-                        </motion.div>
-                    );
-                })}
-            </div>
-        </motion.div>
-    );
-}
 
-function RecentActivityTimeline({ activities }) {
-    const typeColors = {
-        upload: 'text-blue-500 bg-blue-500/10',
-        question: 'text-amber-500 bg-amber-500/10',
-        edit: 'text-violet-500 bg-violet-500/10',
-        review: 'text-yellow-500 bg-yellow-500/10',
-        ai: 'text-fuchsia-500 bg-fuchsia-500/10',
-        publish: 'text-emerald-500 bg-emerald-500/10',
-    };
+                            <button
+                                type="button"
+                                onClick={fetchDashboard}
+                                className="btn rounded-2xl border-base-300 bg-base-100 px-4 shadow-sm"
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                                Làm mới
+                            </button>
+                        </div>
+                    </motion.div>
 
-    return (
-        <motion.div
-            variants={cardVariants}
-            className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300"
-        >
-            <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-violet-500" />
-                    <h3 className="text-lg font-black text-base-content">Hoạt động Gần đây</h3>
-                </div>
-                <button className="btn btn-ghost btn-xs font-bold text-violet-600">
-                    Xem tất cả
-                    <ArrowUpRight className="w-3 h-3" />
-                </button>
-            </div>
+                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {dashboard.summaryCards.map((card) => (
+                            <StatsCard key={card.key} card={card} dashboard={dashboard} />
+                        ))}
+                    </div>
 
-            <div className="space-y-1">
-                {activities.map((activity, i) => {
-                    const ActivityIcon = activity.icon;
-                    const color = typeColors[activity.type] || 'text-slate-500 bg-slate-500/10';
+                    <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+                        <StudentLoginChartCard chart={dashboard.studentLoginChart} />
+                        <MyCoursesCard
+                            coursesTitle={dashboard.myCourses.title}
+                            courses={dashboard.myCourses.items}
+                        />
+                    </div>
 
-                    return (
-                        <motion.div
-                            key={activity.id}
-                            initial={{ opacity: 0, x: -15 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.5 + i * 0.08 }}
-                            className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-base-200/50 transition-colors"
-                        >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${color}`}>
-                                <ActivityIcon className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm text-base-content font-medium leading-snug">{activity.message}</p>
-                                <p className="text-xs text-base-content/50 mt-0.5">{activity.time}</p>
-                            </div>
-                        </motion.div>
-                    );
-                })}
-            </div>
-        </motion.div>
-    );
-}
-
-function PendingQuestionsCard({ questions }) {
-    const priorityConfig = {
-        high: { label: 'Cao', color: 'text-red-500 bg-red-500/10 border-red-500/20' },
-        medium: { label: 'TB', color: 'text-amber-500 bg-amber-500/10 border-amber-500/20' },
-        low: { label: 'Thấp', color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
-    };
-
-    return (
-        <motion.div
-            variants={cardVariants}
-            className="bg-base-100 rounded-3xl p-6 shadow-lg border border-base-300"
-        >
-            <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                    <MessageCircleQuestion className="w-5 h-5 text-amber-500" />
-                    <h3 className="text-lg font-black text-base-content">Câu hỏi Chờ trả lời</h3>
-                    <span className="badge badge-sm badge-warning font-bold">{questions.length}</span>
-                </div>
-                <button className="btn btn-ghost btn-xs font-bold text-violet-600">
-                    Xem tất cả
-                    <ArrowUpRight className="w-3 h-3" />
-                </button>
-            </div>
-
-            <div className="space-y-3">
-                {questions.map((q, i) => {
-                    const prio = priorityConfig[q.priority];
-                    return (
-                        <motion.div
-                            key={q.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 + i * 0.1 }}
-                            className="p-3 rounded-xl border border-base-300 hover:border-violet-500/30 hover:shadow-md transition-all cursor-pointer group"
-                        >
-                            <div className="flex items-start gap-3">
-                                <div className="avatar flex-shrink-0">
-                                    <div className="w-8 h-8 rounded-full">
-                                        <img src={q.avatar} alt={q.student} />
-                                    </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <p className="font-bold text-sm text-base-content">{q.student}</p>
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${prio.color}`}>
-                                            {prio.label}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-base-content/80 line-clamp-2">{q.question}</p>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="text-[11px] text-base-content/50 font-medium">{q.course}</span>
-                                        <span className="text-base-content/30">•</span>
-                                        <span className="text-[11px] text-base-content/50">{q.time}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    );
-                })}
-            </div>
-        </motion.div>
+                    <ReportingPeriodCard
+                        period={dashboard.period}
+                        periodBounds={dashboard.periodBounds}
+                    />
+                </motion.div>
+            ) : null}
+        </ExpertLayout>
     );
 }

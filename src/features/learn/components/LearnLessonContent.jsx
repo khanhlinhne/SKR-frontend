@@ -35,6 +35,7 @@ export default function LearnLessonContent({
     onNext,
     onComplete,
     isCompleted = false,
+    completionLoading = false,
     loadingContent = false,
 }) {
     const typeLabels = {
@@ -116,12 +117,13 @@ export default function LearnLessonContent({
                     </button>
                     <button
                         onClick={onComplete}
+                        disabled={isCompleted || completionLoading}
                         className={`btn btn-sm gap-1.5 rounded-xl font-bold ${isCompleted
                             ? 'bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20'
                             : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white border-none hover:shadow-lg'
                             }`}
                     >
-                        <CheckCircle2 className="w-4 h-4" />
+                        {completionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                         {isCompleted ? 'Đã hoàn thành' : 'Hoàn thành'}
                     </button>
                 </div>

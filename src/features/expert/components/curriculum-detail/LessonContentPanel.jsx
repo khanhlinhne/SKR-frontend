@@ -73,17 +73,19 @@ export default function LessonContentPanel(props) {
                             <div className="flex items-center justify-center gap-2 py-4 text-xs font-medium text-base-content/55">
                                 <span className="text-lg leading-none">Owl</span>
                                 <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
-                                <span>Dang mo noi dung bai hoc...</span>
+                                <span>Đang mở nội dung bài học...</span>
                             </div>
                         ) : (
                             <>
+                                {/* ==================== LESSON THÔNG THƯỜNG (Video + Tài liệu + Câu hỏi) ==================== */}
                                 {!isFlashcardLesson && !isQuizLesson && !isAssignmentLesson && (
                                     <>
+                                        {/* Video */}
                                         <div>
                                             <div className="mb-1.5 flex items-center justify-between">
                                                 <span className="flex items-center gap-1 text-xs font-black text-blue-600">
                                                     <PlayCircle className="h-3.5 w-3.5" />
-                                                    {'Video'} ({lessonContent?.videos?.length || 0})
+                                                    Video ({lessonContent?.videos?.length || 0})
                                                 </span>
                                                 <button
                                                     type="button"
@@ -94,11 +96,15 @@ export default function LessonContentPanel(props) {
                                                     className="btn btn-xs btn-ghost gap-1 rounded-lg text-blue-600"
                                                 >
                                                     <Plus className="h-3 w-3" />
-                                                    Them
+                                                    Thêm
                                                 </button>
                                             </div>
+
                                             {(lessonContent?.videos || []).map((video) => (
-                                                <div key={video.videoId} className="mb-1 flex items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1.5">
+                                                <div
+                                                    key={video.videoId}
+                                                    className="mb-1 flex items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1.5"
+                                                >
                                                     <PlayCircle className="h-4 w-4 shrink-0 text-blue-500" />
                                                     <div className="min-w-0 flex-1">
                                                         <p className="truncate text-xs font-bold">{video.videoTitle}</p>
@@ -111,11 +117,16 @@ export default function LessonContentPanel(props) {
                                                             onPreviewVideo(video);
                                                         }}
                                                         className="btn btn-ghost btn-xs btn-circle text-blue-500 hover:bg-blue-500/10"
-                                                        title="Xem truoc"
+                                                        title="Xem trước"
                                                     >
                                                         <Eye className="h-3 w-3" />
                                                     </button>
-                                                    <a href={video.videoUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-xs btn-circle">
+                                                    <a
+                                                        href={video.videoUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="btn btn-ghost btn-xs btn-circle"
+                                                    >
                                                         <ExternalLink className="h-3 w-3" />
                                                     </a>
                                                     <button
@@ -128,16 +139,18 @@ export default function LessonContentPanel(props) {
                                                     </button>
                                                 </div>
                                             ))}
+
                                             {(lessonContent?.videos?.length || 0) === 0 && (
-                                                <p className="text-[10px] italic text-base-content/30">Chua co video</p>
+                                                <p className="text-[10px] italic text-base-content/30">Chưa có video</p>
                                             )}
                                         </div>
 
+                                        {/* Tài liệu */}
                                         <div>
                                             <div className="mb-1.5 flex items-center justify-between">
                                                 <span className="flex items-center gap-1 text-xs font-black text-emerald-600">
                                                     <FileText className="h-3.5 w-3.5" />
-                                                    {'Tai lieu'} ({lessonContent?.documents?.length || 0})
+                                                    Tài liệu ({lessonContent?.documents?.length || 0})
                                                 </span>
                                                 <button
                                                     type="button"
@@ -148,11 +161,15 @@ export default function LessonContentPanel(props) {
                                                     className="btn btn-xs btn-ghost gap-1 rounded-lg text-emerald-600"
                                                 >
                                                     <Plus className="h-3 w-3" />
-                                                    Them
+                                                    Thêm
                                                 </button>
                                             </div>
+
                                             {(lessonContent?.documents || []).map((document) => (
-                                                <div key={document.documentId} className="mb-1 flex items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1.5">
+                                                <div
+                                                    key={document.documentId}
+                                                    className="mb-1 flex items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-2 py-1.5"
+                                                >
                                                     <FileText className="h-4 w-4 shrink-0 text-emerald-500" />
                                                     <div className="min-w-0 flex-1">
                                                         <p className="truncate text-xs font-bold">{document.documentTitle}</p>
@@ -168,11 +185,16 @@ export default function LessonContentPanel(props) {
                                                             onPreviewDocument(document);
                                                         }}
                                                         className="btn btn-ghost btn-xs btn-circle text-emerald-500 hover:bg-emerald-500/10"
-                                                        title="Xem truoc"
+                                                        title="Xem trước"
                                                     >
                                                         <Eye className="h-3 w-3" />
                                                     </button>
-                                                    <a href={document.fileUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-xs btn-circle">
+                                                    <a
+                                                        href={document.fileUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="btn btn-ghost btn-xs btn-circle"
+                                                    >
                                                         <ExternalLink className="h-3 w-3" />
                                                     </a>
                                                     <button
@@ -185,16 +207,18 @@ export default function LessonContentPanel(props) {
                                                     </button>
                                                 </div>
                                             ))}
+
                                             {(lessonContent?.documents?.length || 0) === 0 && (
-                                                <p className="text-[10px] italic text-base-content/30">Chua co tai lieu</p>
+                                                <p className="text-[10px] italic text-base-content/30">Chưa có tài liệu</p>
                                             )}
                                         </div>
 
+                                        {/* Câu hỏi */}
                                         <div>
                                             <div className="mb-1.5 flex items-center justify-between">
                                                 <span className="flex items-center gap-1 text-xs font-black text-amber-600">
                                                     <HelpCircle className="h-3.5 w-3.5" />
-                                                    {'Cau hoi'} ({lessonContent?.questions?.length || 0})
+                                                    Câu hỏi ({lessonContent?.questions?.length || 0})
                                                 </span>
                                                 <button
                                                     type="button"
@@ -205,11 +229,15 @@ export default function LessonContentPanel(props) {
                                                     className="btn btn-xs btn-ghost gap-1 rounded-lg text-amber-600"
                                                 >
                                                     <Plus className="h-3 w-3" />
-                                                    Them
+                                                    Thêm
                                                 </button>
                                             </div>
+
                                             {(lessonContent?.questions || []).map((question) => (
-                                                <div key={question.questionId} className="mb-1 rounded-lg border border-base-300 bg-base-100 px-2 py-1.5">
+                                                <div
+                                                    key={question.questionId}
+                                                    className="mb-1 rounded-lg border border-base-300 bg-base-100 px-2 py-1.5"
+                                                >
                                                     <div className="flex items-start gap-2">
                                                         <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                                                         <div className="min-w-0 flex-1">
@@ -224,18 +252,23 @@ export default function LessonContentPanel(props) {
                                                                         <div
                                                                             key={option.optionId}
                                                                             className={`flex items-center gap-1 text-[11px] ${
-                                                                                option.isCorrect ? 'font-bold text-emerald-600' : 'text-base-content/60'
+                                                                                option.isCorrect
+                                                                                    ? 'font-bold text-emerald-600'
+                                                                                    : 'text-base-content/60'
                                                                             }`}
                                                                         >
-                                                                            {option.isCorrect
-                                                                                ? <CheckCircle2 className="h-3 w-3" />
-                                                                                : <span className="inline-block h-3 w-3 rounded-full border border-base-content/20" />}
+                                                                            {option.isCorrect ? (
+                                                                                <CheckCircle2 className="h-3 w-3" />
+                                                                            ) : (
+                                                                                <span className="inline-block h-3 w-3 rounded-full border border-base-content/20" />
+                                                                            )}
                                                                             {option.optionText}
                                                                         </div>
                                                                     ))}
                                                                 </div>
                                                             )}
                                                         </div>
+
                                                         <button
                                                             type="button"
                                                             onClick={(event) => {
@@ -243,7 +276,7 @@ export default function LessonContentPanel(props) {
                                                                 onOpenEditQuestion({ chapterId, lessonId, question });
                                                             }}
                                                             className="btn btn-ghost btn-xs btn-circle text-blue-500 hover:bg-blue-500/10"
-                                                            title="Chinh sua cau hoi"
+                                                            title="Chỉnh sửa câu hỏi"
                                                         >
                                                             <Pencil className="h-3 w-3" />
                                                         </button>
@@ -254,7 +287,7 @@ export default function LessonContentPanel(props) {
                                                                 onPreviewQuestion(question);
                                                             }}
                                                             className="btn btn-ghost btn-xs btn-circle text-amber-500 hover:bg-amber-500/10"
-                                                            title="Xem truoc"
+                                                            title="Xem trước"
                                                         >
                                                             <Eye className="h-3 w-3" />
                                                         </button>
@@ -269,12 +302,15 @@ export default function LessonContentPanel(props) {
                                                     </div>
                                                 </div>
                                             ))}
+
                                             {(lessonContent?.questions?.length || 0) === 0 && (
-                                                <p className="text-[10px] italic text-base-content/30">Chua co cau hoi</p>
+                                                <p className="text-[10px] italic text-base-content/30">Chưa có câu hỏi</p>
                                             )}
                                         </div>
                                     </>
                                 )}
+
+                                {/* ==================== ASSIGNMENT LESSON ==================== */}
                                 {isAssignmentLesson && (
                                     <div className="space-y-3">
                                         <div className="overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 shadow-sm">
@@ -282,13 +318,14 @@ export default function LessonContentPanel(props) {
                                                 <div className="min-w-0">
                                                     <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-rose-700">
                                                         <ClipboardCheck className="h-3.5 w-3.5" />
-                                                        Assignment lesson
+                                                        Bài tập
                                                     </div>
                                                     <h4 className="mt-3 text-sm font-black text-base-content">
-                                                        {lessonAssignment?.title || lesson.lessonName || 'Assignment'}
+                                                        {lessonAssignment?.title || lesson.lessonName || 'Bài tập'}
                                                     </h4>
                                                     <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
-                                                        {lessonAssignment?.description || 'Tao de bai, huong dan nop bai va rubric de hoc vien lam bai trong phan learn.'}
+                                                        {lessonAssignment?.description ||
+                                                            'Tạo đề bài, hướng dẫn nộp bài và rubric để học viên làm bài trong phần Learn.'}
                                                     </p>
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-2">
@@ -306,33 +343,40 @@ export default function LessonContentPanel(props) {
                                                         className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-rose-500 to-orange-500 font-bold text-white shadow-lg shadow-rose-500/20"
                                                     >
                                                         <ClipboardCheck className="h-4 w-4" />
-                                                        {lessonAssignment ? 'Chinh assignment' : 'Tao assignment'}
+                                                        {lessonAssignment ? 'Chỉnh sửa assignment' : 'Tạo assignment'}
                                                     </button>
                                                     <Link
                                                         to="/expert/assignments"
                                                         className="btn btn-sm rounded-xl border border-rose-200 bg-white font-bold text-rose-600"
                                                         onClick={(event) => event.stopPropagation()}
                                                     >
-                                                        Xem bai nop
+                                                        Xem bài nộp
                                                     </Link>
                                                 </div>
                                             </div>
+
                                             <div className="grid gap-3 border-t border-rose-100/80 bg-white/80 p-4 sm:grid-cols-2 xl:grid-cols-4">
                                                 <div className="rounded-xl border border-rose-100 bg-rose-50/70 p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-700/70">Tong diem</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-700/70">Tổng điểm</p>
                                                     <p className="mt-1 text-2xl font-black text-base-content">{lessonAssignment?.maxScore || 100}</p>
                                                 </div>
                                                 <div className="rounded-xl border border-rose-100 bg-white p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Tieu chi</p>
-                                                    <p className="mt-1 text-2xl font-black text-base-content">{lessonAssignment?.rubricCriteria?.length || 0}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Tiêu chí</p>
+                                                    <p className="mt-1 text-2xl font-black text-base-content">
+                                                        {lessonAssignment?.rubricCriteria?.length || 0}
+                                                    </p>
                                                 </div>
                                                 <div className="rounded-xl border border-rose-100 bg-white p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Nguon tao</p>
-                                                    <p className="mt-1 text-base font-black capitalize text-base-content">{lessonAssignment?.sourceType || 'manual'}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Nguồn tạo</p>
+                                                    <p className="mt-1 text-base font-black capitalize text-base-content">
+                                                        {lessonAssignment?.sourceType || 'manual'}
+                                                    </p>
                                                 </div>
                                                 <div className="rounded-xl border border-rose-100 bg-white p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trang thai</p>
-                                                    <p className="mt-1 text-base font-black text-base-content">{lessonAssignment ? 'San sang nop bai' : 'Chua soan de'}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trạng thái</p>
+                                                    <p className="mt-1 text-base font-black text-base-content">
+                                                        {lessonAssignment ? 'Sẵn sàng nộp bài' : 'Chưa soạn đề'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -340,33 +384,47 @@ export default function LessonContentPanel(props) {
                                         {lessonAssignment ? (
                                             <div className="grid gap-3 lg:grid-cols-[1.1fr,0.9fr]">
                                                 <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
-                                                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Huong dan cho hoc vien</p>
+                                                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">
+                                                        Hướng dẫn cho học viên
+                                                    </p>
                                                     <p className="mt-3 text-sm leading-6 text-base-content/75">
-                                                        {lessonAssignment.instructions || lessonAssignment.submissionFormat || 'Chua co huong dan chi tiet.'}
+                                                        {lessonAssignment.instructions || lessonAssignment.submissionFormat || 'Chưa có hướng dẫn chi tiết.'}
                                                     </p>
                                                     {lessonAssignment.reviewFocus && (
                                                         <div className="mt-4 rounded-xl bg-base-200/60 px-3 py-3">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/40">Trong tam AI review</p>
-                                                            <p className="mt-2 text-xs leading-5 text-base-content/65">{lessonAssignment.reviewFocus}</p>
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/40">
+                                                                Trọng tâm AI review
+                                                            </p>
+                                                            <p className="mt-2 text-xs leading-5 text-base-content/65">
+                                                                {lessonAssignment.reviewFocus}
+                                                            </p>
                                                         </div>
                                                     )}
                                                 </div>
+
                                                 <div className="rounded-2xl border border-base-300 bg-base-100 p-4">
                                                     <div className="flex items-center justify-between gap-3">
                                                         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Rubric</p>
                                                         <span className="rounded-full bg-rose-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-rose-600">
-                                                            {`${lessonAssignment.maxScore || 100} diem`}
+                                                            {`${lessonAssignment.maxScore || 100} điểm`}
                                                         </span>
                                                     </div>
                                                     <div className="mt-3 space-y-2.5">
                                                         {(lessonAssignment.rubricCriteria || []).map((criterion) => (
-                                                            <div key={criterion.criterionId} className="rounded-xl border border-base-300 bg-base-200/30 px-3 py-3">
+                                                            <div
+                                                                key={criterion.criterionId}
+                                                                className="rounded-xl border border-base-300 bg-base-200/30 px-3 py-3"
+                                                            >
                                                                 <div className="flex items-center justify-between gap-2">
                                                                     <p className="text-sm font-bold text-base-content">{criterion.title}</p>
-                                                                    <span className="text-xs font-bold text-base-content/45">{`${criterion.maxPoints} diem`}</span>
+                                                                    <span className="text-xs font-bold text-base-content/45">
+                                                                        {`${criterion.maxPoints} điểm`}
+                                                                    </span>
                                                                 </div>
                                                                 {criterion.description && (
-                                                                    <p className="mt-1 text-xs leading-5 text-base-content/60">{criterion.description}</p>
+                                                                    <p className="mt-1 text-xs leading-5 text-base-content/60">
+                                                                        {criterion.description}
+                                                                    </p>
                                                                 )}
                                                             </div>
                                                         ))}
@@ -375,12 +433,18 @@ export default function LessonContentPanel(props) {
                                             </div>
                                         ) : (
                                             <div className="rounded-2xl border border-dashed border-rose-300 bg-white px-4 py-5 text-center">
-                                                <p className="text-sm font-bold text-base-content">Lesson nay chua co de bai assignment.</p>
-                                                <p className="mt-1 text-xs text-base-content/55">Mo modal o tren de nhap de bai thu cong hoac nho AI tao rubric.</p>
+                                                <p className="text-sm font-bold text-base-content">
+                                                    Lesson này chưa có đề bài assignment.
+                                                </p>
+                                                <p className="mt-1 text-xs text-base-content/55">
+                                                    Mở modal ở trên để nhập đề bài thủ công hoặc nhờ AI tạo rubric.
+                                                </p>
                                             </div>
                                         )}
                                     </div>
                                 )}
+
+                                {/* ==================== QUIZ LESSON ==================== */}
                                 {isQuizLesson && (
                                     <div className="space-y-3">
                                         <div className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-sm">
@@ -388,11 +452,13 @@ export default function LessonContentPanel(props) {
                                                 <div className="min-w-0">
                                                     <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">
                                                         <HelpCircle className="h-3.5 w-3.5" />
-                                                        Quiz lesson
+                                                        Bài kiểm tra
                                                     </div>
-                                                    <h4 className="mt-3 text-sm font-black text-base-content">{lesson.lessonName || 'Bai kiem tra'}</h4>
+                                                    <h4 className="mt-3 text-sm font-black text-base-content">
+                                                        {lesson.lessonName || 'Bài kiểm tra'}
+                                                    </h4>
                                                     <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
-                                                        Hoc vien se vao lesson nay trong phan learn de lam bai truc tiep.
+                                                        Học viên sẽ vào lesson này trong phần Learn để làm bài trực tiếp.
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -405,47 +471,60 @@ export default function LessonContentPanel(props) {
                                                         className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white shadow-lg shadow-amber-500/20"
                                                     >
                                                         <Plus className="h-4 w-4" />
-                                                        Them cau hoi
+                                                        Thêm câu hỏi
                                                     </button>
                                                 </div>
                                             </div>
+
                                             <div className="grid gap-3 border-t border-amber-100/80 bg-white/80 p-4 sm:grid-cols-2 xl:grid-cols-4">
                                                 <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700/70">Tong cau hoi</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700/70">Tổng câu hỏi</p>
                                                     <p className="mt-1 text-2xl font-black text-base-content">{lessonQuestions.length}</p>
                                                 </div>
                                                 <div className="rounded-xl border border-amber-100 bg-white p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trac nghiem / dung sai</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Trắc nghiệm / Đúng sai</p>
                                                     <p className="mt-1 text-2xl font-black text-base-content">
-                                                        {lessonQuestions.filter((question) => question.questionType !== 'fill_blank').length}
+                                                        {lessonQuestions.filter((q) => q.questionType !== 'fill_blank').length}
                                                     </p>
                                                 </div>
                                                 <div className="rounded-xl border border-amber-100 bg-white p-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Dien tu</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Điền từ</p>
                                                     <p className="mt-1 text-2xl font-black text-base-content">
-                                                        {lessonQuestions.filter((question) => question.questionType === 'fill_blank').length}
+                                                        {lessonQuestions.filter((q) => q.questionType === 'fill_blank').length}
                                                     </p>
                                                 </div>
-                                                <div className={`rounded-xl border p-3 ${lessonQuizTimeLimitMinutes > 0 ? 'border-amber-100 bg-white' : 'border-dashed border-amber-200 bg-white/70'}`}>
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Thoi gian lam bai</p>
+                                                <div
+                                                    className={`rounded-xl border p-3 ${
+                                                        lessonQuizTimeLimitMinutes > 0
+                                                            ? 'border-amber-100 bg-white'
+                                                            : 'border-dashed border-amber-200 bg-white/70'
+                                                    }`}
+                                                >
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Thời gian làm bài</p>
                                                     <p className="mt-1 text-base font-black text-base-content">
-                                                        {lessonQuizTimeLimitMinutes > 0 ? formatDurationMinutes(lessonQuizTimeLimitMinutes) : 'Chua gioi han'}
+                                                        {lessonQuizTimeLimitMinutes > 0
+                                                            ? formatDurationMinutes(lessonQuizTimeLimitMinutes)
+                                                            : 'Chưa giới hạn'}
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* Thiết lập thời gian */}
                                             <div className="border-t border-amber-100/80 bg-white/85 p-4">
                                                 <div className="rounded-2xl border border-amber-100 bg-white p-4">
                                                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                                                         <div className="min-w-0">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700/70">Thiet lap thoi gian</p>
-                                                            <h5 className="mt-1 text-sm font-black text-base-content">Gioi han thoi gian lam bai</h5>
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-amber-700/70">Thiết lập thời gian</p>
+                                                            <h5 className="mt-1 text-sm font-black text-base-content">Giới hạn thời gian làm bài</h5>
                                                             <p className="mt-1 max-w-2xl text-xs leading-5 text-base-content/60">
-                                                                Nhap so phut neu ban muon learner thay dong ho va duoc tu dong nop bai khi het gio.
+                                                                Nhập số phút nếu bạn muốn học viên thấy đồng hồ và được tự động nộp bài khi hết giờ.
                                                             </p>
                                                         </div>
                                                         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end">
                                                             <label className="form-control sm:min-w-[14rem]">
-                                                                <span className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Thoi gian (phut)</span>
+                                                                <span className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">
+                                                                    Thời gian (phút)
+                                                                </span>
                                                                 <input
                                                                     type="number"
                                                                     min="1"
@@ -454,7 +533,7 @@ export default function LessonContentPanel(props) {
                                                                     value={quizTimeLimitDraft}
                                                                     onChange={(event) => onQuizTimeLimitDraftChange(event.target.value)}
                                                                     onClick={(event) => event.stopPropagation()}
-                                                                    placeholder="De trong neu khong gioi han"
+                                                                    placeholder="Để trống nếu không giới hạn"
                                                                     className="input input-bordered input-sm rounded-xl font-medium"
                                                                 />
                                                             </label>
@@ -467,24 +546,31 @@ export default function LessonContentPanel(props) {
                                                                 disabled={saving || !isQuizTimeLimitDirty}
                                                                 className="btn btn-sm rounded-xl border-none bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white shadow-lg shadow-amber-500/20"
                                                             >
-                                                                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                                                Luu thoi gian
+                                                                {saving ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <Save className="h-4 w-4" />
+                                                                )}
+                                                                Lưu thời gian
                                                             </button>
                                                         </div>
                                                     </div>
+
                                                     <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-2 text-[11px] text-amber-800">
                                                         {lessonQuizTimeLimitMinutes > 0
-                                                            ? `Dang luu: ${formatDurationMinutes(lessonQuizTimeLimitMinutes)}.`
-                                                            : 'Hien tai bai kiem tra nay chua co gioi han thoi gian.'}
+                                                            ? `Đang lưu: ${formatDurationMinutes(lessonQuizTimeLimitMinutes)}.`
+                                                            : 'Hiện tại bài kiểm tra này chưa có giới hạn thời gian.'}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Ngân hàng câu hỏi */}
                                         <div>
                                             <div className="mb-1.5 flex items-center justify-between">
                                                 <span className="flex items-center gap-1 text-xs font-black text-amber-600">
                                                     <HelpCircle className="h-3.5 w-3.5" />
-                                                    {'Ngan hang cau hoi'} ({lessonQuestions.length || 0})
+                                                    Ngân hàng câu hỏi ({lessonQuestions.length || 0})
                                                 </span>
                                                 <button
                                                     type="button"
@@ -495,19 +581,27 @@ export default function LessonContentPanel(props) {
                                                     className="btn btn-xs btn-ghost gap-1 rounded-lg text-amber-600"
                                                 >
                                                     <Plus className="h-3 w-3" />
-                                                    Them
+                                                    Thêm
                                                 </button>
                                             </div>
+
                                             {lessonQuestions.length === 0 ? (
                                                 <div className="rounded-xl border border-dashed border-amber-200 bg-base-100 px-4 py-6 text-center">
                                                     <HelpCircle className="mx-auto h-6 w-6 text-amber-500" />
-                                                    <p className="mt-2 text-xs font-bold text-base-content/70">Bai kiem tra nay chua co cau hoi nao</p>
-                                                    <p className="mt-1 text-[11px] text-base-content/45">Hay them cau hoi dau tien de hoc vien co the lam bai.</p>
+                                                    <p className="mt-2 text-xs font-bold text-base-content/70">
+                                                        Bài kiểm tra này chưa có câu hỏi nào
+                                                    </p>
+                                                    <p className="mt-1 text-[11px] text-base-content/45">
+                                                        Hãy thêm câu hỏi đầu tiên để học viên có thể làm bài.
+                                                    </p>
                                                 </div>
                                             ) : (
                                                 <div className="space-y-2">
                                                     {lessonQuestions.map((question, questionIndex) => (
-                                                        <div key={question.questionId} className="rounded-xl border border-base-300 bg-base-100 p-3">
+                                                        <div
+                                                            key={question.questionId}
+                                                            className="rounded-xl border border-base-300 bg-base-100 p-3"
+                                                        >
                                                             <div className="flex items-start gap-3">
                                                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-xs font-black text-amber-700">
                                                                     {questionIndex + 1}
@@ -517,22 +611,28 @@ export default function LessonContentPanel(props) {
                                                                         <span className="badge badge-xs badge-ghost">{question.questionType}</span>
                                                                         <span className="badge badge-xs badge-ghost">{question.difficultyLevel}</span>
                                                                         <span className="text-[10px] font-medium text-base-content/40">
-                                                                            {`${question.options?.filter((option) => option.isCorrect).length || 0} dap an dung`}
+                                                                            {`${question.options?.filter((opt) => opt.isCorrect).length || 0} đáp án đúng`}
                                                                         </span>
                                                                     </div>
-                                                                    <p className="mt-2 text-xs font-bold leading-5 text-base-content">{question.questionText}</p>
+                                                                    <p className="mt-2 text-xs font-bold leading-5 text-base-content">
+                                                                        {question.questionText}
+                                                                    </p>
                                                                     {question.options?.length > 0 && (
                                                                         <div className="mt-2 grid gap-1.5 lg:grid-cols-2">
                                                                             {question.options.map((option) => (
                                                                                 <div
                                                                                     key={option.optionId}
                                                                                     className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-[11px] ${
-                                                                                        option.isCorrect ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-base-300 bg-base-200/35 text-base-content/60'
+                                                                                        option.isCorrect
+                                                                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                                                                            : 'border-base-300 bg-base-200/35 text-base-content/60'
                                                                                     }`}
                                                                                 >
-                                                                                    {option.isCorrect
-                                                                                        ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                                                                                        : <span className="inline-block h-2.5 w-2.5 rounded-full border border-base-content/20" />}
+                                                                                    {option.isCorrect ? (
+                                                                                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                                                                    ) : (
+                                                                                        <span className="inline-block h-2.5 w-2.5 rounded-full border border-base-content/20" />
+                                                                                    )}
                                                                                     <span className="truncate">{option.optionText}</span>
                                                                                 </div>
                                                                             ))}
@@ -540,10 +640,12 @@ export default function LessonContentPanel(props) {
                                                                     )}
                                                                     {question.questionExplanation && (
                                                                         <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-[11px] text-blue-700">
-                                                                            <span className="font-bold">Giai thich:</span> {question.questionExplanation}
+                                                                            <span className="font-bold">Giải thích:</span>{' '}
+                                                                            {question.questionExplanation}
                                                                         </div>
                                                                     )}
                                                                 </div>
+
                                                                 <div className="flex items-center gap-1">
                                                                     <button
                                                                         type="button"
@@ -552,7 +654,7 @@ export default function LessonContentPanel(props) {
                                                                             onOpenEditQuestion({ chapterId, lessonId, question });
                                                                         }}
                                                                         className="btn btn-ghost btn-xs btn-circle text-blue-500 hover:bg-blue-500/10"
-                                                                        title="Chinh sua cau hoi"
+                                                                        title="Chỉnh sửa câu hỏi"
                                                                     >
                                                                         <Pencil className="h-3 w-3" />
                                                                     </button>
@@ -563,7 +665,7 @@ export default function LessonContentPanel(props) {
                                                                             onPreviewQuestion(question);
                                                                         }}
                                                                         className="btn btn-ghost btn-xs btn-circle text-amber-500 hover:bg-amber-500/10"
-                                                                        title="Xem truoc"
+                                                                        title="Xem trước"
                                                                     >
                                                                         <Eye className="h-3 w-3" />
                                                                     </button>
@@ -584,12 +686,14 @@ export default function LessonContentPanel(props) {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* ==================== FLASHCARD LESSON ==================== */}
                                 {isFlashcardLesson && (
                                     <div>
                                         <div className="mb-1.5 flex items-center justify-between">
                                             <span className="flex items-center gap-1 text-xs font-black text-indigo-600">
                                                 <Sparkles className="h-3.5 w-3.5" />
-                                                {'Flashcard'} ({lessonFlashcardSets.length})
+                                                Flashcard ({lessonFlashcardSets.length})
                                             </span>
                                             {lessonFlashcardSets.length === 0 && (
                                                 <button
@@ -601,31 +705,33 @@ export default function LessonContentPanel(props) {
                                                     className="btn btn-xs btn-ghost gap-1 rounded-lg text-indigo-600"
                                                 >
                                                     <Plus className="h-3 w-3" />
-                                                    Tao bo
+                                                    Tạo bộ
                                                 </button>
                                             )}
                                         </div>
 
                                         {lessonFlashcardSets.length === 0 ? (
                                             <div className="rounded-xl border border-dashed border-indigo-500/20 bg-base-100 px-3 py-4 text-center">
-                                                <p className="text-xs font-bold text-base-content/70">Bai nay chua co bo flashcard nao</p>
-                                                <p className="mt-1 text-[11px] text-base-content/45">Tao mot bo truoc, sau do them cac the mat truoc va mat sau.</p>
+                                                <p className="text-xs font-bold text-base-content/70">Bài này chưa có bộ flashcard nào</p>
+                                                <p className="mt-1 text-[11px] text-base-content/45">
+                                                    Tạo một bộ trước, sau đó thêm các thẻ mặt trước và mặt sau.
+                                                </p>
                                             </div>
                                         ) : (
                                             <div className="space-y-3">
                                                 {lessonFlashcardSets.map((set, setIndex) => {
                                                     const setId = set?.flashcardSetId || set?.id || `flashcard-set-${setIndex}`;
                                                     const setTitle = set?.setTitle || set?.title || `${lesson.lessonName} - Flashcard`;
-                                                    const setItems = getFlashcardSetItems(set).filter((item) => (
-                                                        item?.frontText
-                                                        || item?.front
-                                                        || item?.backText
-                                                        || item?.back
-                                                        || item?.frontImageUrl
-                                                        || item?.frontImage
-                                                        || item?.backImageUrl
-                                                        || item?.backImage
-                                                    ));
+                                                    const setItems = getFlashcardSetItems(set).filter((item) =>
+                                                        item?.frontText ||
+                                                        item?.front ||
+                                                        item?.backText ||
+                                                        item?.back ||
+                                                        item?.frontImageUrl ||
+                                                        item?.frontImage ||
+                                                        item?.backImageUrl ||
+                                                        item?.backImage
+                                                    );
                                                     const totalCards = Number(set?.totalCards || set?.itemCount || setItems.length || 0);
 
                                                     return (
@@ -633,7 +739,7 @@ export default function LessonContentPanel(props) {
                                                             <div className="flex items-center justify-between gap-2">
                                                                 <div className="min-w-0">
                                                                     <p className="truncate text-xs font-black text-base-content">{setTitle}</p>
-                                                                    <p className="text-[10px] font-medium text-base-content/45">{totalCards} the</p>
+                                                                    <p className="text-[10px] font-medium text-base-content/45">{totalCards} thẻ</p>
                                                                 </div>
                                                                 <button
                                                                     type="button"
@@ -651,12 +757,12 @@ export default function LessonContentPanel(props) {
                                                                     className="btn btn-xs btn-ghost gap-1 rounded-lg text-indigo-600"
                                                                 >
                                                                     <Plus className="h-3 w-3" />
-                                                                    Them the
+                                                                    Thêm thẻ
                                                                 </button>
                                                             </div>
 
                                                             {setItems.length === 0 ? (
-                                                                <p className="mt-2 text-[10px] italic text-base-content/35">Bo nay chua co the nao.</p>
+                                                                <p className="mt-2 text-[10px] italic text-base-content/35">Bộ này chưa có thẻ nào.</p>
                                                             ) : (
                                                                 <div className="mt-3 space-y-2">
                                                                     {setItems.map((item, itemIndex) => {
@@ -664,17 +770,28 @@ export default function LessonContentPanel(props) {
                                                                         const frontText = item?.frontText || item?.front || '';
                                                                         const backText = item?.backText || item?.back || '';
                                                                         const frontImageUrl = resolveFlashcardImageUrl(
-                                                                            item?.frontImageUrl || item?.frontImage || item?.frontMediaUrl || item?.frontImagePath || '',
+                                                                            item?.frontImageUrl ||
+                                                                                item?.frontImage ||
+                                                                                item?.frontMediaUrl ||
+                                                                                item?.frontImagePath ||
+                                                                                ''
                                                                         );
                                                                         const backImageUrl = resolveFlashcardImageUrl(
-                                                                            item?.backImageUrl || item?.backImage || item?.backMediaUrl || item?.backImagePath || '',
+                                                                            item?.backImageUrl ||
+                                                                                item?.backImage ||
+                                                                                item?.backMediaUrl ||
+                                                                                item?.backImagePath ||
+                                                                                ''
                                                                         );
 
                                                                         return (
-                                                                            <div key={itemId || `${setId}-${itemIndex}`} className="rounded-xl border border-base-300 bg-base-200/35 p-3">
+                                                                            <div
+                                                                                key={itemId || `${setId}-${itemIndex}`}
+                                                                                className="rounded-xl border border-base-300 bg-base-200/35 p-3"
+                                                                            >
                                                                                 <div className="mb-3 flex items-center justify-between gap-2">
                                                                                     <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-base-content/40">
-                                                                                        {`The ${itemIndex + 1}`}
+                                                                                        Thẻ {itemIndex + 1}
                                                                                     </span>
                                                                                     <div className="flex items-center gap-1.5">
                                                                                         <button
@@ -695,7 +812,7 @@ export default function LessonContentPanel(props) {
                                                                                             className="btn btn-xs btn-ghost gap-1 rounded-lg text-base-content/60 hover:text-indigo-600 disabled:bg-transparent"
                                                                                         >
                                                                                             <Pencil className="h-3 w-3" />
-                                                                                            Sua
+                                                                                            Sửa
                                                                                         </button>
                                                                                         <button
                                                                                             type="button"
@@ -712,32 +829,37 @@ export default function LessonContentPanel(props) {
                                                                                             className="btn btn-xs btn-ghost gap-1 rounded-lg text-base-content/60 hover:text-red-500 disabled:bg-transparent"
                                                                                         >
                                                                                             <Trash2 className="h-3 w-3" />
-                                                                                            Xoa
+                                                                                            Xóa
                                                                                         </button>
                                                                                     </div>
                                                                                 </div>
+
                                                                                 <div className="grid gap-3 lg:grid-cols-2">
                                                                                     <div className="space-y-2">
-                                                                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Mat truoc</p>
+                                                                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Mặt trước</p>
                                                                                         {frontImageUrl && (
                                                                                             <img
                                                                                                 src={frontImageUrl}
-                                                                                                alt="Flashcard front"
+                                                                                                alt="Flashcard mặt trước"
                                                                                                 className="max-h-80 w-full rounded-lg border border-base-300 bg-base-200/40 object-contain object-center"
                                                                                             />
                                                                                         )}
-                                                                                        <p className="text-xs font-medium text-base-content/80">{frontText || 'Khong co noi dung chu'}</p>
+                                                                                        <p className="text-xs font-medium text-base-content/80">
+                                                                                            {frontText || 'Không có nội dung chữ'}
+                                                                                        </p>
                                                                                     </div>
                                                                                     <div className="space-y-2">
-                                                                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Mat sau</p>
+                                                                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-base-content/45">Mặt sau</p>
                                                                                         {backImageUrl && (
                                                                                             <img
                                                                                                 src={backImageUrl}
-                                                                                                alt="Flashcard back"
+                                                                                                alt="Flashcard mặt sau"
                                                                                                 className="max-h-80 w-full rounded-lg border border-base-300 bg-base-200/40 object-contain object-center"
                                                                                             />
                                                                                         )}
-                                                                                        <p className="text-xs font-medium text-base-content/80">{backText || 'Khong co noi dung chu'}</p>
+                                                                                        <p className="text-xs font-medium text-base-content/80">
+                                                                                            {backText || 'Không có nội dung chữ'}
+                                                                                        </p>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>

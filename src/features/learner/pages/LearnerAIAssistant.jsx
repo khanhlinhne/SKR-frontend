@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import {
-    ArrowUp,
     Bot,
     Brain,
     Clock3,
     MessageSquare,
     RefreshCw,
+    Send,
     Sparkles,
     Trash2,
 } from 'lucide-react';
@@ -62,18 +62,20 @@ function createUserMessage(content) {
 
 export default function LearnerAIAssistant() {
     const { profile } = useCurrentUserProfile();
+
     const [threadId, setThreadId] = useState(() => learnerAiApi.createThreadId());
-    const [messages, setMessages] = useState(() => ([
+    const [messages, setMessages] = useState(() => [
         createAssistantMessage(
             'Mình có thể trả lời bằng dữ liệu học tập thực tế của bạn như thời gian học, tiến độ khóa học, lịch ôn tập và thống kê học tập.',
-            { suggestions: SUGGESTED_PROMPTS, localOnly: true },
+            { suggestions: SUGGESTED_PROMPTS, localOnly: true }
         ),
-    ]));
+    ]);
+
     const [draft, setDraft] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    const displayName = profile.name || 'Người dùng';
+    const displayName = profile?.name || 'Người dùng';
     const greetingName = useMemo(() => {
         const parts = displayName.trim().split(/\s+/).filter(Boolean);
         return parts[parts.length - 1] || displayName;
@@ -81,12 +83,9 @@ export default function LearnerAIAssistant() {
 
     async function handleSendMessage(rawMessage) {
         const message = String(rawMessage || '').trim();
-        if (!message || submitting) {
-            return;
-        }
+        if (!message || submitting) return;
 
         const userMessage = createUserMessage(message);
-        const nextMessages = [...messages.filter((item) => !item.localOnly), userMessage];
         setMessages((current) => [...current, userMessage]);
         setDraft('');
         setSubmitting(true);
@@ -96,7 +95,7 @@ export default function LearnerAIAssistant() {
             const response = await learnerAiApi.sendMessage({
                 message,
                 threadId,
-                messages: nextMessages,
+                messages: [...messages.filter((item) => !item.localOnly), userMessage],
             });
 
             setThreadId(response.threadId);
@@ -114,19 +113,22 @@ export default function LearnerAIAssistant() {
             if (import.meta.env.DEV) {
                 console.error('Learner AI chat request failed', sendError);
             }
-            const statusCode = sendError?.response?.status;
+
             const isTimeout = sendError?.code === 'ECONNABORTED';
             const errorMessage =
-                sendError?.response?.data?.message
-                || sendError?.response?.data?.error
-                || (isTimeout ? 'Yeu cau AI bi timeout sau 60 giay. Backend da tra loi qua cham.' : '')
-                || sendError?.message
-                || (statusCode ? `Request that bai voi ma ${statusCode}.` : '')
-                || 'Không thể gửi câu hỏi tới trợ lý AI lúc này.';
+                sendError?.response?.data?.message ||
+                sendError?.response?.data?.error ||
+                (isTimeout ? 'Yêu cầu AI bị timeout sau 60 giây. Backend phản hồi quá chậm.' : '') ||
+                sendError?.message ||
+                'Không thể gửi câu hỏi tới trợ lý AI lúc này.';
+
             setError(errorMessage);
             setMessages((current) => [
                 ...current,
-                createAssistantMessage('Mình chưa thể lấy dữ liệu lúc này. Bạn thử lại sau ít phút.', { localOnly: true }),
+                createAssistantMessage(
+                    'Mình chưa thể lấy dữ liệu lúc này. Bạn thử lại sau ít phút nhé.',
+                    { localOnly: true }
+                ),
             ]);
         } finally {
             setSubmitting(false);
@@ -138,7 +140,7 @@ export default function LearnerAIAssistant() {
         setMessages([
             createAssistantMessage(
                 'Cuộc trò chuyện mới đã sẵn sàng. Bạn có thể hỏi về tiến độ học, flashcards, bài test hoặc lịch ôn tập.',
-                { suggestions: SUGGESTED_PROMPTS, localOnly: true },
+                { suggestions: SUGGESTED_PROMPTS, localOnly: true }
             ),
         ]);
         setDraft('');
@@ -163,7 +165,9 @@ export default function LearnerAIAssistant() {
                                     <Sparkles className="h-3.5 w-3.5" />
                                     Learner AI Assistant
                                 </div>
-                                <h1 className="text-2xl font-black text-base-content lg:text-3xl">Chào {greetingName}, bạn muốn hỏi gì hôm nay?</h1>
+                                <h1 className="text-2xl font-black text-base-content lg:text-3xl">
+                                    Chào {greetingName}, bạn muốn hỏi gì hôm nay?
+                                </h1>
                                 <p className="mt-2 max-w-3xl text-sm text-base-content/60">
                                     Hỏi về thời gian học, khóa học đang học, lịch ôn tập, flashcards, bài test hoặc gợi ý học tiếp theo dựa trên dữ liệu thật của bạn.
                                 </p>
@@ -194,6 +198,7 @@ export default function LearnerAIAssistant() {
                     </motion.section>
 
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+                        {/* Chat Area */}
                         <motion.section variants={cardVariants} className="flex min-h-[680px] flex-col rounded-[2rem] border border-base-300 bg-base-100 shadow-lg">
                             <div className="flex items-center justify-between border-b border-base-300 px-6 py-4">
                                 <div className="flex items-center gap-3">
@@ -206,12 +211,12 @@ export default function LearnerAIAssistant() {
                                     </div>
                                 </div>
 
-                                {submitting ? (
+                                {submitting && (
                                     <div className="inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600">
                                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                        Đang trả lời
+                                        Đang trả lời...
                                     </div>
-                                ) : null}
+                                )}
                             </div>
 
                             <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
@@ -220,7 +225,7 @@ export default function LearnerAIAssistant() {
                                         key={message.id}
                                         message={message}
                                         displayName={displayName}
-                                        avatarUrl={profile.avatarUrl}
+                                        avatarUrl={profile?.avatarUrl}
                                         onSendSuggestion={handleSendMessage}
                                         submitting={submitting}
                                     />
@@ -228,11 +233,11 @@ export default function LearnerAIAssistant() {
                             </div>
 
                             <div className="border-t border-base-300 px-4 py-4">
-                                {error ? (
+                                {error && (
                                     <div className="mb-3 rounded-2xl border border-error/20 bg-error/5 px-4 py-3 text-sm font-medium text-error">
                                         {error}
                                     </div>
-                                ) : null}
+                                )}
 
                                 <div className="rounded-[1.5rem] border border-base-300 bg-base-200/40 p-3">
                                     <textarea
@@ -250,23 +255,27 @@ export default function LearnerAIAssistant() {
                                     />
 
                                     <div className="mt-3 flex items-center justify-between gap-3">
-                                        <p className="text-xs text-base-content/50">Nhấn Enter để gửi, Shift + Enter để xuống dòng</p>
+                                        <p className="text-xs text-base-content/50">
+                                            Nhấn Enter để gửi, Shift + Enter để xuống dòng
+                                        </p>
                                         <button
                                             onClick={() => handleSendMessage(draft)}
                                             disabled={!draft.trim() || submitting}
-                                            className="btn rounded-xl border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white hover:from-blue-700 hover:to-violet-700 disabled:bg-base-300 disabled:text-base-content/40"
+                                            className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5 hover:from-blue-700 hover:to-violet-700 hover:shadow-lg hover:shadow-violet-500/20 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-base-300 disabled:text-base-content/35"
                                         >
-                                            <ArrowUp className="h-4 w-4" />
-                                            Gửi
+                                            <Send className="h-4 w-4" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </motion.section>
 
+                        {/* Sidebar Info */}
                         <motion.aside variants={cardVariants} className="space-y-6">
                             <div className="rounded-[2rem] border border-base-300 bg-base-100 p-5 shadow-lg">
-                                <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-base-content/60">Có thể hỏi gì?</h3>
+                                <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-base-content/60">
+                                    Bạn có thể hỏi gì?
+                                </h3>
                                 <div className="space-y-3">
                                     <InfoCard
                                         icon={Clock3}
@@ -300,29 +309,35 @@ function MessageBubble({ message, displayName, avatarUrl, onSendSuggestion, subm
 
     return (
         <div className={`flex gap-3 ${isAssistant ? 'items-start' : 'justify-end'}`}>
-            {isAssistant ? <MessageAvatar role="assistant" /> : null}
+            {isAssistant && <MessageAvatar role="assistant" />}
 
             <div className={`max-w-[85%] ${isAssistant ? '' : 'order-first'}`}>
-                <div className={`rounded-[1.5rem] px-4 py-3 shadow-sm ${isAssistant ? 'bg-base-200 text-base-content' : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white'}`}>
-                    {isAssistant && (isFallback || modelLabel) ? (
+                <div
+                    className={`rounded-[1.5rem] px-4 py-3 shadow-sm ${
+                        isAssistant
+                            ? 'bg-base-200 text-base-content'
+                            : 'bg-gradient-to-r from-blue-600 to-violet-600 text-white'
+                    }`}
+                >
+                    {isAssistant && (isFallback || modelLabel) && (
                         <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
-                            {isFallback ? (
+                            {isFallback && (
                                 <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-amber-700">
-                                    Dang dung fallback backend
+                                    Đang dùng fallback backend
                                 </span>
-                            ) : null}
-                            {modelLabel ? (
+                            )}
+                            {modelLabel && (
                                 <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-blue-700">
                                     {modelLabel}
                                 </span>
-                            ) : null}
+                            )}
                         </div>
-                    ) : null}
+                    )}
 
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                 </div>
 
-                {isAssistant && message.suggestions?.length ? (
+                {isAssistant && message.suggestions?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {message.suggestions.map((suggestion) => (
                             <button
@@ -335,24 +350,31 @@ function MessageBubble({ message, displayName, avatarUrl, onSendSuggestion, subm
                             </button>
                         ))}
                     </div>
-                ) : null}
+                )}
 
-                {isAssistant && message.toolsUsed?.length ? (
+                {isAssistant && message.toolsUsed?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                         {message.toolsUsed.map((tool) => (
-                            <span key={tool} className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-700">
+                            <span
+                                key={tool}
+                                className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-700"
+                            >
                                 {tool}
                             </span>
                         ))}
                     </div>
-                ) : null}
+                )}
 
-                {!isAssistant ? (
-                    <div className="mt-2 text-right text-[11px] font-semibold text-base-content/45">{displayName}</div>
-                ) : null}
+                {!isAssistant && (
+                    <div className="mt-2 text-right text-[11px] font-semibold text-base-content/45">
+                        {displayName}
+                    </div>
+                )}
             </div>
 
-            {!isAssistant ? <MessageAvatar role="user" displayName={displayName} avatarUrl={avatarUrl} /> : null}
+            {!isAssistant && (
+                <MessageAvatar role="user" displayName={displayName} avatarUrl={avatarUrl} />
+            )}
         </div>
     );
 }

@@ -10,7 +10,6 @@ const navItems = [
     { label: 'Tính năng', href: '#features' },
     { label: 'Môn học', href: '#curriculum' },
     { label: 'Flashcard', href: '/flashcards/explore' },
-    { label: 'Bảng giá', href: '#pricing' },
 ];
 
 export default function HomeNavBar() {
