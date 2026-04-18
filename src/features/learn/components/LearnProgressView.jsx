@@ -19,6 +19,7 @@ import {
     Award,
     BarChart3,
     Zap,
+    ClipboardList,
 } from 'lucide-react';
 
 const LEARN_COLOR_STYLES = {
@@ -64,7 +65,13 @@ export default function LearnProgressView({
     const overallPercent = totalLessons > 0 ? Math.round((totalCompleted / totalLessons) * 100) : 0;
 
     const typeStats = useMemo(() => {
-        const s = { video: { done: 0, total: 0, mins: 0 }, document: { done: 0, total: 0, mins: 0 }, flashcard: { done: 0, total: 0, mins: 0 }, quiz: { done: 0, total: 0, mins: 0 } };
+        const s = {
+            video: { done: 0, total: 0, mins: 0 },
+            document: { done: 0, total: 0, mins: 0 },
+            flashcard: { done: 0, total: 0, mins: 0 },
+            quiz: { done: 0, total: 0, mins: 0 },
+            assignment: { done: 0, total: 0, mins: 0 },
+        };
         chapters.forEach((ch, ci) => {
             ch.lessons.forEach((l, li) => {
                 const t = l.type || 'video';
@@ -180,11 +187,12 @@ export default function LearnProgressView({
             </motion.div>
 
             {/* ─── Stats Cards Row ────────────────────────────── */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatCard variants={itemVariants} icon={Play} label="Video" done={typeStats.video.done} total={typeStats.video.total} color="blue" gradient={courseGradient} />
                 <StatCard variants={itemVariants} icon={FileText} label="Tài liệu" done={typeStats.document.done} total={typeStats.document.total} color="emerald" gradient={courseGradient} />
                 <StatCard variants={itemVariants} icon={Sparkles} label="Flashcards" done={typeStats.flashcard.done} total={typeStats.flashcard.total} color="amber" gradient={courseGradient} />
                 <StatCard variants={itemVariants} icon={CheckCircle2} label="Bài kiểm tra" done={typeStats.quiz.done} total={typeStats.quiz.total} color="violet" gradient={courseGradient} />
+                <StatCard variants={itemVariants} icon={ClipboardList} label="Assignment" done={typeStats.assignment.done} total={typeStats.assignment.total} color="violet" gradient={courseGradient} />
             </div>
 
             {/* ─── Two Column Layout ─────────────────────────── */}
@@ -319,8 +327,16 @@ export default function LearnProgressView({
                                 { label: 'Tài liệu', mins: typeStats.document.mins, color: 'emerald', icon: FileText },
                                 { label: 'Flashcards', mins: typeStats.flashcard.mins, color: 'amber', icon: Sparkles },
                                 { label: 'Bài kiểm tra', mins: typeStats.quiz.mins, color: 'violet', icon: CheckCircle2 },
+                                { label: 'Assignment', mins: typeStats.assignment.mins, color: 'violet', icon: ClipboardList },
                             ].map((item, i) => {
-                                const maxMins = Math.max(typeStats.video.mins, typeStats.document.mins, typeStats.flashcard.mins, typeStats.quiz.mins, 1);
+                                const maxMins = Math.max(
+                                    typeStats.video.mins,
+                                    typeStats.document.mins,
+                                    typeStats.flashcard.mins,
+                                    typeStats.quiz.mins,
+                                    typeStats.assignment.mins,
+                                    1,
+                                );
                                 const barPercent = (item.mins / maxMins) * 100;
                                 const ItemIcon = item.icon;
                                 return (
@@ -445,7 +461,7 @@ function ChapterRow({ chapter, index, gradient }) {
             >
                 <div className="px-3 pb-3 space-y-1">
                     {chapter.lessons.map((l, li) => {
-                        const typeIcons = { video: Play, document: FileText, flashcard: Sparkles, quiz: CheckCircle2 };
+                        const typeIcons = { video: Play, document: FileText, flashcard: Sparkles, quiz: CheckCircle2, assignment: ClipboardList };
                         const TIcon = typeIcons[l.type] || Play;
                         return (
                             <div key={li} className="flex items-center gap-2 px-2 py-1.5 rounded-lg">

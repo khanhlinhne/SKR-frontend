@@ -12,6 +12,7 @@ import {
     TrendingUp,
     PanelLeftClose,
     PanelLeftOpen,
+    ClipboardList,
 } from 'lucide-react';
 
 const LEARN_SIDEBAR_KEY = 'skr-learn-sidebar-collapsed';
@@ -362,9 +363,9 @@ function CurriculumPanel({
 // ─── Lesson Item ─────────────────────────────────────────
 
 function LessonItem({ lesson, isActive, isCompleted, courseGradient, onClick }) {
-    const typeIcons = { video: Play, document: FileText, flashcard: Sparkles, quiz: CheckCircle2 };
+    const typeIcons = { video: Play, document: FileText, flashcard: Sparkles, quiz: CheckCircle2, assignment: ClipboardList };
     const TypeIcon = typeIcons[lesson.type] || Play;
-    const typeLabels = { video: 'Video', document: 'Tài liệu', flashcard: 'Flashcard', quiz: 'Bài kiểm tra' };
+    const typeLabels = { video: 'Video', document: 'Tài liệu', flashcard: 'Flashcard', quiz: 'Bài kiểm tra', assignment: 'Assignment' };
 
     return (
         <button

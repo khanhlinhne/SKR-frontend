@@ -43,12 +43,14 @@ export default function LearnLessonContent({
         document: 'Tài liệu',
         flashcard: 'Flashcard',
         quiz: 'Bài kiểm tra',
+        assignment: 'Assignment',
     };
 
     const hasVideos = lesson?.videos?.length > 0;
     const hasDocuments = lesson?.documents?.length > 0;
     const hasQuestions = lesson?.questions?.length > 0;
     const hasFlashcards = lesson?.flashcardSets?.length > 0;
+    const hasAssignment = Boolean(lesson?.assignment?.assignmentId || lesson?.assignment?.title || lesson?.hasAssignment);
 
     // Determine primary type based on content
     const primaryType = hasVideos
@@ -59,6 +61,8 @@ export default function LearnLessonContent({
                 ? 'quiz'
                 : hasFlashcards
                     ? 'flashcard'
+                    : hasAssignment
+                        ? 'assignment'
                     : lesson?.type;
 
     return (
@@ -265,6 +269,11 @@ function DescriptionTab({ lesson }) {
                 {lesson?.questions?.length > 0 && (
                     <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-[11px] font-bold text-amber-600">
                         ❓ {lesson.questions.length} Câu hỏi
+                    </span>
+                )}
+                {hasAssignment && (
+                    <span className="px-2.5 py-1 rounded-lg bg-violet-500/10 text-[11px] font-bold text-violet-600">
+                        📝 Assignment
                     </span>
                 )}
             </div>
