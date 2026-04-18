@@ -204,11 +204,11 @@ export default function Courses({
                 const response = await subjectApi.getAll({ limit: 100 });
                 const items = response.data?.items || response.data || [];
                 const apiCourses = items.map(mapApiToCourse);
-                setSubjects([MOCK_DEMO_COURSE, ...apiCourses]);
+                setSubjects(apiCourses);
             } catch (err) {
                 console.error('Error fetching subjects:', err);
                 setError(err.message);
-                setSubjects([MOCK_DEMO_COURSE]);
+                setSubjects([]);
             } finally {
                 setLoading(false);
             }

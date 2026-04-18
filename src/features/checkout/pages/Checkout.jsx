@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Clock, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+    ArrowLeft,
+    Clock,
+    Loader2,
+    ShieldCheck,
+    Sparkles,
+} from 'lucide-react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { orderApi, subjectApi } from '@/shared/api';
 import { useCurrentUserProfile } from '@/shared/user';
-import { OwlLoader } from '@/shared/ui/common';
+import { OwlDialog, OwlLoader, useOwlDialog } from '@/shared/ui/common';
 import { isTokenValid } from '@/shared/utils/tokenManager';
 import {
     buildCourseLearnPath,
@@ -16,82 +22,41 @@ import {
 import CheckoutAccountCard from '../components/CheckoutAccountCard';
 import CheckoutHeader from '../components/CheckoutHeader';
 import CheckoutSteps from '../components/CheckoutSteps';
-import CheckoutSuccess from '../components/CheckoutSuccess';
-import CouponInput from '../components/CouponInput';
 import OrderSummary from '../components/OrderSummary';
 import PaymentMethods from '../components/PaymentMethods';
 import PriceBreakdown from '../components/PriceBreakdown';
+import {
+    readCheckoutSession,
+    writeCheckoutSession,
+} from '../utils/checkoutSession';
 
-const PLANS = {
-    free: {
-        id: 'free',
-        name: 'Free',
-        description: 'Trải nghiệm cơ bản để khám phá nền tảng trước khi nâng cấp.',
-        price: 0,
-        durationDays: 0,
-        gradient: 'from-slate-500 to-gray-500',
-        features: ['Flashcard cơ bản', '5 bài học mỗi tuần', 'Cộng đồng học tập'],
-    },
-    pro: {
-        id: 'pro',
-        name: 'Pro',
-        description: 'Gói học tập toàn diện với quyền truy cập không giới hạn vào các tính năng cốt lõi.',
-        price: 299000,
-        originalPrice: 399000,
-        discountPercent: 25,
-        durationDays: 30,
-        gradient: 'from-sky-500 to-cyan-500',
-        features: [
-            'Truy cập toàn bộ khóa học đang mở bán',
-            'Flashcard AI không giới hạn',
-            'Lộ trình học cá nhân hóa',
-            'Không quảng cáo',
-            'Hỗ trợ ưu tiên',
-        ],
-    },
-    premium: {
-        id: 'premium',
-        name: 'Premium',
-        description: 'Trải nghiệm cao cấp nhất với các tính năng chuyên sâu và hỗ trợ 1-1.',
-        price: 699000,
-        originalPrice: 999000,
-        discountPercent: 30,
-        durationDays: 30,
-        gradient: 'from-fuchsia-500 to-violet-500',
-        features: [
-            'Tất cả quyền lợi Pro',
-            'Tư vấn 1-1 với chuyên gia',
-            'Đề thi mô phỏng nâng cao',
-            'Phân tích AI chuyên sâu',
-            'Chứng nhận hoàn thành',
-            'Ưu tiên tính năng mới',
-        ],
-    },
-};
+const PAYMENT_WINDOW_SECONDS = 15 * 60;
 
 export default function Checkout() {
     const [searchParams] = useSearchParams();
     const location = useLocation();
     const navigate = useNavigate();
-    const checkoutType = searchParams.get('type') === 'course' ? 'course' : 'subscription';
-    const planId = searchParams.get('plan') || 'pro';
-    const courseId = searchParams.get('id');
-    const selectedPlan = PLANS[planId] || PLANS.pro;
     const isAuthenticated = isTokenValid();
     const loginHref = buildLoginRedirectPath(`${location.pathname}${location.search}`);
     const appHomePath = isAuthenticated ? '/dashboard' : '/';
+    const checkoutType = searchParams.get('type');
+    const courseId = searchParams.get('id');
+    const isCourseCheckout = checkoutType === 'course';
 
     const { profile, refreshProfile } = useCurrentUserProfile();
+    const { dialog, openDialog, closeDialog, handleDialogConfirm } = useOwlDialog();
+
     const [isHydratingProfile, setIsHydratingProfile] = useState(isAuthenticated);
     const [currentStep, setCurrentStep] = useState(1);
-    const [paymentMethod, setPaymentMethod] = useState('');
-    const [appliedCoupon, setAppliedCoupon] = useState(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [transaction, setTransaction] = useState(null);
     const [courseOrder, setCourseOrder] = useState(null);
-    const [loadingCourse, setLoadingCourse] = useState(checkoutType === 'course');
+    const [loadingCourse, setLoadingCourse] = useState(true);
     const [checkoutError, setCheckoutError] = useState('');
-    const [timeLeft, setTimeLeft] = useState(15 * 60);
+    const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+    const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+    const [paymentSession, setPaymentSession] = useState(null);
+    const [timeLeft, setTimeLeft] = useState(PAYMENT_WINDOW_SECONDS);
+
+    const backLink = courseId ? `/courses/${courseId}` : appHomePath;
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -122,55 +87,60 @@ export default function Checkout() {
     }, [isAuthenticated, refreshProfile]);
 
     useEffect(() => {
-        if (currentStep >= 3) {
-            return undefined;
+        if (!isCourseCheckout) {
+            setCheckoutError('Trang checkout này hiện chỉ hỗ trợ mua khóa học qua PayOS.');
+            setLoadingCourse(false);
+            return;
         }
 
-        const timer = setInterval(() => {
-            setTimeLeft((value) => (value > 0 ? value - 1 : 0));
-        }, 1000);
+        if (!courseId) {
+            setCheckoutError('Thiếu mã khóa học để tạo đơn thanh toán.');
+            setLoadingCourse(false);
+            return;
+        }
 
-        return () => clearInterval(timer);
-    }, [currentStep]);
-
-    useEffect(() => {
         let isMounted = true;
 
+        const restoreSession = () => {
+            const savedSession = readCheckoutSession();
+
+            if (!savedSession || savedSession.courseId !== courseId) {
+                return;
+            }
+
+            setPaymentSession(savedSession);
+            setCurrentStep(savedSession.orderCode ? 2 : 1);
+        };
+
         const loadCourse = async () => {
-            if (checkoutType !== 'course') {
-                setLoadingCourse(false);
-                return;
-            }
-
-            if (!courseId) {
-                setCheckoutError('Thiếu mã khóa học để tiếp tục checkout.');
-                setLoadingCourse(false);
-                return;
-            }
-
             try {
                 setLoadingCourse(true);
                 setCheckoutError('');
 
                 const response = await subjectApi.getById(courseId);
-                const payload = response.data?.data || response.data || response;
+                const payload = response?.data || response;
 
                 if (!payload || (payload.status && payload.status !== 'published')) {
-                    throw new Error('Khóa học này hiện chưa mở công khai để thanh toán.');
+                    throw new Error('Khóa học này hiện chưa sẵn sàng để thanh toán.');
                 }
 
                 const normalizedCourse = mapCourseToPublicModel(payload, 0);
-                const courseSummary = getCourseOrderSummary(normalizedCourse);
+
+                if (normalizedCourse.hasAccess) {
+                    navigate(buildCourseLearnPath(normalizedCourse.id, true), { replace: true });
+                    return;
+                }
 
                 if (isMounted) {
                     setCourseOrder({
-                        ...courseSummary,
+                        ...getCourseOrderSummary(normalizedCourse),
                         courseId: normalizedCourse.id,
                         courseTitle: normalizedCourse.title,
+                        isFree: normalizedCourse.isFree,
                     });
+                    restoreSession();
                 }
             } catch (error) {
-                console.error('Failed to load course checkout:', error);
                 if (isMounted) {
                     setCheckoutError(error.message || 'Không tải được thông tin khóa học.');
                 }
@@ -188,7 +158,40 @@ export default function Checkout() {
         return () => {
             isMounted = false;
         };
-    }, [checkoutType, courseId, isAuthenticated]);
+    }, [courseId, isAuthenticated, isCourseCheckout, navigate]);
+
+    useEffect(() => {
+        const createdAt = paymentSession?.createdAt;
+
+        if (!createdAt) {
+            setTimeLeft(PAYMENT_WINDOW_SECONDS);
+            return undefined;
+        }
+
+        const updateCountdown = () => {
+            const elapsedSeconds = Math.max(
+                0,
+                Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000),
+            );
+            const nextValue = Math.max(PAYMENT_WINDOW_SECONDS - elapsedSeconds, 0);
+            setTimeLeft(nextValue);
+        };
+
+        updateCountdown();
+        const timer = setInterval(updateCountdown, 1000);
+
+        return () => clearInterval(timer);
+    }, [paymentSession?.createdAt]);
+
+    const canCreateOrder = Boolean(courseOrder) && !loadingCourse && !checkoutError && !isCreatingOrder;
+
+    const summaryText = useMemo(() => {
+        if (!paymentSession?.orderCode) {
+            return 'Frontend sẽ tạo đơn thật từ backend rồi hiển thị đúng QR, nội dung chuyển khoản và link PayOS.';
+        }
+
+        return `Đơn ${paymentSession.orderCode} đang chờ bạn thanh toán và xác nhận lại với backend.`;
+    }, [paymentSession?.orderCode]);
 
     if (!isAuthenticated) {
         return (
@@ -197,7 +200,7 @@ export default function Checkout() {
                     <div className="mx-auto max-w-4xl">
                         <OwlLoader
                             message="Đang chuyển đến đăng nhập..."
-                            subMessage="Checkout chỉ dành cho người dùng đã đăng nhập để hệ thống gắn khóa học vào đúng tài khoản."
+                            subMessage="Checkout chỉ hoạt động cho tài khoản đã đăng nhập để backend gắn quyền học đúng người."
                             className="py-16"
                         />
                     </div>
@@ -206,112 +209,107 @@ export default function Checkout() {
         );
     }
 
-    const orderItem = checkoutType === 'course' ? courseOrder : selectedPlan;
-    const pageTitle =
-        currentStep === 1
-            ? checkoutType === 'course'
-                ? 'Xác nhận khóa học'
-                : 'Xác nhận gói học tập'
-            : 'Thanh toán an toàn';
-    const pageDescription =
-        currentStep === 1
-            ? checkoutType === 'course'
-                ? 'Kiểm tra tài khoản nhận quyền truy cập và thông tin khóa học trước khi thanh toán.'
-                : 'Kiểm tra tài khoản nhận quyền lợi và chi tiết gói học tập trước khi thanh toán.'
-            : 'Chọn phương thức thanh toán phù hợp. Sau khi hoàn tất, quyền truy cập sẽ được kích hoạt trên tài khoản này.';
-    const backLink = checkoutType === 'course' && courseId ? `/courses/${courseId}` : appHomePath;
-    const canProceed =
-        currentStep === 1
-            ? Boolean(orderItem) && !loadingCourse && !checkoutError
-            : currentStep === 2
-                ? Boolean(paymentMethod) && !isProcessing
-                : false;
-
-    const handlePayment = async () => {
-        if (!paymentMethod || !orderItem) {
+    const handleCreateOrder = async () => {
+        if (!courseOrder?.courseId || isCreatingOrder) {
             return;
         }
 
-        setIsProcessing(true);
+        setIsCreatingOrder(true);
         setCheckoutError('');
 
         try {
-            let createdOrder = null;
+            const response = await orderApi.create({ courseId: courseOrder.courseId });
+            const normalized = normalizeOrderCreationResponse(response);
 
-            try {
-                const payload =
-                    checkoutType === 'course'
-                        ? {
-                            orderType: 'course',
-                            courseId,
-                            paymentMethod,
-                            items: [
-                                {
-                                    itemType: 'course',
-                                    courseId,
-                                    quantity: 1,
-                                    unitPrice: orderItem.price,
-                                },
-                            ],
-                        }
-                        : {
-                            orderType: 'subscription',
-                            planId: selectedPlan.id,
-                            paymentMethod,
-                            items: [
-                                {
-                                    itemType: 'subscription',
-                                    planId: selectedPlan.id,
-                                    quantity: 1,
-                                    unitPrice: selectedPlan.price,
-                                },
-                            ],
-                        };
-
-                createdOrder = await orderApi.create(payload);
-            } catch (submitError) {
-                console.warn('Checkout API unavailable or rejected payload. Falling back to mock success.', submitError);
+            if (normalized.isFree) {
+                openDialog({
+                    variant: 'success',
+                    title: 'Khóa học miễn phí đã được kích hoạt',
+                    message: 'Backend trả về `isFree = true`, nên bạn có thể vào học ngay mà không cần qua PayOS.',
+                    details: courseOrder.courseTitle || courseOrder.name,
+                    confirmLabel: 'Vào học ngay',
+                    confirmTone: 'success',
+                    onConfirm: () => {
+                        navigate(buildCourseLearnPath(courseOrder.courseId, true), { replace: true });
+                    },
+                });
+                return;
             }
 
-            await new Promise((resolve) => setTimeout(resolve, 1200));
+            if (!normalized.orderCode) {
+                throw new Error('Backend chưa trả về orderCode cho đơn thanh toán.');
+            }
 
-            setTransaction({
-                id:
-                    createdOrder?.data?.orderId ||
-                    createdOrder?.orderId ||
-                    createdOrder?.data?.id ||
-                    createdOrder?.id ||
-                    `TXN-SKR-${Date.now()}`,
-                paymentMethod: getPaymentMethodLabel(paymentMethod),
-                amount: formatCurrency(orderItem.price),
-                status: 'completed',
-                destinationPath:
-                    checkoutType === 'course' && courseId
-                        ? buildCourseLearnPath(courseId, true)
-                        : '/dashboard',
-                destinationLabel: checkoutType === 'course' ? 'Vào học ngay' : 'Mở dashboard',
+            const nextSession = writeCheckoutSession({
+                courseId: courseOrder.courseId,
+                courseTitle: courseOrder.courseTitle || courseOrder.name,
+                amount: normalized.amount ?? courseOrder.price,
+                orderCode: normalized.orderCode,
+                qrUrl: normalized.qrUrl || '',
+                checkoutUrl: normalized.checkoutUrl || '',
+                accountNo: normalized.accountNo || '',
+                accountName: normalized.accountName || '',
+                bankId: normalized.bankId || '',
+                addInfo: normalized.addInfo || '',
+                createdAt: new Date().toISOString(),
             });
 
-            setCurrentStep(3);
+            setPaymentSession(nextSession);
+            setCurrentStep(2);
         } catch (error) {
-            console.error('Checkout failed:', error);
-            setCheckoutError(error.message || 'Thanh toán chưa hoàn tất. Vui lòng thử lại.');
+            setCheckoutError(extractApiErrorMessage(error, 'Không thể tạo đơn thanh toán cho khóa học này.'));
         } finally {
-            setIsProcessing(false);
+            setIsCreatingOrder(false);
         }
     };
 
-    const handleNext = () => {
-        if (currentStep === 2) {
-            void handlePayment();
+    const handleOpenCheckout = () => {
+        if (!paymentSession?.checkoutUrl) {
+            openDialog({
+                variant: 'warning',
+                title: 'Đơn này chưa có link PayOS',
+                message: 'Bạn vẫn có thể dùng QR hoặc thông tin chuyển khoản bên dưới để thanh toán.',
+                confirmLabel: 'Đã hiểu',
+                confirmTone: 'warning',
+            });
             return;
         }
 
-        setCurrentStep((value) => Math.min(value + 1, 3));
+        window.open(paymentSession.checkoutUrl, '_blank', 'noopener,noreferrer');
     };
 
-    const handleBack = () => {
-        setCurrentStep((value) => Math.max(value - 1, 1));
+    const handleConfirmPaid = async () => {
+        if (!paymentSession?.orderCode || isCheckingPayment) {
+            return;
+        }
+
+        setIsCheckingPayment(true);
+
+        try {
+            const response = await orderApi.verify(paymentSession.orderCode);
+            const payload = response?.data || response || {};
+
+            if (payload.isCompleted) {
+                navigate(`/checkout/success?orderCode=${encodeURIComponent(paymentSession.orderCode)}`);
+                return;
+            }
+
+            navigate(`/checkout/cancel?orderCode=${encodeURIComponent(paymentSession.orderCode)}`, {
+                state: {
+                    message: payload.message || 'Backend chưa ghi nhận thanh toán từ PayOS.',
+                },
+            });
+        } catch (error) {
+            openDialog({
+                variant: 'error',
+                title: 'Chưa thể kiểm tra giao dịch',
+                message: extractApiErrorMessage(error, 'Có lỗi khi gọi API verify của backend.'),
+                confirmLabel: 'Đóng',
+                confirmTone: 'danger',
+            });
+        } finally {
+            setIsCheckingPayment(false);
+        }
     };
 
     return (
@@ -320,187 +318,214 @@ export default function Checkout() {
 
             <main className="px-4 pb-16 pt-8 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-6xl">
-                    {currentStep < 3 ? (
-                        <>
-                            <Link
-                                to={backLink}
-                                className="apple-transition inline-flex items-center gap-2 text-sm font-semibold apple-secondary-text hover:text-[var(--apple-text)]"
-                            >
-                                <ArrowLeft className="h-4 w-4" />
-                                Quay lại
-                            </Link>
+                    <Link
+                        to={backLink}
+                        className="apple-transition inline-flex items-center gap-2 text-sm font-semibold apple-secondary-text hover:text-[var(--apple-text)]"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Quay lại
+                    </Link>
 
-                            <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                                <div className="apple-panel apple-card-shadow rounded-[36px] border p-7 sm:p-9">
-                                    <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
-                                        Checkout
-                                    </div>
-                                    <h1 className="apple-main-text mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
-                                        {pageTitle}
-                                    </h1>
-                                    <p className="apple-secondary-text mt-4 max-w-3xl text-base leading-8">
-                                        {pageDescription}
-                                    </p>
+                    <section className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="apple-panel apple-card-shadow rounded-[36px] border p-7 sm:p-9">
+                            <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
+                                Checkout
+                            </div>
+                            <h1 className="apple-main-text mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                                {currentStep === 1 ? 'Xác nhận khóa học' : 'Thanh toán bằng PayOS'}
+                            </h1>
+                            <p className="apple-secondary-text mt-4 max-w-3xl text-base leading-8">
+                                {currentStep === 1
+                                    ? 'Frontend sẽ tạo đơn từ `POST /api/orders` với `courseId`, sau đó lấy link thanh toán và QR từ backend để bạn hoàn tất giao dịch.'
+                                    : 'Bạn đang dùng đúng phương thức mà backend hỗ trợ. Sau khi chuyển khoản xong, bấm xác nhận để frontend gọi API verify và báo kết quả.'}
+                            </p>
+                        </div>
+
+                        <div className="apple-panel apple-card-shadow rounded-[36px] border p-6 sm:p-7">
+                            <div className="flex items-center gap-3 text-sm font-semibold text-orange-700">
+                                <Clock className="h-4 w-4" />
+                                Phiên thanh toán còn hiệu lực trong {formatTime(timeLeft)}
+                            </div>
+                            <div className="mt-5 space-y-3">
+                                <QuickNote
+                                    icon={ShieldCheck}
+                                    text="Thông tin thanh toán được bảo vệ và chỉ dùng để đối soát với PayOS."
+                                />
+                                <QuickNote
+                                    icon={Sparkles}
+                                    text={summaryText}
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    <div className="mt-8">
+                        <CheckoutSteps currentStep={currentStep} />
+                    </div>
+
+                    <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+                        <div className="space-y-6">
+                            <CheckoutAccountCard
+                                profile={profile}
+                                isAuthenticated={isAuthenticated}
+                                isHydrating={isHydratingProfile}
+                                loginHref={loginHref}
+                                compact={currentStep === 2}
+                            />
+
+                            {loadingCourse ? (
+                                <div className="apple-panel apple-card-shadow rounded-[32px] border p-8">
+                                    <OwlLoader
+                                        message="Đang tải khóa học cần thanh toán..."
+                                        subMessage="Mình đang lấy dữ liệu course để dựng đúng phần xác nhận và giá tiền."
+                                        className="py-8"
+                                    />
                                 </div>
+                            ) : null}
 
-                                <div className="apple-panel apple-card-shadow rounded-[36px] border p-6 sm:p-7">
-                                    <div className="flex items-center gap-3 text-sm font-semibold text-orange-700">
-                                        <Clock className="h-4 w-4" />
-                                        Phiên thanh toán còn hiệu lực trong {formatTime(timeLeft)}
-                                    </div>
-                                    <div className="mt-5 space-y-3">
-                                        <QuickNote
-                                            icon={ShieldCheck}
-                                            text="Thông tin thanh toán được bảo vệ và chỉ dùng để xử lý giao dịch."
-                                        />
-                                        <QuickNote
-                                            icon={Sparkles}
-                                            text="Quyền truy cập sẽ gắn vào đúng tài khoản đang hiển thị bên dưới."
-                                        />
-                                    </div>
+                            {checkoutError ? (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="rounded-[28px] border border-red-300/60 bg-red-500/8 p-5"
+                                >
+                                    <p className="text-sm font-semibold text-red-700">Không thể tiếp tục checkout</p>
+                                    <p className="mt-2 text-sm leading-7 text-red-700/80">{checkoutError}</p>
+                                </motion.div>
+                            ) : null}
+
+                            {!loadingCourse && courseOrder && currentStep === 1 ? (
+                                <OrderSummary plan={courseOrder} orderType="course" />
+                            ) : null}
+
+                            {!loadingCourse && courseOrder && currentStep === 2 ? (
+                                <PaymentMethods
+                                    paymentSession={paymentSession}
+                                    onOpenCheckout={handleOpenCheckout}
+                                />
+                            ) : null}
+                        </div>
+
+                        <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
+                            <div className="apple-panel apple-card-shadow rounded-[32px] border p-6 sm:p-7">
+                                <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
+                                    Order total
                                 </div>
-                            </section>
-
-                            <div className="mt-8">
-                                <CheckoutSteps currentStep={currentStep} />
+                                <h2 className="apple-main-text mt-5 text-2xl font-semibold tracking-[-0.03em]">
+                                    Chi tiết thanh toán
+                                </h2>
+                                <div className="mt-6">
+                                    {courseOrder ? (
+                                        <PriceBreakdown plan={{ ...courseOrder, price: paymentSession?.amount ?? courseOrder.price }} />
+                                    ) : (
+                                        <p className="text-sm text-base-content/50">
+                                            Thông tin đơn hàng sẽ xuất hiện sau khi dữ liệu khóa học được tải xong.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-                                <div className="space-y-6">
-                                    <CheckoutAccountCard
-                                        profile={profile}
-                                        isAuthenticated={isAuthenticated}
-                                        isHydrating={isHydratingProfile}
-                                        loginHref={loginHref}
-                                        compact={currentStep === 2}
-                                    />
-
-                                    {loadingCourse ? (
-                                        <div className="apple-panel apple-card-shadow rounded-[32px] border p-8">
-                                            <OwlLoader
-                                                message="Đang tải khóa học cần thanh toán..."
-                                                subMessage="SKR đang lấy dữ liệu public course từ backend để dựng checkout."
-                                                className="py-8"
-                                            />
-                                        </div>
-                                    ) : null}
-
-                                    {checkoutError ? (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="rounded-[28px] border border-red-300/60 bg-red-500/8 p-5"
-                                        >
-                                            <p className="text-sm font-semibold text-red-700">Không thể tiếp tục checkout</p>
-                                            <p className="mt-2 text-sm leading-7 text-red-700/80">{checkoutError}</p>
-                                        </motion.div>
-                                    ) : null}
-
-                                    {!loadingCourse && orderItem && currentStep === 1 ? (
-                                        <OrderSummary plan={orderItem} orderType={checkoutType} />
-                                    ) : null}
-
-                                    {!loadingCourse && orderItem && currentStep === 2 ? (
-                                        <PaymentMethods selected={paymentMethod} onSelect={setPaymentMethod} />
-                                    ) : null}
+                            {paymentSession?.orderCode ? (
+                                <div className="apple-panel rounded-[28px] border p-5">
+                                    <p className="text-sm font-semibold text-base-content">Đơn đang chờ xác nhận</p>
+                                    <p className="mt-3 text-xl font-semibold text-base-content">{paymentSession.orderCode}</p>
+                                    <p className="mt-2 text-sm leading-7 text-base-content/60">
+                                        Sau khi hoàn tất chuyển khoản, bấm xác nhận để sang trang thông báo thành công hoặc thất bại.
+                                    </p>
                                 </div>
+                            ) : null}
 
-                                <aside className="space-y-5 lg:sticky lg:top-28 lg:self-start">
-                                    <div className="apple-panel apple-card-shadow rounded-[32px] border p-6 sm:p-7">
-                                        <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
-                                            Order total
-                                        </div>
-                                        <h2 className="apple-main-text mt-5 text-2xl font-semibold tracking-[-0.03em]">
-                                            Chi tiết thanh toán
-                                        </h2>
-                                        <div className="mt-6">
-                                            {orderItem ? (
-                                                <PriceBreakdown plan={orderItem} coupon={appliedCoupon} />
+                            <div className="apple-panel rounded-[28px] border p-5">
+                                <p className="text-sm font-semibold text-base-content">
+                                    {currentStep === 1 ? 'Sẵn sàng tạo mã thanh toán' : 'Xác nhận sau khi đã chuyển khoản'}
+                                </p>
+                                <p className="mt-2 text-sm leading-7 text-base-content/60">
+                                    {currentStep === 1
+                                        ? 'Bước này sẽ gọi đúng API backend và lấy dữ liệu PayOS thật cho khóa học hiện tại.'
+                                        : 'Nút xác nhận sẽ gọi `GET /api/orders/:orderCode/verify` và điều hướng sang màn hình thông báo kết quả.'}
+                                </p>
+
+                                <div className="mt-5 space-y-3">
+                                    {currentStep === 1 ? (
+                                        <motion.button
+                                            whileHover={canCreateOrder ? { y: -1 } : {}}
+                                            whileTap={canCreateOrder ? { scale: 0.99 } : {}}
+                                            type="button"
+                                            onClick={handleCreateOrder}
+                                            disabled={!canCreateOrder}
+                                            className="apple-primary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50"
+                                        >
+                                            {isCreatingOrder ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Đang tạo đơn...
+                                                </>
                                             ) : (
-                                                <p className="text-sm text-base-content/50">
-                                                    Thông tin đơn hàng sẽ xuất hiện sau khi dữ liệu được tải xong.
-                                                </p>
+                                                'Tạo mã thanh toán'
                                             )}
-                                        </div>
-                                    </div>
-
-                                    <div className="apple-panel rounded-[28px] border p-5">
-                                        <p className="text-sm font-semibold text-base-content">Mã giảm giá</p>
-                                        <div className="mt-4">
-                                            <CouponInput
-                                                appliedCoupon={appliedCoupon}
-                                                onApply={(coupon) => setAppliedCoupon(coupon)}
-                                                onRemove={() => setAppliedCoupon(null)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="apple-panel rounded-[28px] border p-5">
-                                        <p className="text-sm font-semibold text-base-content">
-                                            {currentStep === 2 ? 'Sẵn sàng hoàn tất giao dịch' : 'Tiếp tục sang bước thanh toán'}
-                                        </p>
-                                        <p className="mt-2 text-sm leading-7 text-base-content/60">
-                                            Sau khi hoàn tất, khóa học sẽ được kích hoạt ngay trên tài khoản hiện tại.
-                                        </p>
-
-                                        <div className="mt-5 space-y-3">
+                                        </motion.button>
+                                    ) : (
+                                        <>
                                             <motion.button
-                                                whileHover={canProceed ? { y: -1 } : {}}
-                                                whileTap={canProceed ? { scale: 0.99 } : {}}
+                                                whileHover={!isCheckingPayment ? { y: -1 } : {}}
+                                                whileTap={!isCheckingPayment ? { scale: 0.99 } : {}}
                                                 type="button"
-                                                onClick={handleNext}
-                                                disabled={!canProceed || isProcessing}
+                                                onClick={handleConfirmPaid}
+                                                disabled={!paymentSession?.orderCode || isCheckingPayment}
                                                 className="apple-primary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50"
                                             >
-                                                {isProcessing ? (
+                                                {isCheckingPayment ? (
                                                     <>
                                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                        Đang xử lý...
-                                                    </>
-                                                ) : currentStep === 2 ? (
-                                                    <>
-                                                        Thanh toán an toàn
-                                                        <ShieldCheck className="ml-2 h-4 w-4" />
+                                                        Đang kiểm tra thanh toán...
                                                     </>
                                                 ) : (
-                                                    <>
-                                                        Tiếp tục
-                                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                                    </>
+                                                    'Xác nhận đã thanh toán'
                                                 )}
                                             </motion.button>
 
-                                            {currentStep > 1 ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleBack}
-                                                    disabled={isProcessing}
-                                                    className="apple-secondary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold"
-                                                >
-                                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                                    Quay lại
-                                                </button>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                </aside>
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenCheckout}
+                                                className="apple-secondary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold"
+                                            >
+                                                Mở lại trang PayOS
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {currentStep > 1 ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => setCurrentStep(1)}
+                                            disabled={isCreatingOrder || isCheckingPayment}
+                                            className="apple-secondary-button apple-transition inline-flex h-12 w-full items-center justify-center rounded-full px-5 text-sm font-semibold"
+                                        >
+                                            <ArrowLeft className="mr-2 h-4 w-4" />
+                                            Quay lại thông tin khóa học
+                                        </button>
+                                    ) : null}
+                                </div>
                             </div>
-                        </>
-                    ) : (
-                        <div className="pt-6">
-                            <CheckoutSuccess
-                                transaction={transaction}
-                                plan={orderItem}
-                                orderType={checkoutType}
-                                destinationPath={transaction?.destinationPath}
-                                destinationLabel={transaction?.destinationLabel}
-                                secondaryPath={appHomePath}
-                                secondaryLabel="Về dashboard"
-                            />
-                        </div>
-                    )}
+                        </aside>
+                    </div>
                 </div>
             </main>
+
+            <OwlDialog
+                isOpen={dialog.isOpen}
+                variant={dialog.variant}
+                title={dialog.title}
+                message={dialog.message}
+                details={dialog.details}
+                confirmLabel={dialog.confirmLabel}
+                cancelLabel={dialog.cancelLabel}
+                showCancel={dialog.showCancel}
+                confirmTone={dialog.confirmTone}
+                loading={dialog.loading}
+                onConfirm={handleDialogConfirm}
+                onClose={closeDialog}
+            />
         </div>
     );
 }
@@ -522,25 +547,31 @@ function formatTime(seconds) {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-function formatCurrency(amount) {
-    if (!amount) {
-        return 'Miễn phí';
-    }
+function normalizeOrderCreationResponse(response) {
+    const payload = response?.data || response || {};
+    const innerData = payload?.data && typeof payload.data === 'object' ? payload.data : null;
+    const freePayload = innerData?.order || payload?.order || null;
+    const isFree = Boolean(innerData?.isFree ?? payload?.isFree);
+    const paidPayload = innerData?.orderCode ? innerData : payload;
 
-    return `${new Intl.NumberFormat('vi-VN').format(Math.round(amount))}đ`;
+    return {
+        isFree,
+        freeOrder: freePayload,
+        orderCode: paidPayload?.orderCode || '',
+        amount: paidPayload?.amount ?? freePayload?.amount ?? 0,
+        qrUrl: paidPayload?.qrUrl || '',
+        checkoutUrl: paidPayload?.checkoutUrl || '',
+        accountNo: paidPayload?.accountNo || '',
+        accountName: paidPayload?.accountName || '',
+        bankId: paidPayload?.bankId || '',
+        addInfo: paidPayload?.addInfo || '',
+    };
 }
 
-function getPaymentMethodLabel(paymentMethod) {
-    switch (paymentMethod) {
-        case 'momo':
-            return 'Ví MoMo';
-        case 'vnpay':
-            return 'VNPay';
-        case 'zalopay':
-            return 'ZaloPay';
-        case 'bank_transfer':
-            return 'Chuyển khoản ngân hàng';
-        default:
-            return 'Visa / Mastercard';
-    }
+function extractApiErrorMessage(error, fallbackMessage) {
+    return (
+        error?.response?.data?.message ||
+        error?.message ||
+        fallbackMessage
+    );
 }

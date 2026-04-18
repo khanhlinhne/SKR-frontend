@@ -20,6 +20,7 @@ const Flashcards = lazy(() => import('@/features/flashcards/pages/Flashcards'));
 const PublicFlashcards = lazy(() => import('@/features/flashcards/pages/PublicFlashcards'));
 const PublicFlashcardDetail = lazy(() => import('@/features/flashcards/pages/PublicFlashcardDetail'));
 const Checkout = lazy(() => import('@/features/checkout/pages/Checkout'));
+const CheckoutResult = lazy(() => import('@/features/checkout/pages/CheckoutResult'));
 const Orders = lazy(() => import('@/features/orders/pages/Orders'));
 const OrderDetail = lazy(() => import('@/features/orders/pages/OrderDetail'));
 const PublicCoursesPage = lazy(() => import('@/features/courses/pages/PublicCoursesPage'));
@@ -96,6 +97,8 @@ function App() {
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
                 <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                <Route path="/checkout/success" element={<ProtectedRoute><CheckoutResult /></ProtectedRoute>} />
+                <Route path="/checkout/cancel" element={<ProtectedRoute><CheckoutResult /></ProtectedRoute>} />
                 <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                 <Route path="/orders/:id" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
                 <Route path="/courses/:id/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />

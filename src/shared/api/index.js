@@ -15,4 +15,5 @@ export { default as assignmentApi } from "./assignmentApi";
 export { default as dashboardApi } from "./dashboardApi";
 export { default as learnerAiApi } from "./learnerAiApi";
 export { default as expertDashboardApi } from "./expertDashboardApi";
+export { default as expertAnalyticsApi } from "./expertAnalyticsApi";
 

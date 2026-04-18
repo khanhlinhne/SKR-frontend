@@ -2,11 +2,14 @@ import { normalizeCourse as normalizeBaseCourse } from '@/features/admin/compone
 import {
     normalizeComparableId,
     normalizeCourseOrder,
+    normalizeScopedCourseOrder,
     toValidDate,
 } from './adminCourseDetailOrders';
 
 function normalizeCourse(course) {
     const baseCourse = normalizeBaseCourse(course);
+    const totalLessons = Number(course.totalLessons ?? course.lessons ?? baseCourse.lessons ?? 0);
+    const totalChapters = Number(course.totalChapters ?? course.chapters ?? baseCourse.chapters ?? 0);
 
     return {
         ...baseCourse,
@@ -15,6 +18,10 @@ function normalizeCourse(course) {
         totalDocuments: Number(course.totalDocuments ?? 0),
         totalQuestions: Number(course.totalQuestions ?? 0),
         estimatedHours: Number(course.estimatedDurationHours ?? course.estimatedHours ?? 0),
+        lessons: totalLessons,
+        chapters: totalChapters,
+        totalLessons,
+        totalChapters,
         totalStudents: baseCourse.students,
         creator: course.creator ?? course.instructor ?? null,
     };
@@ -33,6 +40,14 @@ function endOfDay(date) {
 }
 
 function startOfWeek(date) {
+    const next = startOfDay(date);
+    const day = next.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    next.setDate(next.getDate() + diff);
+    return next;
+}
+
+function startOfBusinessWeek(date) {
     const next = startOfDay(date);
     const day = next.getDay();
     const diff = day === 0 ? -6 : 1 - day;
@@ -73,11 +88,12 @@ function calculateGrowthPercent(currentValue, previousValue) {
 
 function getRangeConfig(range, now = new Date()) {
     if (range === 'week') {
+        const start = startOfBusinessWeek(now);
         const end = endOfDay(now);
-        const start = startOfDay(addDays(now, -6));
-        const previousStart = startOfDay(addDays(start, -7));
-        const previousEnd = endOfDay(addDays(start, -1));
-        const weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        const previousStart = startOfBusinessWeek(addDays(start, -1));
+        const currentWeekOffset = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        const previousEnd = endOfDay(addDays(previousStart, currentWeekOffset));
+        const weekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
         return {
             key: range,
@@ -86,14 +102,14 @@ function getRangeConfig(range, now = new Date()) {
             previousStart,
             previousEnd,
             title: 'Doanh thu theo ngày',
-            subtitle: '7 ngày gần nhất của khóa học này',
-            enrollmentSubtitle: 'Theo ngày trong 7 ngày gần nhất',
-            ordersSubtitle: 'Đơn hàng trong 7 ngày gần nhất',
-            totalLabel: '7 ngày gần nhất',
+            subtitle: '7 ngày trong tuần hiện tại của khóa học này',
+            enrollmentSubtitle: 'Theo ngày trong tuần hiện tại',
+            ordersSubtitle: 'Đơn hàng trong tuần hiện tại',
+            totalLabel: 'Tuần này',
             buckets: Array.from({ length: 7 }, (_, index) => {
                 const bucketStart = startOfDay(addDays(start, index));
                 const bucketEnd = endOfDay(bucketStart);
-                const weekdayLabel = weekdays[bucketStart.getDay()];
+                const weekdayLabel = weekdays[index];
 
                 return {
                     key: bucketStart.toISOString(),
@@ -108,10 +124,10 @@ function getRangeConfig(range, now = new Date()) {
 
     if (range === 'year') {
         const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+        const start = new Date(now.getFullYear(), 0, 1);
         const end = endOfMonth(currentMonth);
-        const previousStart = new Date(start.getFullYear(), start.getMonth() - 12, 1);
-        const previousEnd = endOfMonth(new Date(end.getFullYear(), end.getMonth() - 12, 1));
+        const previousStart = new Date(now.getFullYear() - 1, 0, 1);
+        const previousEnd = endOfMonth(new Date(now.getFullYear() - 1, now.getMonth(), 1));
 
         return {
             key: range,
@@ -120,18 +136,18 @@ function getRangeConfig(range, now = new Date()) {
             previousStart,
             previousEnd,
             title: 'Doanh thu theo tháng',
-            subtitle: '12 tháng gần nhất của khóa học này',
-            enrollmentSubtitle: 'Theo tháng trong 12 tháng gần nhất',
-            ordersSubtitle: 'Đơn hàng trong 12 tháng gần nhất',
-            totalLabel: '12 tháng gần nhất',
+            subtitle: '12 tháng trong năm hiện tại của khóa học này',
+            enrollmentSubtitle: 'Theo tháng trong năm hiện tại',
+            ordersSubtitle: 'Đơn hàng trong năm hiện tại',
+            totalLabel: 'Năm nay',
             buckets: Array.from({ length: 12 }, (_, index) => {
-                const bucketStart = new Date(start.getFullYear(), start.getMonth() + index, 1);
+                const bucketStart = new Date(start.getFullYear(), index, 1);
                 const bucketEnd = endOfMonth(bucketStart);
 
                 return {
-                    key: `${bucketStart.getFullYear()}-${index}`,
-                    shortLabel: `T${index + 1}`,
-                    label: `Tháng ${index + 1}`,
+                    key: `${bucketStart.getFullYear()}-${bucketStart.getMonth() + 1}`,
+                    shortLabel: `T${bucketStart.getMonth() + 1}`,
+                    label: `Tháng ${bucketStart.getMonth() + 1}/${bucketStart.getFullYear()}`,
                     start: bucketStart,
                     end: bucketEnd,
                 };
@@ -184,16 +200,28 @@ function sumRevenueInRange(orders, startDate, endDate) {
 
 function buildRangeAnalytics(allOrders, completedOrders, range, now = new Date()) {
     const config = getRangeConfig(range, now);
-    const filteredOrders = allOrders.filter((order) => {
+    const hasDatedOrders = allOrders.some((order) => Boolean(toValidDate(order.occurredAt)));
+    const hasDatedCompletedOrders = completedOrders.some((order) => Boolean(toValidDate(order.occurredAt)));
+    const filteredOrders = hasDatedOrders ? allOrders.filter((order) => {
         const date = toValidDate(order.occurredAt);
         return Boolean(date) && date >= config.start && date <= config.end;
-    });
-    const filteredCompletedOrders = completedOrders.filter((order) => {
+    }) : allOrders.slice();
+    const filteredCompletedOrders = hasDatedCompletedOrders ? completedOrders.filter((order) => {
         const date = toValidDate(order.occurredAt);
         return Boolean(date) && date >= config.start && date <= config.end;
-    });
+    }) : completedOrders.slice();
 
     const buckets = config.buckets.map((bucket) => {
+        if (!hasDatedCompletedOrders) {
+            const isLastBucket = bucket.key === config.buckets[config.buckets.length - 1]?.key;
+            return {
+                shortLabel: bucket.shortLabel,
+                label: bucket.label,
+                revenue: isLastBucket ? filteredCompletedOrders.reduce((sum, order) => sum + order.amount, 0) : 0,
+                count: isLastBucket ? filteredCompletedOrders.length : 0,
+            };
+        }
+
         const revenue = filteredCompletedOrders.reduce((sum, order) => {
             const date = toValidDate(order.occurredAt);
             if (!date || date < bucket.start || date > bucket.end) {
@@ -255,9 +283,14 @@ function buildRangeAnalytics(allOrders, completedOrders, range, now = new Date()
     };
 }
 
-function buildCourseAnalytics(course, rawOrders) {
+function buildCourseAnalytics(course, rawOrders, options = {}) {
+    const { courseScoped = false } = options;
     const normalizedOrders = rawOrders
-        .map((order, index) => normalizeCourseOrder(order, course.id, index))
+        .map((order, index) => (
+            courseScoped
+                ? normalizeScopedCourseOrder(order, index)
+                : normalizeCourseOrder(order, course, index)
+        ))
         .filter(Boolean)
         .sort((left, right) => (new Date(right.occurredAt || right.createdAt).getTime()) - (new Date(left.occurredAt || left.createdAt).getTime()));
 

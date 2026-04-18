@@ -54,6 +54,7 @@ function SortIcon({ active, direction }) {
 
 function MetricCard({ card, index }) {
     const Icon = iconMap[card.icon];
+    const showChange = Boolean(card.change);
 
     return (
         <motion.div
@@ -66,9 +67,9 @@ function MetricCard({ card, index }) {
                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient} shadow-lg`}>
                     {Icon && <Icon className="h-5 w-5 text-white" />}
                 </div>
-                {card.sparkData && <Sparkline data={card.sparkData} color={card.sparkColor} />}
+                {card.sparkData?.length > 1 && <Sparkline data={card.sparkData} color={card.sparkColor} />}
                 {card.donut != null && <DonutChart value={card.donut} size={56} strokeWidth={6} color="#8b5cf6" />}
-                {card.rating && (
+                {card.rating != null && (
                     <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => (
                             <Star
@@ -80,14 +81,16 @@ function MetricCard({ card, index }) {
                 )}
             </div>
             <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wider text-base-content/45">{card.label}</p>
-            <div className="flex items-end justify-between">
+            <div className="flex items-end justify-between gap-3">
                 <h3 className="text-xl font-black text-base-content">{card.value}</h3>
-                <span className={`flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
-                    card.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'
-                }`}>
-                    {card.trend === 'up' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                    {card.change}
-                </span>
+                {showChange && (
+                    <span className={`flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                        card.trend === 'down' ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-600'
+                    }`}>
+                        {card.trend === 'down' ? <ArrowDownRight className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
+                        {card.change}
+                    </span>
+                )}
             </div>
         </motion.div>
     );
@@ -214,7 +217,7 @@ function OverviewTab({ overview, chartPeriod, setChartPeriod, studentCount }) {
                             <Zap className="h-4 w-4 text-amber-500" />
                             Mức độ hoạt động
                         </h3>
-                        <p className="mt-0.5 text-xs text-base-content/45">Số lượt thao tác của học viên theo các ngày trong tuần</p>
+                        <p className="mt-0.5 text-xs text-base-content/45">Số học viên hoạt động theo các ngày trong tuần</p>
                     </div>
                     <BarChartCSS data={overview.weeklyActivity} height={150} barColor="from-amber-500 to-orange-500" />
                 </motion.div>
@@ -227,15 +230,19 @@ function OverviewTab({ overview, chartPeriod, setChartPeriod, studentCount }) {
                             <BookOpen className="h-4 w-4 text-blue-500" />
                             Tiến độ theo bài giảng
                         </h3>
-                        <p className="mt-0.5 text-xs text-base-content/45">% học viên hoàn thành từng bài</p>
+                        <p className="mt-0.5 text-xs text-base-content/45">% học viên đã chạm tới từng bài</p>
                     </div>
                     <div className="max-h-[340px] space-y-2.5 overflow-y-auto pr-1">
-                        {overview.lessonProgress.map((lesson, index) => {
+                        {overview.lessonProgress.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-base-300 p-8 text-center text-sm font-bold text-base-content/45">
+                                Chưa có dữ liệu tiến độ bài giảng cho khóa học này.
+                            </div>
+                        ) : overview.lessonProgress.map((lesson, index) => {
                             const isStuck = lesson.dropRate > 10;
 
                             return (
                                 <motion.div
-                                    key={lesson.name}
+                                    key={lesson.lessonId || lesson.name}
                                     initial={{ opacity: 0, x: -12 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.4 + index * 0.04 }}
@@ -246,7 +253,7 @@ function OverviewTab({ overview, chartPeriod, setChartPeriod, studentCount }) {
                                     <div className="mb-1 flex items-center justify-between gap-3">
                                         <div className="min-w-0">
                                             <p className="truncate text-xs font-bold text-base-content">{lesson.name}</p>
-                                            <p className="text-[11px] text-base-content/45">{lesson.studentsAtLesson} học viên đang ở bước này</p>
+                                            <p className="text-[11px] text-base-content/45">{lesson.studentsAtLesson} học viên đã chạm bài này</p>
                                         </div>
                                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isStuck ? 'bg-red-500/10 text-red-500' : 'bg-violet-500/10 text-violet-600'}`}>
                                             Rơi rụng {lesson.dropRate}%
@@ -327,8 +334,8 @@ function OverviewTab({ overview, chartPeriod, setChartPeriod, studentCount }) {
 
                     <div className="mt-6 rounded-2xl bg-violet-500/5 p-4 text-sm text-base-content/60">
                         {studentCount > 0
-                            ? `Ước tính ${studentCount} học viên đang được theo dõi trong dashboard mô phỏng này.`
-                            : 'Khóa học chưa có học viên, nên các chỉ số hiện hiển thị ở mức tối thiểu.'}
+                            ? `Đang theo dõi ${studentCount} học viên cho khóa học này.`
+                            : 'Khóa học chưa có học viên nên các chỉ số đang hiển thị ở mức 0 hoặc --.'}
                     </div>
                 </motion.div>
             </div>
@@ -336,7 +343,25 @@ function OverviewTab({ overview, chartPeriod, setChartPeriod, studentCount }) {
     );
 }
 
-function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, searchTerm, setSearchTerm, statusFilter, setStatusFilter, sortField, sortDirection, onSort }) {
+function StudentsTab({
+    quickStats,
+    filteredEnrollments,
+    totalEnrollments,
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    sortField,
+    sortDirection,
+    onSort,
+    loadingStudents,
+    studentsError,
+    page,
+    totalPages,
+    setPage,
+    onExport,
+    exportingCsv,
+}) {
     const tableColumns = [
         { key: 'id', label: 'ID', icon: Hash },
         { key: 'name', label: 'Full Name', icon: null },
@@ -390,7 +415,7 @@ function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, search
                         <h3 className="flex items-center gap-2 text-sm font-black text-base-content">
                             <Users className="h-4 w-4 text-violet-500" />
                             Danh sách học viên
-                            <span className="badge badge-sm badge-primary font-bold">{filteredEnrollments.length}</span>
+                            <span className="badge badge-sm badge-primary font-bold">{totalEnrollments}</span>
                         </h3>
                         <div className="flex items-center gap-2">
                             <div className="relative">
@@ -418,7 +443,17 @@ function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, search
                     </div>
                 </div>
 
-                {filteredEnrollments.length === 0 ? (
+                {loadingStudents ? (
+                    <div className="flex items-center justify-center gap-3 py-16">
+                        <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+                        <p className="text-sm font-bold text-base-content/50">Đang tải danh sách học viên...</p>
+                    </div>
+                ) : studentsError ? (
+                    <div className="py-16 text-center">
+                        <AlertCircle className="mx-auto mb-2 h-10 w-10 text-red-500" />
+                        <p className="text-sm font-bold text-base-content">{studentsError}</p>
+                    </div>
+                ) : filteredEnrollments.length === 0 ? (
                     <div className="py-16 text-center">
                         <UserX className="mx-auto mb-2 h-10 w-10 text-base-content/15" />
                         <p className="text-sm font-bold text-base-content/50">Không tìm thấy học viên nào</p>
@@ -432,7 +467,7 @@ function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, search
                                         {tableColumns.map((column) => (
                                             <th key={column.label} className="px-3 py-3 text-[10px] font-black uppercase tracking-wider text-base-content/45">
                                                 {column.key ? (
-                                                    <button onClick={() => onSort(column.key)} className="flex items-center gap-1 transition-colors hover:text-violet-600">
+                                                    <button type="button" onClick={() => onSort(column.key)} className="flex items-center gap-1 transition-colors hover:text-violet-600">
                                                         {column.icon && <column.icon className="h-3 w-3" />}
                                                         {column.label}
                                                         <SortIcon active={sortField === column.key} direction={sortDirection} />
@@ -465,20 +500,22 @@ function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, search
                                                 <td className="px-3 py-2.5">
                                                     <div className="flex items-center gap-2">
                                                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-[10px] font-black text-white">
-                                                            {enrollment.fullName.charAt(0)}
+                                                            {enrollment.fullName?.charAt(0) || '?'}
                                                         </div>
                                                         <span className="text-xs font-bold text-base-content">{enrollment.fullName}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-2.5"><span className="text-[11px] text-base-content/55">{enrollment.email}</span></td>
-                                                <td className="px-3 py-2.5"><span className="text-[11px] text-base-content/55">{enrollment.mobile}</span></td>
+                                                <td className="px-3 py-2.5"><span className="text-[11px] text-base-content/55">{enrollment.email || '--'}</span></td>
+                                                <td className="px-3 py-2.5"><span className="text-[11px] text-base-content/55">{enrollment.mobile || '--'}</span></td>
                                                 <td className="px-3 py-2.5">
                                                     <span className="text-[11px] text-base-content/55">
-                                                        {new Date(enrollment.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                        {enrollment.date
+                                                            ? new Date(enrollment.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                                            : '--'}
                                                     </span>
                                                 </td>
                                                 <td className="px-3 py-2.5">
-                                                    {enrollment.cost > 0 ? (
+                                                    {Number(enrollment.cost) > 0 ? (
                                                         <span className="text-[11px] font-black text-emerald-600">{Number(enrollment.cost).toLocaleString('vi-VN')}đ</span>
                                                     ) : <span className="text-[11px] font-bold text-base-content/30">Free</span>}
                                                 </td>
@@ -515,10 +552,40 @@ function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, search
                             <p className="text-xs text-base-content/40">
                                 Hiển thị <span className="font-black text-base-content">{filteredEnrollments.length}</span> / {totalEnrollments} học viên
                             </p>
-                            <button className="btn btn-xs btn-ghost gap-1 rounded-lg font-bold text-base-content/50">
-                                <Download className="h-3 w-3" />
-                                Xuất CSV
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {totalPages > 1 && (
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPage(Math.max(1, page - 1))}
+                                            disabled={page <= 1}
+                                            className="btn btn-xs btn-ghost rounded-lg font-bold disabled:text-base-content/25"
+                                        >
+                                            Trước
+                                        </button>
+                                        <span className="text-[11px] font-bold text-base-content/45">
+                                            Trang {page}/{totalPages}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPage(Math.min(totalPages, page + 1))}
+                                            disabled={page >= totalPages}
+                                            className="btn btn-xs btn-ghost rounded-lg font-bold disabled:text-base-content/25"
+                                        >
+                                            Sau
+                                        </button>
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={onExport}
+                                    disabled={exportingCsv}
+                                    className="btn btn-xs btn-ghost gap-1 rounded-lg font-bold text-base-content/50 disabled:text-base-content/25"
+                                >
+                                    {exportingCsv ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                    Xuất CSV
+                                </button>
+                            </div>
                         </div>
                     </>
                 )}
@@ -530,6 +597,9 @@ function StudentsTab({ quickStats, filteredEnrollments, totalEnrollments, search
 export default function AnalyticsDashboard({ course, onBack }) {
     const {
         loading,
+        error,
+        loadingStudents,
+        studentsError,
         dashboard,
         chartPeriod,
         setChartPeriod,
@@ -547,6 +617,10 @@ export default function AnalyticsDashboard({ course, onBack }) {
         chapterCount,
         lessonCount,
         overview,
+        page,
+        setPage,
+        exportingCsv,
+        handleExportCsv,
     } = useExpertAnalyticsDashboard(course);
 
     if (loading) {
@@ -558,11 +632,11 @@ export default function AnalyticsDashboard({ course, onBack }) {
         );
     }
 
-    if (!dashboard || !overview) {
+    if (!overview) {
         return (
             <div className="rounded-2xl border border-red-500/20 bg-base-100 p-10 text-center">
                 <AlertCircle className="mx-auto mb-3 h-10 w-10 text-red-500" />
-                <p className="font-bold text-base-content">Không thể dựng dashboard cho khóa học này.</p>
+                <p className="font-bold text-base-content">{error || 'Không thể dựng dashboard cho khóa học này.'}</p>
             </div>
         );
     }
@@ -596,7 +670,7 @@ export default function AnalyticsDashboard({ course, onBack }) {
                     <StudentsTab
                         quickStats={overview.quickStudentStats}
                         filteredEnrollments={filteredEnrollments}
-                        totalEnrollments={dashboard.enrollments.length}
+                        totalEnrollments={dashboard.pagination?.totalItems || dashboard.summary?.totalEnrollments || filteredEnrollments.length}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
                         statusFilter={statusFilter}
@@ -604,6 +678,13 @@ export default function AnalyticsDashboard({ course, onBack }) {
                         sortField={sortField}
                         sortDirection={sortDirection}
                         onSort={handleSort}
+                        loadingStudents={loadingStudents}
+                        studentsError={studentsError}
+                        page={page}
+                        totalPages={dashboard.pagination?.totalPages || 1}
+                        setPage={setPage}
+                        onExport={handleExportCsv}
+                        exportingCsv={exportingCsv}
                     />
                 )}
             </AnimatePresence>

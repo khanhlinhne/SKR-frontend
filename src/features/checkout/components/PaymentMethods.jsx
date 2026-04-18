@@ -1,109 +1,171 @@
 import { motion } from 'motion/react';
 import {
+    ArrowRight,
     CheckCircle2,
-    CreditCard,
+    Copy,
     Landmark,
+    QrCode,
     Shield,
-    Smartphone,
-    Wallet,
+    WalletCards,
 } from 'lucide-react';
 
-const methods = [
-    {
-        id: 'momo',
-        name: 'Ví MoMo',
-        description: 'Thanh toán nhanh bằng ví điện tử MoMo.',
-        icon: Smartphone,
-        accent: 'from-pink-500 to-rose-500',
-    },
-    {
-        id: 'vnpay',
-        name: 'VNPay',
-        description: 'Thanh toán qua cổng VNPay.',
-        icon: Wallet,
-        accent: 'from-sky-500 to-cyan-500',
-    },
-    {
-        id: 'zalopay',
-        name: 'ZaloPay',
-        description: 'Thanh toán bằng ví ZaloPay.',
-        icon: Smartphone,
-        accent: 'from-indigo-500 to-blue-600',
-    },
-    {
-        id: 'bank_transfer',
-        name: 'Chuyển khoản ngân hàng',
-        description: 'Nhận thông tin chuyển khoản để thanh toán thủ công.',
-        icon: Landmark,
-        accent: 'from-emerald-500 to-green-500',
-    },
-    {
-        id: 'credit_card',
-        name: 'Visa / Mastercard',
-        description: 'Thanh toán bằng thẻ quốc tế.',
-        icon: CreditCard,
-        accent: 'from-fuchsia-500 to-violet-500',
-    },
-];
+export default function PaymentMethods({
+    paymentSession,
+    onOpenCheckout,
+    onConfirmPaid,
+    isChecking = false,
+}) {
+    const transferRows = [
+        { label: 'Ngân hàng', value: paymentSession?.bankId || 'PayOS' },
+        { label: 'Số tài khoản', value: paymentSession?.accountNo || 'Đang cập nhật' },
+        { label: 'Chủ tài khoản', value: paymentSession?.accountName || 'Đang cập nhật' },
+        { label: 'Nội dung CK', value: paymentSession?.addInfo || paymentSession?.orderCode || 'Đang cập nhật' },
+    ];
 
-export default function PaymentMethods({ selected, onSelect }) {
     return (
         <section className="apple-panel apple-card-shadow rounded-[32px] border p-6 sm:p-7">
             <div className="apple-badge inline-flex rounded-full px-4 py-2 text-sm font-medium">
-                Payment method
+                PayOS transfer
             </div>
             <h2 className="apple-main-text mt-5 text-3xl font-semibold tracking-[-0.03em]">
-                Chọn phương thức thanh toán phù hợp
+                Thanh toán bằng chuyển khoản qua PayOS
             </h2>
             <p className="apple-secondary-text mt-3 text-sm leading-7">
-                SKR giữ bước này thật ngắn để bạn hoàn tất nhanh, nhưng vẫn đủ rõ ràng về phương thức và độ an toàn.
+                Backend hiện chỉ hỗ trợ một phương thức thanh toán cho mua khóa học. Bạn có thể mở trang PayOS
+                hoặc quét mã QR bên dưới, sau đó bấm xác nhận để hệ thống kiểm tra giao dịch.
             </p>
 
-            <div className="mt-6 grid gap-3">
-                {methods.map((method, index) => {
-                    const Icon = method.icon;
-                    const isSelected = selected === method.id;
+            <div className="mt-6 grid gap-5 lg:grid-cols-[0.94fr_1.06fr]">
+                <div className="rounded-[28px] border border-white/45 bg-white/75 p-5 shadow-sm backdrop-blur-xl">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-base-content">
+                        <QrCode className="h-4 w-4 text-sky-600" />
+                        Mã QR thanh toán
+                    </div>
 
-                    return (
-                        <motion.button
-                            key={method.id}
-                            type="button"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            whileHover={{ y: -2 }}
-                            onClick={() => onSelect(method.id)}
-                            className={`flex items-center gap-4 rounded-[24px] border px-4 py-4 text-left transition-all ${
-                                isSelected
-                                    ? 'border-sky-500/30 bg-sky-500/8 shadow-sm'
-                                    : 'border-white/45 bg-white/75 shadow-sm backdrop-blur-xl'
-                            }`}
-                        >
-                            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r ${method.accent} text-white shadow-sm`}>
-                                <Icon className="h-5 w-5" />
-                            </div>
+                    {paymentSession?.qrUrl ? (
+                        <div className="mt-4 overflow-hidden rounded-[24px] border border-base-200 bg-white p-4">
+                            <img
+                                src={paymentSession.qrUrl}
+                                alt={`QR thanh toán ${paymentSession.orderCode || ''}`.trim()}
+                                className="mx-auto aspect-square w-full max-w-[320px] object-contain"
+                            />
+                        </div>
+                    ) : (
+                        <div className="mt-4 rounded-[24px] border border-dashed border-base-300 bg-base-100 px-4 py-8 text-center text-sm text-base-content/55">
+                            Backend chưa trả về QR cho đơn này.
+                        </div>
+                    )}
 
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-base-content">{method.name}</p>
-                                <p className="mt-1 text-sm text-base-content/55">{method.description}</p>
-                            </div>
+                    <p className="mt-4 text-xs leading-6 text-base-content/55">
+                        Mã QR và link checkout đều trỏ về cùng giao dịch PayOS. Hãy dùng đúng nội dung chuyển
+                        khoản để backend đối soát tự động.
+                    </p>
+                </div>
 
-                            <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${
-                                isSelected ? 'border-sky-500 bg-sky-500 text-white' : 'border-base-300 text-transparent'
-                            }`}>
-                                <CheckCircle2 className="h-4 w-4" />
-                            </div>
-                        </motion.button>
-                    );
-                })}
+                <div className="space-y-4">
+                    <div className="rounded-[28px] border border-white/45 bg-white/75 p-5 shadow-sm backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-base-content">
+                            <WalletCards className="h-4 w-4 text-emerald-600" />
+                            Thông tin chuyển khoản
+                        </div>
+
+                        <div className="mt-4 space-y-3">
+                            {transferRows.map((row, index) => (
+                                <motion.div
+                                    key={row.label}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.04 }}
+                                    className="rounded-[22px] border border-base-200 bg-base-100/80 px-4 py-3"
+                                >
+                                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-base-content/45">
+                                        {row.label}
+                                    </p>
+                                    <div className="mt-2 flex items-center justify-between gap-3">
+                                        <p className="min-w-0 flex-1 break-all text-sm font-semibold text-base-content">
+                                            {row.value}
+                                        </p>
+                                        <CopyValueButton value={row.value} />
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-base-200 bg-base-100/75 p-5">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-base-content">
+                            <Landmark className="h-4 w-4 text-orange-600" />
+                            Mã đơn cần kiểm tra
+                        </div>
+                        <p className="mt-3 text-lg font-semibold text-base-content">
+                            {paymentSession?.orderCode || 'Chưa có orderCode'}
+                        </p>
+                        <p className="mt-2 text-sm leading-7 text-base-content/60">
+                            Sau khi hoàn tất chuyển khoản, bấm nút xác nhận đã thanh toán để frontend gọi
+                            `GET /api/orders/:orderCode/verify`.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <div className="mt-5 flex items-start gap-3 rounded-[24px] border border-emerald-500/15 bg-emerald-500/7 px-4 py-4">
                 <Shield className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
                 <p className="text-sm leading-7 text-emerald-800">
-                    Mọi giao dịch đều được mã hóa SSL 256-bit. Thông tin thanh toán của bạn không bị hiển thị công khai trong hệ thống học tập.
+                    Thông tin thanh toán chỉ dùng để đối soát giao dịch. Quyền học sẽ được cấp đúng cho tài
+                    khoản hiện tại sau khi backend xác nhận PayOS đã thanh toán.
                 </p>
             </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                    type="button"
+                    onClick={onOpenCheckout}
+                    disabled={!paymentSession?.checkoutUrl}
+                    className="apple-primary-button apple-transition inline-flex h-12 items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50"
+                >
+                    Mở trang thanh toán PayOS
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+                {onConfirmPaid ? (
+                    <button
+                        type="button"
+                        onClick={onConfirmPaid}
+                        disabled={!paymentSession?.orderCode || isChecking}
+                        className="apple-secondary-button apple-transition inline-flex h-12 items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50"
+                    >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        {isChecking ? 'Đang kiểm tra thanh toán...' : 'Tôi đã thanh toán'}
+                    </button>
+                ) : null}
+            </div>
         </section>
+    );
+}
+
+function CopyValueButton({ value }) {
+    const canCopy = Boolean(value) && value !== 'Đang cập nhật';
+
+    const handleCopy = async () => {
+        if (!canCopy || !navigator?.clipboard) {
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(value);
+        } catch {
+            // Ignore clipboard failures and keep checkout flow uninterrupted.
+        }
+    };
+
+    return (
+        <button
+            type="button"
+            onClick={handleCopy}
+            disabled={!canCopy}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-base-200 bg-base-100 text-base-content/60 transition hover:text-base-content disabled:opacity-40"
+            aria-label={`Sao chép ${value || 'giá trị'}`}
+        >
+            <Copy className="h-4 w-4" />
+        </button>
     );
 }

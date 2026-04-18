@@ -13,8 +13,11 @@ const orderApi = {
 
     // Tao don hang moi (checkout)
     create(data) {
-        // data = { items: [...], paymentMethod, ... }
         return axiosClient.post("/orders", data);
+    },
+
+    verify(orderCode) {
+        return axiosClient.get(`/orders/${orderCode}/verify`);
     },
 };
 

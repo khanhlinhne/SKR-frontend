@@ -38,7 +38,7 @@ export default function useAdminCoursesPage() {
         setError('');
 
         try {
-            const response = await adminApi.getAllCourses();
+            const response = await adminApi.getAllCourses({ limit: 100 });
             const items = Array.isArray(response?.items)
                 ? response.items
                 : Array.isArray(response?.data?.items)
