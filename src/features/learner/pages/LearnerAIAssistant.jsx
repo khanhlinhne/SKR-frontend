@@ -323,7 +323,7 @@ function MessageBubble({ message, displayName, avatarUrl, onSendSuggestion, subm
                         <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-bold">
                             {isFallback && (
                                 <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-amber-700">
-                                    Đang dùng fallback backend
+                                    Che do du phong AI
                                 </span>
                             )}
                             {modelLabel && (

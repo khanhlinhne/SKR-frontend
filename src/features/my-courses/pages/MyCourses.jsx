@@ -33,17 +33,88 @@ import { enrollmentApi } from '@/shared/api';
 import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
 import { OwlLoader } from '@/shared/ui/common';
 
+const LEARN_PROGRESS_STORAGE_KEY = 'skr-learn-course-progress-v1';
+
+function safeParse(value, fallback) {
+    if (!value) return fallback;
+
+    try {
+        return JSON.parse(value);
+    } catch {
+        return fallback;
+    }
+}
+
+function clampPercent(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.min(100, Math.round(parsed)));
+}
+
+function toNonNegativeNumber(value, fallback = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+    return parsed;
+}
+
+function getProgressStorageEntryKey(courseId, userId) {
+    return `${userId || 'anonymous'}:${courseId}`;
+}
+
+function readStoredProgressSnapshot(courseId, userId) {
+    if (typeof window === 'undefined' || !courseId) return null;
+
+    const store = safeParse(localStorage.getItem(LEARN_PROGRESS_STORAGE_KEY), {});
+    const stored = store[getProgressStorageEntryKey(courseId, userId)];
+
+    if (Array.isArray(stored)) {
+        return { completedLessons: stored.length };
+    }
+
+    if (Array.isArray(stored?.completedLessonIds)) {
+        return { completedLessons: stored.completedLessonIds.length };
+    }
+
+    return null;
+}
+
+function deriveProgressPercent(completedLessons, totalLessons, fallbackPercent = 0) {
+    const normalizedTotalLessons = toNonNegativeNumber(totalLessons);
+    const normalizedCompletedLessons = toNonNegativeNumber(completedLessons);
+
+    if (normalizedTotalLessons > 0) {
+        return clampPercent((Math.min(normalizedCompletedLessons, normalizedTotalLessons) / normalizedTotalLessons) * 100);
+    }
+
+    return clampPercent(fallbackPercent);
+}
+
 // ─── Helper: map API enrollment item to component format ──
-function mapEnrollmentItem(item) {
+function mapEnrollmentItem(item, userId) {
+    const courseId = item.courseId || item.subjectId || item.course?.courseId || item.course?.id || null;
+    const totalLessons = toNonNegativeNumber(item.totalLessons);
+    const storedProgress = readStoredProgressSnapshot(courseId, userId);
+    const apiCompletedLessons = toNonNegativeNumber(item.completedLessons, NaN);
+    const completedLessons = storedProgress?.completedLessons != null
+        ? Math.min(toNonNegativeNumber(storedProgress.completedLessons), totalLessons || Number.MAX_SAFE_INTEGER)
+        : Number.isFinite(apiCompletedLessons)
+            ? Math.min(apiCompletedLessons, totalLessons || Number.MAX_SAFE_INTEGER)
+            : 0;
+    const progressPercent = deriveProgressPercent(
+        completedLessons,
+        totalLessons,
+        item.progressPercent ?? item.progress ?? 0,
+    );
+
     return {
         id: item.enrollmentId || item.id,
-        courseId: item.courseId,
+        courseId,
         title: item.courseName || item.title,
         instructorName: item.instructorName,
         bannerUrl: item.bannerUrl,
-        progressPercent: item.progressPercent ?? 0,
-        completedLessons: item.completedLessons ?? 0,
-        totalLessons: item.totalLessons ?? 0,
+        progressPercent,
+        completedLessons,
+        totalLessons,
         totalChapters: item.totalChapters ?? 0,
         estimatedDurationHours: item.estimatedDurationHours ?? 0,
         ratingAverage: item.ratingAverage ?? 0,
@@ -367,7 +438,7 @@ function HeroSection({ stats, userName = 'Người dùng', avatarUrl = '', isPre
 // ─── Page Component ───────────────────────────────────────
 
 export default function MyCourses() {
-    const [enrollments, setEnrollments] = useState([]);
+    const [enrollmentItems, setEnrollmentItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -375,6 +446,10 @@ export default function MyCourses() {
     const [sortBy, setSortBy] = useState('recent');
     const [viewMode, setViewMode] = useState('grid');
     const { profile } = useCurrentUserProfile();
+    const enrollments = useMemo(
+        () => enrollmentItems.map((item) => mapEnrollmentItem(item, profile?.userId)),
+        [enrollmentItems, profile?.userId],
+    );
 
     // Fetch enrollments from real API
     useEffect(() => {
@@ -384,11 +459,11 @@ export default function MyCourses() {
                 setError(null);
                 const response = await enrollmentApi.getMyEnrollments();
                 const items = response.data?.items || response.data || [];
-                setEnrollments(items.map(mapEnrollmentItem));
+                setEnrollmentItems(items);
             } catch (err) {
                 console.error('Error fetching enrollments:', err);
                 setError('Không thể tải danh sách khóa học. Vui lòng thử lại.');
-                setEnrollments([]);
+                setEnrollmentItems([]);
             } finally {
                 setLoading(false);
             }

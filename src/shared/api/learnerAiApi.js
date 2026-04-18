@@ -1,4 +1,5 @@
 import axiosClient from './axiosClient';
+import geminiApi from './geminiApi';
 
 const CHAT_ENDPOINT = '/ai-gemini/chat';
 
@@ -91,6 +92,24 @@ function normalizeChatResponse(response, fallbackThreadId) {
     };
 }
 
+function shouldFallbackToDirectGemini(error) {
+    const status = error?.response?.status;
+    const message = String(
+        error?.response?.data?.message
+        || error?.response?.data?.error
+        || error?.message
+        || '',
+    ).trim().toLowerCase();
+
+    return !status
+        || status === 404
+        || status === 405
+        || status === 408
+        || status === 429
+        || status >= 500
+        || /(route not found|quota|rate limit|too many requests|resource exhausted|temporarily unavailable|unavailable|overloaded)/.test(message);
+}
+
 const learnerAiApi = {
     createThreadId,
 
@@ -106,11 +125,37 @@ const learnerAiApi = {
             payload.messages = normalizedMessages;
         }
 
-        const response = await axiosClient.post(CHAT_ENDPOINT, payload, {
-            timeout: 60000,
-        });
+        try {
+            const response = await axiosClient.post(CHAT_ENDPOINT, payload, {
+                timeout: 60000,
+            });
 
-        return normalizeChatResponse(response, resolvedThreadId);
+            return normalizeChatResponse(response, resolvedThreadId);
+        } catch (error) {
+            if (!shouldFallbackToDirectGemini(error)) {
+                throw error;
+            }
+
+            const fallbackResponse = await geminiApi.chatWithLearnerAssistant({
+                message,
+                messages: normalizedMessages,
+            });
+
+            return {
+                threadId: resolvedThreadId,
+                answer: fallbackResponse.answer,
+                toolsUsed: ['gemini-direct-fallback'],
+                suggestions: fallbackResponse.suggestions,
+                data: null,
+                sources: [],
+                meta: {
+                    usedFallback: true,
+                    provider: fallbackResponse.provider,
+                    model: fallbackResponse.model,
+                },
+                raw: fallbackResponse,
+            };
+        }
     },
 };
 

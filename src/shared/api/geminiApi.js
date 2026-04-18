@@ -274,6 +274,47 @@ function buildAssignmentGradingPrompt({ assignment, learnerAnswer, language = 'v
     ].filter(Boolean).join('\n');
 }
 
+function buildLearnerAssistantPrompt({ message, messages = [] }) {
+    const normalizedHistory = (Array.isArray(messages) ? messages : [])
+        .map((item) => {
+            const role = String(item?.role || '').trim().toLowerCase();
+            const content = String(item?.content || '').trim();
+
+            if (!content) {
+                return '';
+            }
+
+            if (role === 'assistant' || role === 'model' || role === 'ai') {
+                return `Assistant: ${content}`;
+            }
+
+            if (role === 'user') {
+                return `User: ${content}`;
+            }
+
+            return '';
+        })
+        .filter(Boolean)
+        .slice(-10);
+
+    return [
+        'Ban la tro ly hoc tap cua ung dung SKR.',
+        'Quan trong:',
+        '- Luc nay ban KHONG co quyen truy cap du lieu hoc tap thuc te, tien do khoa hoc, thoi gian hoc, lich on tap hay thong tin tai khoan cua nguoi dung.',
+        '- Neu nguoi dung hoi ve du lieu ca nhan hoac thong ke thuc te, hay noi ro rang rang backend du lieu tam thoi khong san sang va ban khong the xac minh so lieu.',
+        '- Sau khi minh bach gioi han, van co gang dua ra goi y hoc tap huu ich, buoc tiep theo, hoac cach tu kiem tra trong ung dung.',
+        '- Tra loi bang tieng Viet, ngan gon, than thien, uu tien tinh thuc dung.',
+        '- Neu phu hop, de xuat 2-4 cau hoi goi y tiep theo.',
+        '- Tra ve duy nhat JSON hop le, khong them markdown.',
+        '- Dinh dang JSON: {"answer":"...","suggestions":["..."]}',
+        '',
+        'Lich su tro chuyen gan day:',
+        normalizedHistory.length > 0 ? normalizedHistory.join('\n') : '(chua co)',
+        '',
+        `Tin nhan moi nhat cua nguoi dung: ${String(message || '').trim()}`,
+    ].join('\n');
+}
+
 function extractResponseText(payload) {
     const parts = payload?.candidates?.[0]?.content?.parts;
     if (!Array.isArray(parts)) {
@@ -554,11 +595,48 @@ async function gradeAssignmentSubmission({ assignment, learnerAnswer, language =
     });
 }
 
+async function chatWithLearnerAssistant({ message, messages = [] }) {
+    const trimmedMessage = String(message || '').trim();
+    if (!trimmedMessage) {
+        throw createGeminiError('Thieu noi dung de gui toi tro ly hoc tap.', { retryable: false });
+    }
+
+    const prompt = buildLearnerAssistantPrompt({
+        message: trimmedMessage,
+        messages,
+    });
+
+    return runGeminiTask({
+        taskLabel: 'tra loi tro ly hoc tap',
+        prompt,
+        temperature: 0.6,
+        resolveResult: (responseText, model) => {
+            const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON chat tra ve tu Gemini.');
+            const answer = String(parsed?.answer || parsed?.reply || parsed?.message || '').trim();
+            const suggestions = Array.isArray(parsed?.suggestions)
+                ? parsed.suggestions.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 4)
+                : [];
+
+            if (!answer) {
+                throw createGeminiError('Gemini chua tao duoc cau tra loi hop le cho tro ly hoc tap.', { retryable: true });
+            }
+
+            return {
+                answer,
+                suggestions,
+                provider: 'Google Gemini',
+                model,
+            };
+        },
+    });
+}
+
 const geminiApi = {
     generateFlashcards,
     generateQuizQuestions,
     generateAssignmentDraft,
     gradeAssignmentSubmission,
+    chatWithLearnerAssistant,
 };
 
 export default geminiApi;
