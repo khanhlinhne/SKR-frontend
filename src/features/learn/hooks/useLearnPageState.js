@@ -1,7 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { assignmentApi, courseApi } from '@/shared/api';
+import { readCachedUserProfile } from '@/shared/user';
 import { isSupportedLessonType, normalizeLessonType } from '@/shared/utils/lessonType';
+
+const LEARN_PROGRESS_STORAGE_KEY = 'skr-learn-course-progress-v1';
+const LEARN_PROGRESS_API_STATUS_KEY = 'skr-learn-course-progress-api-status-v1';
+
+function isBrowser() {
+    return typeof window !== 'undefined';
+}
+
+function safeParse(value, fallback) {
+    if (!value) return fallback;
+
+    try {
+        return JSON.parse(value);
+    } catch {
+        return fallback;
+    }
+}
 
 function toNonNegativeCount(value) {
     const parsed = Number(value);
@@ -40,6 +58,92 @@ function resolveLessonType(lesson = {}) {
     if (explicitType === 'video') return 'video';
 
     return 'video';
+}
+
+function createCompletedLessonMap(ids = []) {
+    return Object.fromEntries(ids.map((lessonId) => [String(lessonId), true]));
+}
+
+function getNextCompletedLessonIds(previous = {}, lessonId, completed) {
+    const normalizedLessonId = String(lessonId);
+
+    if (completed) {
+        return { ...previous, [normalizedLessonId]: true };
+    }
+
+    const next = { ...previous };
+    delete next[normalizedLessonId];
+    return next;
+}
+
+function getProgressStorageEntryKey(courseId, userId) {
+    return `${userId || 'anonymous'}:${courseId}`;
+}
+
+function readStoredProgressMap() {
+    if (!isBrowser()) return {};
+    return safeParse(localStorage.getItem(LEARN_PROGRESS_STORAGE_KEY), {});
+}
+
+function readProgressApiStatusMap() {
+    if (!isBrowser()) return {};
+    return safeParse(sessionStorage.getItem(LEARN_PROGRESS_API_STATUS_KEY), {});
+}
+
+function readStoredCompletedLessonMap(courseId, userId) {
+    if (!courseId) return {};
+
+    const store = readStoredProgressMap();
+    const stored = store[getProgressStorageEntryKey(courseId, userId)];
+
+    if (Array.isArray(stored)) {
+        return createCompletedLessonMap(stored);
+    }
+
+    if (Array.isArray(stored?.completedLessonIds)) {
+        return createCompletedLessonMap(stored.completedLessonIds);
+    }
+
+    return {};
+}
+
+function writeStoredCompletedLessonMap(courseId, userId, completedLessonMap) {
+    if (!isBrowser() || !courseId) return;
+
+    const store = readStoredProgressMap();
+    store[getProgressStorageEntryKey(courseId, userId)] = {
+        completedLessonIds: Object.keys(completedLessonMap).filter((lessonId) => completedLessonMap[lessonId]),
+        updatedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(LEARN_PROGRESS_STORAGE_KEY, JSON.stringify(store));
+}
+
+function isMissingProgressEndpointError(error) {
+    const status = error?.response?.status;
+    return [404, 405, 501].includes(status);
+}
+
+function isProgressApiUnavailable(courseId) {
+    if (!courseId) return false;
+    return Boolean(readProgressApiStatusMap()[String(courseId)]?.unavailable);
+}
+
+function setProgressApiAvailability(courseId, unavailable) {
+    if (!isBrowser() || !courseId) return;
+
+    const store = readProgressApiStatusMap();
+
+    if (unavailable) {
+        store[String(courseId)] = {
+            unavailable: true,
+            updatedAt: new Date().toISOString(),
+        };
+    } else {
+        delete store[String(courseId)];
+    }
+
+    sessionStorage.setItem(LEARN_PROGRESS_API_STATUS_KEY, JSON.stringify(store));
 }
 
 function buildLessonKey(chapterId, lessonId) {
@@ -245,16 +349,30 @@ export default function useLearnPageState() {
                 return;
             }
 
+            const profile = readCachedUserProfile();
+
+            if (isProgressApiUnavailable(id)) {
+                setCompletedLessonIds(readStoredCompletedLessonMap(id, profile?.userId));
+                return;
+            }
+
             try {
                 const response = await courseApi.getProgress(id);
                 if (ignore) return;
 
                 const completedIds = extractCompletedLessonIds(response?.data || response || {});
-                setCompletedLessonIds(
-                    Object.fromEntries(completedIds.map((lessonId) => [String(lessonId), true])),
-                );
+                const nextCompletedLessonIds = createCompletedLessonMap(completedIds);
+                setCompletedLessonIds(nextCompletedLessonIds);
+                writeStoredCompletedLessonMap(id, profile?.userId, nextCompletedLessonIds);
+                setProgressApiAvailability(id, false);
             } catch (progressError) {
                 if (ignore) return;
+                if (isMissingProgressEndpointError(progressError)) {
+                    setProgressApiAvailability(id, true);
+                    setCompletedLessonIds(readStoredCompletedLessonMap(id, profile?.userId));
+                    return;
+                }
+
                 console.error('Error fetching course progress:', progressError);
                 setCompletedLessonIds({});
             }
@@ -490,6 +608,7 @@ export default function useLearnPageState() {
     const persistLessonCompletion = useCallback(async (lessonId, completed = true, chapterId = null) => {
         if (!id || !lessonId) return false;
 
+        const profile = readCachedUserProfile();
         const normalizedLessonId = String(lessonId);
         const previousCompleted = Boolean(completedLessonIds[normalizedLessonId]);
 
@@ -497,31 +616,50 @@ export default function useLearnPageState() {
             return true;
         }
 
-        setCompletionSaving(true);
-        setCompletedLessonIds((previous) => {
-            if (completed) {
-                return { ...previous, [normalizedLessonId]: true };
-            }
+        const optimisticCompletedLessonIds = getNextCompletedLessonIds(
+            completedLessonIds,
+            normalizedLessonId,
+            completed,
+        );
 
-            const next = { ...previous };
-            delete next[normalizedLessonId];
-            return next;
-        });
+        setCompletionSaving(true);
+        setCompletedLessonIds(optimisticCompletedLessonIds);
+
+        if (isProgressApiUnavailable(id)) {
+            writeStoredCompletedLessonMap(id, profile?.userId, optimisticCompletedLessonIds);
+            setCompletionSaving(false);
+            return true;
+        }
 
         try {
-            await courseApi.updateProgress(id, { lessonId, chapterId, completed });
+            const response = await courseApi.updateProgress(id, { lessonId, chapterId, completed });
+            const syncedCompletedIds = extractCompletedLessonIds(response?.data || response || {});
+
+            if (syncedCompletedIds.length > 0) {
+                const syncedCompletedLessonIds = createCompletedLessonMap(syncedCompletedIds);
+                setCompletedLessonIds(syncedCompletedLessonIds);
+                writeStoredCompletedLessonMap(id, profile?.userId, syncedCompletedLessonIds);
+            } else {
+                writeStoredCompletedLessonMap(id, profile?.userId, optimisticCompletedLessonIds);
+            }
+            setProgressApiAvailability(id, false);
+
             return true;
         } catch (progressUpdateError) {
-            console.error('Error updating course progress:', progressUpdateError);
-            setCompletedLessonIds((previous) => {
-                if (previousCompleted) {
-                    return { ...previous, [normalizedLessonId]: true };
-                }
+            if (isMissingProgressEndpointError(progressUpdateError)) {
+                setProgressApiAvailability(id, true);
+                writeStoredCompletedLessonMap(id, profile?.userId, optimisticCompletedLessonIds);
+                return true;
+            }
 
-                const next = { ...previous };
-                delete next[normalizedLessonId];
-                return next;
-            });
+            console.error('Error updating course progress:', progressUpdateError);
+            const revertedCompletedLessonIds = getNextCompletedLessonIds(
+                optimisticCompletedLessonIds,
+                normalizedLessonId,
+                previousCompleted,
+            );
+            setCompletedLessonIds(revertedCompletedLessonIds);
+            writeStoredCompletedLessonMap(id, profile?.userId, revertedCompletedLessonIds);
             return false;
         } finally {
             setCompletionSaving(false);

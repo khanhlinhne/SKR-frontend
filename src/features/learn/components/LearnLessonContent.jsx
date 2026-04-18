@@ -240,6 +240,12 @@ function ContentTabs({ lesson, gradient, loadingContent }) {
 }
 
 function DescriptionTab({ lesson }) {
+    const hasAssignment = Boolean(
+        lesson?.assignment?.assignmentId
+        || lesson?.assignment?.title
+        || lesson?.hasAssignment,
+    );
+
     return (
         <div className="space-y-4">
             {lesson?.description ? (
