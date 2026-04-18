@@ -1,0 +1,178 @@
+import axiosClient from './axiosClient';
+import subjectApi from './subjectApi';
+
+const adminApi = {
+    // ===== USER MANAGEMENT =====
+
+    /**
+     * Lay danh sach tat ca users (Admin only)
+     * GET /api/user/all
+     * @param {Object} params - { page, limit, search, role, isActive }
+     * @returns {{ items: Array, pagination: Object }}
+     */
+    getAllUsers(params) {
+        return axiosClient.get("/user/all", { params });
+    },
+
+    /**
+     * Tao tai khoan moi (Admin only)
+     * POST /api/user
+     * @param {Object} data - { email, password, fullName, username, phoneNumber, roles }
+     * @returns {{ data: Object }}
+     */
+    createUser(data) {
+        return axiosClient.post("/user", data);
+    },
+
+    /**
+     * Lay thong tin chi tiet 1 user
+     * GET /api/user/:id
+     * @param {string} id - User ID
+     * @returns {{ user: Object }}
+     */
+    getUserById(id) {
+        return axiosClient.get(`/user/${id}`);
+    },
+
+    /**
+     * Cap nhat trang thai user (ban/unban)
+     * PUT /api/user/:id/status
+     * @param {string} id - User ID
+     * @param {Object} data - { isActive: boolean }
+     * @returns {{ message: string }}
+     */
+    updateUserStatus(id, data) {
+        return axiosClient.put(`/user/${id}/status`, data);
+    },
+
+    /**
+     * Lay chi tiet 1 khoa hoc (Admin view)
+     * GET /api/courses/:id
+     * @param {string} id - Course ID
+     * @returns {{ course: Object }}
+     */
+    getCourseById(id) {
+        return axiosClient.get(`/courses/${id}`);
+    },
+
+    /**
+     * Toggle trang thai cong khai / an cua khoa hoc
+     * PUT /api/courses/:id
+     * @param {string} id - Course ID
+     * @param {string} status - 'published' | 'draft'
+     * @returns {{ course: Object }}
+     */
+    togglePublish(id, status) {
+        return axiosClient.patch(`/courses/${id}`, { status });
+    },
+
+
+
+    /**
+     * Lay tat ca khoa hoc (Admin view)
+     * GET /api/courses?admin=true
+     * @param {Object} params - { page, limit, search, status }
+     * @returns {{ courses: Array, total: number }}
+     */
+    getAllCourses(params) {
+        return axiosClient.get("/courses", { params: { ...params, admin: true } });
+    },
+
+    /**
+     * Tao khoa hoc moi
+     * POST /api/courses
+     * @param {Object} data - Course data
+     * @returns {{ course: Object }}
+     */
+    async createCourse(data) {
+        const response = await axiosClient.post('/courses', data);
+        subjectApi.clearCache();
+        return response;
+    },
+
+    /**
+     * Cap nhat khoa hoc
+     * PUT /api/courses/:id
+     * @param {string} id - Course ID
+     * @param {Object} data - Updated course data
+     * @returns {{ course: Object }}
+     */
+    async updateCourse(id, data) {
+        const response = await axiosClient.patch(`/courses/${id}`, data);
+        subjectApi.clearCache();
+        return response;
+    },
+
+    /**
+     * Xoa khoa hoc
+     * DELETE /api/courses/:id
+     * @param {string} id - Course ID
+     * @returns {{ message: string }}
+     */
+    async deleteCourse(id) {
+        const response = await axiosClient.delete(`/courses/${id}`);
+        subjectApi.clearCache();
+        return response;
+    },
+
+    // ===== ORDER MANAGEMENT =====
+
+    /**
+     * Lay tat ca don hang (Admin view)
+     * GET /api/orders?admin=true
+     * @param {Object} params - { page, limit, status }
+     * @returns {{ orders: Array, total: number }}
+     */
+    getAllOrders(params) {
+        return axiosClient.get("/orders", { params: { ...params, admin: true } });
+    },
+
+    /**
+     * Cap nhat trang thai don hang
+     * PUT /api/orders/:id/status
+     * @param {string} id - Order ID
+     * @param {Object} data - { status }
+     * @returns {{ message: string }}
+     */
+    updateOrderStatus(id, data) {
+        return axiosClient.put(`/orders/${id}/status`, data);
+    },
+
+    // ===== DASHBOARD STATS =====
+
+    /**
+     * Lay du lieu tong quan cho admin dashboard
+     * GET /api/admin/dashboard
+     * @param {Object} params
+     * @returns {Object}
+     */
+    getDashboardStats(params = {}) {
+        return axiosClient.get("/admin/dashboard", { params });
+    },
+
+    // ===== EXPERT ASSIGNMENT =====
+
+    /**
+     * Lay danh sach tat ca experts (users co role creator)
+     * GET /api/user/all?role=creator&limit=100
+     * @returns {{ items: Array, pagination: Object }}
+     */
+    getExperts(params = {}) {
+        return axiosClient.get("/user/all", {
+            params: { role: "creator", limit: 100, isActive: "true", ...params },
+        });
+    },
+
+    /**
+     * Phan cong expert cho khoa hoc
+     * PATCH /api/courses/:id/assign-expert
+     * @param {string} courseId - Course ID
+     * @param {string} expertId - Expert User ID
+     * @returns {{ data: Object }}
+     */
+    assignExpert(courseId, expertId) {
+        return axiosClient.patch(`/courses/${courseId}/assign-expert`, { expertId });
+    },
+};
+
+export default adminApi;
