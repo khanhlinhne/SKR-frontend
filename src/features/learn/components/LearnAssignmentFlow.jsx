@@ -19,6 +19,13 @@ function ScorePill({ score = 0, maxScore = 100 }) {
     );
 }
 
+function hasSubmittedAssignment(submission) {
+    return Boolean(
+        submission?.submissionId
+        && String(submission?.answerText || '').trim()
+    );
+}
+
 function RubricCard({ assignment }) {
     return (
         <div className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-sm">
@@ -100,10 +107,11 @@ export default function LearnAssignmentFlow({
 
                 if (cancelled) return;
 
+                const hasSubmission = hasSubmittedAssignment(mySubmission);
                 setAssignment(resolvedAssignment || null);
-                setSubmission(mySubmission || null);
-                setAnswerText(mySubmission?.answerText || '');
-                setViewMode(mySubmission ? 'result' : 'detail');
+                setSubmission(hasSubmission ? mySubmission : null);
+                setAnswerText(hasSubmission ? mySubmission.answerText : '');
+                setViewMode(hasSubmission ? 'result' : 'detail');
             } catch (loadError) {
                 if (cancelled) return;
                 setError(loadError?.message || 'Không thể tải bài tập lúc này.');
@@ -180,6 +188,8 @@ export default function LearnAssignmentFlow({
         );
     }
 
+    const hasSubmission = hasSubmittedAssignment(submission);
+
     return (
         <div className="overflow-hidden rounded-3xl border border-base-300 bg-base-100 shadow-2xl">
             <div className={`h-1.5 bg-gradient-to-r ${gradient}`} />
@@ -235,7 +245,7 @@ export default function LearnAssignmentFlow({
 
                     <RubricCard assignment={assignment} />
 
-                    {viewMode === 'result' && submission ? (
+                    {viewMode === 'result' && hasSubmission ? (
                         <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 p-5 shadow-sm">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
@@ -337,14 +347,16 @@ export default function LearnAssignmentFlow({
                         </div>
                     )}
 
-                    <div className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-sm">
+                    {hasSubmission && (
+                        <div className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-sm">
                         <p className="text-[11px] font-black uppercase tracking-[0.16em] text-base-content/40">Bài đã nộp</p>
                         <div className="mt-3 rounded-2xl bg-base-200/45 p-4">
                             <p className="whitespace-pre-wrap text-sm leading-7 text-base-content/75">
                                 {submission?.answerText || answerText || 'Chưa có nội dung nộp bài.'}
                             </p>
                         </div>
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-5">
@@ -357,7 +369,7 @@ export default function LearnAssignmentFlow({
                     <div className="rounded-3xl border border-base-300 bg-base-100 p-5 shadow-sm">
                         <p className="text-sm font-black text-base-content">Hành động</p>
                         <div className="mt-4 space-y-3">
-                            {viewMode === 'result' && submission ? (
+                            {viewMode === 'result' && hasSubmission ? (
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('detail')}
@@ -382,7 +394,7 @@ export default function LearnAssignmentFlow({
                                 </button>
                             )}
 
-                            {viewMode === 'detail' && submission && (
+                            {viewMode === 'detail' && hasSubmission && (
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('result')}
@@ -392,7 +404,7 @@ export default function LearnAssignmentFlow({
                                 </button>
                             )}
 
-                            {nextLesson && viewMode === 'result' && (
+                            {nextLesson && viewMode === 'result' && hasSubmission && (
                                 <button
                                     type="button"
                                     onClick={onNext}

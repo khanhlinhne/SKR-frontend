@@ -787,6 +787,25 @@ export default function useCurriculumMutations(deps) {
         try {
             const savedAssignment = await assignmentApi.upsertLessonAssignment(courseId, chapterId, lessonId, payload);
             setLessonTypeOverrides((prev) => ({ ...prev, [lessonId]: 'assignment' }));
+            setChapters((prev) => prev.map((chapter) => {
+                if ((chapter.chapterId || chapter.id) !== chapterId) {
+                    return chapter;
+                }
+
+                return {
+                    ...chapter,
+                    lessons: (chapter.lessons || []).map((lesson) => (
+                        (lesson.lessonId || lesson.id) === lessonId
+                            ? {
+                                ...lesson,
+                                hasAssignment: true,
+                                lessonType: 'assignment',
+                                type: 'assignment',
+                            }
+                            : lesson
+                    )),
+                };
+            }));
             setShowAssignmentBuilder(null);
 
             setLessonContent((prev) => (

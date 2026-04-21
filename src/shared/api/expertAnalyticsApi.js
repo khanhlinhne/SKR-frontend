@@ -1,16 +1,23 @@
 import axiosClient from "./axiosClient";
 
 const expertAnalyticsApi = {
-    getOverview(courseId, params) {
-        return axiosClient.get(`/experts/courses/${courseId}/analytics/overview`, { params });
+    getOverview(courseId, params, config = {}) {
+        return axiosClient.get(`/experts/courses/${courseId}/analytics/overview`, {
+            ...config,
+            params,
+        });
     },
 
-    getEnrollments(courseId, params) {
-        return axiosClient.get(`/experts/courses/${courseId}/enrollments`, { params });
+    getEnrollments(courseId, params, config = {}) {
+        return axiosClient.get(`/experts/courses/${courseId}/enrollments`, {
+            ...config,
+            params,
+        });
     },
 
-    exportEnrollments(courseId, params) {
+    exportEnrollments(courseId, params, config = {}) {
         return axiosClient.get(`/experts/courses/${courseId}/enrollments/export`, {
+            ...config,
             params: {
                 ...params,
                 format: 'csv',

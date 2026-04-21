@@ -123,9 +123,14 @@ async function requestGeminiResponse({ model, apiKey, prompt, temperature }) {
     return responseText;
 }
 
-async function runGeminiTask({ taskLabel, prompt, temperature, resolveResult }) {
+async function runGeminiTask({ taskLabel, prompt, temperature, resolveResult, resolveLocalFallback }) {
     const apiKey = readApiKey();
     if (!apiKey) {
+        if (typeof resolveLocalFallback === 'function') {
+            console.warn(`[geminiApi] Missing VITE_GEMINI_API_KEY, using local fallback for ${taskLabel}.`);
+            return resolveLocalFallback();
+        }
+
         throw createGeminiError('Chua cau hinh VITE_GEMINI_API_KEY cho Gemini.', { retryable: false });
     }
 
@@ -360,6 +365,206 @@ function parseJsonResponse(responseText, errorMessage) {
     }
 }
 
+function normalizePlainText(value) {
+    return String(value || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function splitSourceFragments(sourceText) {
+    const normalized = String(sourceText || '').replace(/\r/g, '\n');
+    const lines = normalized
+        .split(/\n+/)
+        .map((item) => normalizePlainText(item))
+        .filter(Boolean);
+
+    const sentenceSource = lines.length > 0 ? lines.join(' ') : normalized;
+    const sentences = sentenceSource
+        .split(/(?<=[.!?])\s+/)
+        .map((item) => normalizePlainText(item))
+        .filter(Boolean);
+
+    return [...new Set((sentences.length > 0 ? sentences : lines).filter(Boolean))];
+}
+
+function truncateText(value, maxLength = 140) {
+    const normalized = normalizePlainText(value);
+    if (normalized.length <= maxLength) {
+        return normalized;
+    }
+
+    return `${normalized.slice(0, Math.max(0, maxLength - 3)).trim()}...`;
+}
+
+function toTitleCase(value) {
+    const normalized = normalizePlainText(value);
+    if (!normalized) {
+        return '';
+    }
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function createTopicLabel(sourceText, contextTitle = '', fallback = 'chu de nay') {
+    const explicitTitle = normalizePlainText(contextTitle);
+    if (explicitTitle) {
+        return explicitTitle;
+    }
+
+    const firstFragment = splitSourceFragments(sourceText)[0];
+    if (firstFragment) {
+        return truncateText(firstFragment, 80);
+    }
+
+    const raw = normalizePlainText(sourceText);
+    if (!raw) {
+        return fallback;
+    }
+
+    return truncateText(raw.split(' ').slice(0, 8).join(' '), 80) || fallback;
+}
+
+function distributePoints(totalScore, count) {
+    const safeTotal = Math.max(1, Number(totalScore) || 100);
+    const safeCount = Math.max(1, Number(count) || 1);
+    const base = Math.floor(safeTotal / safeCount);
+    const remainder = safeTotal - (base * safeCount);
+
+    return Array.from({ length: safeCount }, (_, index) => base + (index < remainder ? 1 : 0));
+}
+
+function createLocalFlashcards({ sourceText, count = 5, contextTitle = '' }) {
+    const safeCount = Math.max(1, Math.min(12, Number(count) || 5));
+    const topicLabel = createTopicLabel(sourceText, contextTitle, 'chu de bai hoc');
+    const fragments = splitSourceFragments(sourceText);
+
+    return Array.from({ length: safeCount }, (_, index) => {
+        const fragment = fragments[index % Math.max(1, fragments.length)]
+            || `Noi dung chinh lien quan den ${topicLabel}.`;
+
+        return {
+            frontText: `Y chinh ${index + 1} ve ${topicLabel}?`,
+            backText: truncateText(fragment, 220) || `Hay tom tat y quan trong nhat ve ${topicLabel}.`,
+            frontImageUrl: '',
+            backImageUrl: '',
+        };
+    });
+}
+
+function createLocalQuizQuestions({ sourceText, count = 3, contextTitle = '' }) {
+    const safeCount = Math.max(1, Math.min(10, Number(count) || 3));
+    const topicLabel = createTopicLabel(sourceText, contextTitle, 'chu de bai hoc');
+    const fragments = splitSourceFragments(sourceText);
+
+    return Array.from({ length: safeCount }, (_, index) => {
+        const correctFact = truncateText(
+            fragments[index % Math.max(1, fragments.length)] || `Noi dung bai hoc can duoc giai thich ro rang ve ${topicLabel}.`,
+            160,
+        );
+
+        return {
+            questionText: `Phat bieu nao dung nhat ve ${topicLabel}${safeCount > 1 ? ` (${index + 1})` : ''}?`,
+            questionType: 'multiple_choice',
+            difficultyLevel: index === 0 ? 'easy' : index === safeCount - 1 ? 'hard' : 'medium',
+            questionExplanation: `Dap an dung can bam sat noi dung bai hoc: ${correctFact}`,
+            options: [
+                { optionText: toTitleCase(correctFact), isCorrect: true, optionOrder: 0 },
+                { optionText: `Chi can nho ten ${topicLabel} ma khong can hieu cach ap dung.`, isCorrect: false, optionOrder: 1 },
+                { optionText: `${topicLabel} khong lien quan toi muc tieu bai hoc nay.`, isCorrect: false, optionOrder: 2 },
+                { optionText: `Moi truong hop cua ${topicLabel} deu duoc xu ly giong het nhau.`, isCorrect: false, optionOrder: 3 },
+            ],
+        };
+    });
+}
+
+function createLocalAssignmentDraft({ sourceText, criteriaCount = 4, contextTitle = '' }) {
+    const topicLabel = createTopicLabel(sourceText, contextTitle, 'chu de bai hoc');
+    const safeCriteriaCount = Math.max(2, Math.min(6, Number(criteriaCount) || 4));
+    const maxScore = 100;
+    const pointBuckets = distributePoints(maxScore, safeCriteriaCount);
+    const criteriaTemplates = [
+        ['Muc do dung yeu cau', 'Tra loi dung trong tam va giai quyet dung bai toan duoc giao.'],
+        ['Lap luan va giai thich', 'Dien giai ro rang, co logic va biet ly giai cach lam.'],
+        ['Vi du va minh hoa', 'Dua ra vi du, truong hop ap dung hoac phan tich bo sung phu hop.'],
+        ['Trinh bay', 'Cau truc gon gang, de doc va de danh gia.'],
+        ['Lien he thuc te', 'Biet lien he kien thuc voi tinh huong thuc te hoac mo rong hop ly.'],
+        ['Tinh sang tao', 'Co cach trinh bay, huong tiep can hoac nhan xet rieng tao gia tri them.'],
+    ];
+
+    return {
+        title: `Assignment: ${toTitleCase(topicLabel)}`,
+        description: `Hay trinh bay cach ban hieu va van dung ${topicLabel}. Bai lam can neu duoc y chinh, giai thich cach lam va dua ra minh hoa phu hop.`,
+        instructions: 'Tra loi bang van ban. Nen chia bai lam thanh cac y ro rang, co mo dau, noi dung chinh va ket luan ngan gon.',
+        submissionFormat: 'Tra loi bang van ban, co the xuong dong theo tung y de de review.',
+        maxScore,
+        reviewFocus: `Tap trung vao do dung kien thuc, cach lap luan va kha nang dien dat ve ${topicLabel}.`,
+        rubricCriteria: Array.from({ length: safeCriteriaCount }, (_, index) => ({
+            criterionId: `criterion-${index + 1}`,
+            title: criteriaTemplates[index]?.[0] || `Tieu chi ${index + 1}`,
+            description: criteriaTemplates[index]?.[1] || 'Danh gia muc do hoan thanh yeu cau cua hoc vien.',
+            maxPoints: pointBuckets[index],
+        })),
+    };
+}
+
+function createLocalAssignmentGrade({ assignment, learnerAnswer }) {
+    const text = normalizePlainText(learnerAnswer);
+    const criteria = Array.isArray(assignment?.rubricCriteria) ? assignment.rubricCriteria : [];
+    const maxScore = Math.max(1, Number(assignment?.maxScore) || 100);
+    const wordCount = text ? text.split(' ').filter(Boolean).length : 0;
+    const structureBonus = /(\n|- |\d+\.)/.test(String(learnerAnswer || '')) ? 0.08 : 0;
+    const scoreRatio = Math.max(0.12, Math.min(0.92, (wordCount / 180) + structureBonus));
+
+    const rubricScores = criteria.map((criterion, index) => {
+        const maxPoints = Math.max(0, Number(criterion?.maxPoints) || 0);
+        const awardedPoints = Math.min(maxPoints, Math.round(maxPoints * scoreRatio));
+
+        return {
+            criterionId: criterion?.criterionId || `criterion-${index + 1}`,
+            criterionTitle: criterion?.title || `Tieu chi ${index + 1}`,
+            awardedPoints,
+            maxPoints,
+            feedback: awardedPoints >= maxPoints * 0.75
+                ? 'Da dap ung kha tot tieu chi nay.'
+                : 'Can bo sung ly giai hoac vi du cu the hon de dat diem cao hon.',
+        };
+    });
+
+    const fallbackScore = rubricScores.length > 0
+        ? rubricScores.reduce((sum, item) => sum + item.awardedPoints, 0)
+        : Math.round(maxScore * scoreRatio);
+
+    return {
+        score: Math.max(0, Math.min(fallbackScore, maxScore)),
+        summary: text
+            ? 'Diem nay duoc uoc tinh bang local fallback vi Gemini chua duoc cau hinh trong frontend.'
+            : 'Bai nop chua co noi dung de danh gia.',
+        strengths: text ? ['Bai lam da co noi dung de review va cham diem so bo.'] : [],
+        improvements: text
+            ? ['Nen bo sung ly giai ro hon va dua them vi du minh hoa neu co the.']
+            : ['Can nop noi dung day du hon de he thong co the cham diem chinh xac.'],
+        rubricScores,
+    };
+}
+
+function createLocalLearnerAssistantReply({ message }) {
+    const normalizedMessage = normalizePlainText(message).toLowerCase();
+    const asksAboutPersonalData = /(tien do|thoi gian hoc|lich on|khoa hoc nao|thong ke|du lieu cua toi|hom nay toi hoc)/.test(normalizedMessage);
+
+    return {
+        answer: asksAboutPersonalData
+            ? 'Minh chua truy cap duoc du lieu hoc tap thuc te cua ban luc nay, nen khong the xac minh so lieu ca nhan. Ban co the mo Dashboard, My Courses hoac Flashcards de doi chieu, con minh van co the goi y cach on tap tiep theo neu ban muon.'
+            : 'Minh dang o che do local fallback nen khong co du lieu backend thuc te, nhung van co the goi y cach hoc, cach on tap va cach chia nho nhiem vu cho ban.',
+        suggestions: [
+            'Toi nen hoc gi tiep theo?',
+            'Giup toi lap ke hoach on tap 30 phut',
+            'Cach hoc flashcard hieu qua la gi?',
+        ],
+        provider: 'Local fallback',
+        model: 'local-template',
+    };
+}
+
 function normalizeGeneratedCards(cards) {
     if (!Array.isArray(cards)) {
         return [];
@@ -381,6 +586,7 @@ async function generateFlashcards({ sourceText, count = 5, contextTitle = '' }) 
         taskLabel: 'tao flashcard',
         prompt,
         temperature: 0.7,
+        resolveLocalFallback: () => createLocalFlashcards({ sourceText, count, contextTitle }),
         resolveResult: (responseText) => {
             const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON flashcard tra ve tu Gemini.');
             const normalizedCards = normalizeGeneratedCards(parsed?.cards);
@@ -545,6 +751,7 @@ async function generateQuizQuestions({ sourceText, count = 3, contextTitle = '' 
         taskLabel: 'tao cau hoi',
         prompt,
         temperature: 0.8,
+        resolveLocalFallback: () => createLocalQuizQuestions({ sourceText, count, contextTitle }),
         resolveResult: (responseText) => {
             const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cau hoi tra ve tu Gemini.');
             const normalizedQuestions = normalizeGeneratedQuestions(parsed?.questions);
@@ -563,6 +770,7 @@ async function generateAssignmentDraft({ sourceText, criteriaCount = 4, contextT
         taskLabel: 'tao assignment',
         prompt,
         temperature: 0.8,
+        resolveLocalFallback: () => createLocalAssignmentDraft({ sourceText, criteriaCount, contextTitle }),
         resolveResult: (responseText) => {
             const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON assignment tra ve tu Gemini.');
             const normalizedAssignment = normalizeGeneratedAssignmentDraft(parsed?.assignment);
@@ -582,6 +790,7 @@ async function gradeAssignmentSubmission({ assignment, learnerAnswer, language =
         taskLabel: 'cham assignment',
         prompt,
         temperature: 0.4,
+        resolveLocalFallback: () => createLocalAssignmentGrade({ assignment, learnerAnswer }),
         resolveResult: (responseText) => {
             const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON cham assignment tra ve tu Gemini.');
             const normalizedGrade = normalizeAssignmentGrade(parsed?.grade, assignment);
@@ -610,6 +819,7 @@ async function chatWithLearnerAssistant({ message, messages = [] }) {
         taskLabel: 'tra loi tro ly hoc tap',
         prompt,
         temperature: 0.6,
+        resolveLocalFallback: () => createLocalLearnerAssistantReply({ message: trimmedMessage }),
         resolveResult: (responseText, model) => {
             const parsed = parseJsonResponse(responseText, 'Khong doc duoc JSON chat tra ve tu Gemini.');
             const answer = String(parsed?.answer || parsed?.reply || parsed?.message || '').trim();

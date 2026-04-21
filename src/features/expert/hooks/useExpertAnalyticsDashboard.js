@@ -209,6 +209,12 @@ function getErrorDebugMeta(error) {
     };
 }
 
+function isRequestCanceled(error) {
+    return error?.code === 'ERR_CANCELED'
+        || error?.name === 'CanceledError'
+        || error?.message === 'canceled';
+}
+
 function getReadableApiErrorMessage(error, fallbackMessage) {
     const status = error?.response?.status;
     const serverMessage = error?.response?.data?.message;
@@ -237,6 +243,10 @@ async function requestWithCourseIdFallback(candidateIds, requestFactory, onResol
             onResolved?.(candidateId);
             return response;
         } catch (error) {
+            if (isRequestCanceled(error)) {
+                throw error;
+            }
+
             lastError = error;
             const status = error?.response?.status;
             const canRetryWithAnotherId = [400, 404, 500].includes(status);
@@ -495,6 +505,7 @@ export function useExpertAnalyticsDashboard(course) {
         }
 
         let cancelled = false;
+        const controller = new AbortController();
 
         const loadOverview = async () => {
             setLoadingOverview(true);
@@ -507,7 +518,11 @@ export function useExpertAnalyticsDashboard(course) {
 
                 const response = await requestWithCourseIdFallback(
                     orderedCandidateIds,
-                    (candidateId) => expertAnalyticsApi.getOverview(candidateId, buildOverviewParams(chartPeriod)),
+                    (candidateId) => expertAnalyticsApi.getOverview(
+                        candidateId,
+                        buildOverviewParams(chartPeriod),
+                        { signal: controller.signal },
+                    ),
                     setResolvedCourseId,
                 );
 
@@ -517,7 +532,7 @@ export function useExpertAnalyticsDashboard(course) {
 
                 setOverview(normalizeOverviewResponse(response));
             } catch (error) {
-                if (cancelled) {
+                if (cancelled || isRequestCanceled(error)) {
                     return;
                 }
 
@@ -535,6 +550,7 @@ export function useExpertAnalyticsDashboard(course) {
 
         return () => {
             cancelled = true;
+            controller.abort();
         };
     }, [chartPeriod, courseIdCandidates, resolvedCourseId]);
 
@@ -550,6 +566,7 @@ export function useExpertAnalyticsDashboard(course) {
         }
 
         let cancelled = false;
+        const controller = new AbortController();
 
         const loadEnrollments = async () => {
             setLoadingStudents(true);
@@ -569,7 +586,7 @@ export function useExpertAnalyticsDashboard(course) {
                         statusFilter,
                         sortField,
                         sortDirection,
-                    })),
+                    }), { signal: controller.signal }),
                     setResolvedCourseId,
                 );
 
@@ -579,7 +596,7 @@ export function useExpertAnalyticsDashboard(course) {
 
                 setDashboard(normalizeEnrollmentsResponse(response));
             } catch (error) {
-                if (cancelled) {
+                if (cancelled || isRequestCanceled(error)) {
                     return;
                 }
 
@@ -601,6 +618,7 @@ export function useExpertAnalyticsDashboard(course) {
 
         return () => {
             cancelled = true;
+            controller.abort();
         };
     }, [courseIdCandidates, debouncedSearchTerm, page, resolvedCourseId, sortDirection, sortField, statusFilter]);
 
@@ -651,6 +669,10 @@ export function useExpertAnalyticsDashboard(course) {
             anchor.remove();
             window.URL.revokeObjectURL(fileUrl);
         } catch (error) {
+            if (isRequestCanceled(error)) {
+                return;
+            }
+
             console.error('[useExpertAnalyticsDashboard] export error:', getErrorDebugMeta(error));
             setStudentsError(getReadableApiErrorMessage(error, 'Không thể xuất file CSV.'));
         } finally {

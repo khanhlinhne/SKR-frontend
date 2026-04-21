@@ -9,6 +9,7 @@ import {
 
 const ASSIGNMENT_STORAGE_KEY = 'skr-lesson-assignments-v1';
 const ASSIGNMENT_SUBMISSION_STORAGE_KEY = 'skr-assignment-submissions-v1';
+const ASSIGNMENT_CAPABILITY_STORAGE_KEY = 'skr-assignment-capabilities-v1';
 
 function isBrowser() {
     return typeof window !== 'undefined';
@@ -40,6 +41,14 @@ function writeStorageMap(key, value) {
     }
 
     localStorage.setItem(key, JSON.stringify(value));
+}
+
+function readCapabilityMap() {
+    return readStorageMap(ASSIGNMENT_CAPABILITY_STORAGE_KEY);
+}
+
+function writeCapabilityMap(value) {
+    writeStorageMap(ASSIGNMENT_CAPABILITY_STORAGE_KEY, value);
 }
 
 function readSubmissionList() {
@@ -116,8 +125,35 @@ function readStoredAssignment(courseId, chapterId, lessonId) {
         : null;
 }
 
+function isLessonRouteUnsupported(courseId, chapterId, lessonId) {
+    const capabilityMap = readCapabilityMap();
+    const lessonKey = buildAssignmentLessonKey(courseId, chapterId, lessonId);
+    return Boolean(capabilityMap?.unsupportedLessonRoutes?.[lessonKey]);
+}
+
+function markLessonRouteUnsupported(courseId, chapterId, lessonId, value = true) {
+    const capabilityMap = readCapabilityMap();
+    const lessonKey = buildAssignmentLessonKey(courseId, chapterId, lessonId);
+    const nextUnsupportedRoutes = {
+        ...(capabilityMap?.unsupportedLessonRoutes || {}),
+    };
+
+    if (value) {
+        nextUnsupportedRoutes[lessonKey] = true;
+    } else {
+        delete nextUnsupportedRoutes[lessonKey];
+    }
+
+    writeCapabilityMap({
+        ...capabilityMap,
+        unsupportedLessonRoutes: nextUnsupportedRoutes,
+    });
+}
+
 function listStoredSubmissions() {
-    return readSubmissionList().map((item) => normalizeAssignmentSubmission(item));
+    return readSubmissionList()
+        .map((item) => normalizeAssignmentSubmission(item))
+        .filter((item) => isValidAssignmentSubmission(item));
 }
 
 function estimateSubmissionGrade(assignment, answerText) {
@@ -185,11 +221,22 @@ async function gradeSubmission(assignment, answerText) {
 }
 
 function persistSubmission(payload) {
+    if (!isValidAssignmentSubmission(payload)) {
+        return null;
+    }
+
     const submissions = readSubmissionList();
     const next = submissions.filter((item) => item.submissionId !== payload.submissionId);
     next.push(payload);
     writeSubmissionList(next);
     return payload;
+}
+
+function isValidAssignmentSubmission(submission) {
+    return Boolean(
+        submission?.submissionId
+        && String(submission?.answerText || '').trim()
+    );
 }
 
 const assignmentApi = {
@@ -198,12 +245,17 @@ const assignmentApi = {
     },
 
     async getLessonAssignment(courseId, chapterId, lessonId) {
+        if (isLessonRouteUnsupported(courseId, chapterId, lessonId)) {
+            return readStoredAssignment(courseId, chapterId, lessonId);
+        }
+
         try {
             const response = await axiosClient.get(
                 `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/assignment`,
             );
             const payload = resolvePayload(response);
             const normalized = normalizeAssignmentDetail(payload, { courseId, chapterId, lessonId });
+            markLessonRouteUnsupported(courseId, chapterId, lessonId, false);
             upsertStoredAssignment(courseId, chapterId, lessonId, normalized);
             return normalized;
         } catch (error) {
@@ -211,6 +263,7 @@ const assignmentApi = {
                 throw error;
             }
 
+            markLessonRouteUnsupported(courseId, chapterId, lessonId, true);
             return readStoredAssignment(courseId, chapterId, lessonId);
         }
     },
@@ -234,6 +287,7 @@ const assignmentApi = {
                 lessonId,
                 assignmentId: payload.assignmentId,
             });
+            markLessonRouteUnsupported(courseId, chapterId, lessonId, false);
             upsertStoredAssignment(courseId, chapterId, lessonId, normalized);
             return normalized;
         } catch (error) {
@@ -241,6 +295,7 @@ const assignmentApi = {
                 throw error;
             }
 
+            markLessonRouteUnsupported(courseId, chapterId, lessonId, true);
             return upsertStoredAssignment(courseId, chapterId, lessonId, payload);
         }
     },
@@ -257,6 +312,11 @@ const assignmentApi = {
                 chapterId,
                 lessonId,
             });
+
+            if (!isValidAssignmentSubmission(payload)) {
+                return null;
+            }
+
             persistSubmission(payload);
             return payload;
         } catch (error) {
@@ -289,6 +349,11 @@ const assignmentApi = {
                 chapterId,
                 lessonId,
             });
+
+            if (!isValidAssignmentSubmission(payload)) {
+                throw new Error('Backend chua tra ve bai nop assignment hop le.');
+            }
+
             persistSubmission(payload);
             return payload;
         } catch (error) {

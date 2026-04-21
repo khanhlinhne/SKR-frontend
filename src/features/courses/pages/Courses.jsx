@@ -71,42 +71,7 @@ const mapApiToExpert = (creator) => {
     };
 };
 
-const MOCK_DEMO_COURSE = {
-    id: 1,
-    subjectId: 1,
-    title: 'Toán Cao Cấp - Giải Tích & Đại Số',
-    subjectName: 'Toán Cao Cấp - Giải Tích & Đại Số',
-    description: 'Khóa học toán cao cấp toàn diện dành cho sinh viên đại học.',
-    category: 'Toán học',
-    isFree: true,
-    priceAmount: 0,
-    originalPrice: 0,
-    discountPercent: 0,
-    ratingAverage: 4.9,
-    ratingCount: 1248,
-    purchaseCount: 3420,
-    totalChapters: 12,
-    totalLessons: 48,
-    totalVideos: 36,
-    totalDocuments: 8,
-    totalQuestions: 120,
-    estimatedDurationHours: 24,
-    level: 'Cơ bản -> Nâng cao',
-    gradient: 'from-blue-500 to-cyan-500',
-    bgGradient: 'from-blue-500/10 to-cyan-500/10',
-    icon: '📐',
-    tags: ['Đạo hàm', 'Tích phân', 'Ma trận', 'Giới hạn'],
-    bannerUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&h=400&fit=crop',
-    visibility: 'public',
-    isPurchased: false,
-    publishedAt: '2024-01-15T00:00:00Z',
-    creator: {
-        userId: 'expert-1',
-        displayName: 'TS. Nguyễn Văn Minh',
-        fullName: 'TS. Nguyễn Văn Minh',
-        avatarUrl: 'https://i.pravatar.cc/150?img=11',
-    },
-};
+
 
 const categories = [
     { value: 'Toán học', label: 'Toán học', icon: '📐' },

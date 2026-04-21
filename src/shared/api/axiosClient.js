@@ -39,6 +39,10 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
     (response) => response.data,
     (error) => {
+        if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') {
+            return Promise.reject(error);
+        }
+
         const { response } = error;
 
         if (response) {
