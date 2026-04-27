@@ -125,7 +125,6 @@ export default function AdminUsers() {
                         <option value="all">Tất cả vai trò</option>
                         <option value="user">Learner</option>
                         <option value="creator">Expert</option>
-                        <option value="staff">Staff</option>
                         <option value="admin">Admin</option>
                     </select>
                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}

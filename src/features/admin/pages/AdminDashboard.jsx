@@ -2,10 +2,10 @@ import { motion } from 'motion/react';
 import { AlertCircle } from 'lucide-react';
 import { AdminLayout } from '@/features/admin/components';
 import {
+    AdminDashboardAnalyticsSections,
     AdminDashboardHeader,
     AdminDashboardStatsGrid,
     RecentOrdersTableCard,
-    RecentUsersTableCard,
     RevenueChartCard,
     TopCoursesCard,
     containerVariants,
@@ -53,18 +53,15 @@ export default function AdminDashboard() {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                    <RecentUsersTableCard
-                        users={dashboard.recentUsers}
-                        ui={dashboard.ui.recentUsers}
-                        loading={loading}
-                    />
+                <div className="grid grid-cols-1 gap-6">
                     <RecentOrdersTableCard
                         orders={dashboard.recentOrders}
                         ui={dashboard.ui.recentOrders}
                         loading={loading}
                     />
                 </div>
+
+                <AdminDashboardAnalyticsSections dashboard={dashboard} loading={loading} />
             </motion.div>
         </AdminLayout>
     );

@@ -385,6 +385,27 @@ export default function useLearnPageState() {
         };
     }, [id]);
 
+    // Lắng nghe localStorage thay đổi từ tab quiz (window.open) để cập nhật tiến độ ngay
+    useEffect(() => {
+        if (!id) return undefined;
+
+        const handleStorageChange = (event) => {
+            if (event.key !== LEARN_PROGRESS_STORAGE_KEY) return;
+            const profile = readCachedUserProfile();
+            const updated = readStoredCompletedLessonMap(id, profile?.userId);
+            setCompletedLessonIds((previous) => {
+                // Chỉ merge thêm — không xoá lesson đã hoàn thành
+                const merged = { ...previous, ...updated };
+                return merged;
+            });
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [id]);
+
+
+
     const chapters = useMemo(() => {
         if (!course?.chapters) return [];
         return course.chapters
@@ -685,10 +706,11 @@ export default function useLearnPageState() {
     const handleQuizSubmit = useCallback((result) => {
         setQuizResult(result);
         setQuizView('results');
-        if (!isCurrentLessonCompleted) {
-            handleMarkComplete();
+        const passed = (result?.percentage ?? 0) >= 70;
+        if (passed && !isCurrentLessonCompleted) {
+            void persistLessonCompletion(currentLesson?.lessonId, true, currentChapter?.chapterId);
         }
-    }, [handleMarkComplete, isCurrentLessonCompleted]);
+    }, [currentChapter?.chapterId, currentLesson?.lessonId, isCurrentLessonCompleted, persistLessonCompletion]);
 
     const handleQuizRetry = useCallback(() => {
         setQuizResult(null);

@@ -38,7 +38,7 @@ function FormField({ label, icon, required, error, children }) {
  */
 export default function AddUserModal({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
-        name: '', email: '', phone: '', role: 'Learner',
+        name: '', email: '', phone: '', role: 'user',
         password: '', confirmPassword: '', sendWelcomeEmail: true,
     });
     const [errors, setErrors] = useState({});
@@ -74,7 +74,7 @@ export default function AddUserModal({ onClose, onSuccess }) {
                 password: formData.password,
                 fullName: formData.name || undefined,
                 phoneNumber: formData.phone || undefined,
-                roles: formData.role !== 'Learner' ? [formData.role] : [],
+                roles: formData.role !== 'user' ? [formData.role] : [],
             };
             await adminApi.createUser(payload);
             onSuccess?.();

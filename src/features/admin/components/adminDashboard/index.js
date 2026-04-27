@@ -1,4 +1,5 @@
 export { default as AdminDashboardHeader } from './AdminDashboardHeader';
+export { default as AdminDashboardAnalyticsSections } from './AdminDashboardAnalyticsSections';
 export { default as AdminDashboardStatsGrid } from './AdminDashboardStatsGrid';
 export { default as RevenueChartCard } from './RevenueChartCard';
 export { default as TopCoursesCard } from './TopCoursesCard';

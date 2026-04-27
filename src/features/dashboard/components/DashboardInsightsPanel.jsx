@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
-import { BookOpen, Brain } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 
-export default function DashboardInsightsPanel({ recentSubject, weakTopics, variants }) {
+export default function DashboardInsightsPanel({ recentSubject, variants }) {
     const RecentSubjectIcon = recentSubject?.icon || BookOpen;
-    const normalizedWeakTopics = Array.isArray(weakTopics) ? weakTopics : [];
+
 
     return (
         <motion.div variants={variants} className="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-lg">
@@ -37,45 +37,7 @@ export default function DashboardInsightsPanel({ recentSubject, weakTopics, vari
                 )}
             </div>
 
-            <div>
-                <div className="mb-3 flex items-center justify-between">
-                    <h4 className="flex items-center gap-2 text-sm font-bold text-base-content/60">
-                        <Brain className="h-4 w-4 text-purple-500" />
-                        Điểm yếu cần ôn (AI Analysis)
-                    </h4>
-                    <div className="badge badge-ghost badge-sm">Premium</div>
-                </div>
-                <div className="space-y-2">
-                    {normalizedWeakTopics.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-base-300 bg-base-200/30 p-4 text-sm font-medium text-base-content/50">
-                            Chưa có dữ liệu điểm yếu cần ôn.
-                        </div>
-                    ) : normalizedWeakTopics.map((topic, index) => (
-                        <motion.div
-                            key={topic.id || topic.topic}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 1 + index * 0.1 }}
-                            className="group flex cursor-pointer items-center justify-between rounded-lg p-3 transition-colors hover:bg-base-200"
-                        >
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <h5 className="truncate text-sm font-bold text-base-content">{topic.topic}</h5>
-                                    <span className={`badge badge-xs ${topic.priority === 'high' ? 'badge-error' : 'badge-warning'}`}>
-                                        {topic.priority === 'high' ? 'Cao' : 'TB'}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-base-content/60">
-                                    {topic.subject} • Độ chính xác: {topic.accuracy}%
-                                </p>
-                            </div>
-                            <button className="btn btn-xs btn-ghost text-blue-500 opacity-0 group-hover:opacity-100">
-                                Ôn ngay
-                            </button>
-                        </motion.div>
-                    ))}
-                </div>
-            </div>
+
         </motion.div>
     );
 }

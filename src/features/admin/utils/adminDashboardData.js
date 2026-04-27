@@ -17,6 +17,14 @@ function firstArray(...values) {
     return values.find((value) => Array.isArray(value)) || [];
 }
 
+function asObject(value) {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function asArray(value) {
+    return Array.isArray(value) ? value : [];
+}
+
 function toNumber(value, fallback = 0) {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -134,8 +142,6 @@ function formatRole(value) {
         case 'creator':
         case 'expert':
             return 'Expert';
-        case 'staff':
-            return 'Staff';
         case 'premium':
             return 'Premium';
         case 'learner':
@@ -254,11 +260,27 @@ function normalizeRecentOrders(items) {
         .slice(0, 5);
 }
 
+function normalizeDashboardBlock(root, ui, key) {
+    return asObject(root[key] || ui[key]);
+}
+
+function normalizeAdminDashboardInsights(root, ui) {
+    return {
+        courseSystemHealth: normalizeDashboardBlock(root, ui, 'courseSystemHealth'),
+        contentQuality: normalizeDashboardBlock(root, ui, 'contentQuality'),
+        learningActivity: normalizeDashboardBlock(root, ui, 'learningActivity'),
+        paymentOperations: normalizeDashboardBlock(root, ui, 'paymentOperations'),
+        creatorPerformance: normalizeDashboardBlock(root, ui, 'creatorPerformance'),
+        quizQuality: normalizeDashboardBlock(root, ui, 'quizQuality'),
+    };
+}
+
 function normalizeDashboardData(payload) {
     const root = unwrapDashboardPayload(payload);
     const summary = firstObject(root.summary, root.overview, root.stats, root.metrics, root.kpis) || {};
     const charts = firstObject(root.charts, root.chart, root.analytics) || {};
     const ui = firstObject(root.ui) || {};
+    const insights = normalizeAdminDashboardInsights(root, ui);
 
     return {
         totals: {
@@ -285,6 +307,7 @@ function normalizeDashboardData(payload) {
         topCourses: normalizeTopCourses(firstArray(root.featuredCourses, root.ui?.featuredCourses?.items, root.topCourses, root.bestSellingCourses, root.popularCourses)),
         recentUsers: normalizeRecentUsers(firstArray(root.recentUsers, root.ui?.recentUsers?.items, root.latestUsers, root.newUsers)),
         recentOrders: normalizeRecentOrders(firstArray(root.recentOrders, root.ui?.recentOrders?.items, root.latestOrders, root.orders)),
+        ...insights,
         ui: {
             page: ui.page || {
                 sectionTitle: 'Dashboard',
@@ -302,6 +325,7 @@ function normalizeDashboardData(payload) {
             recentUsers: ui.recentUsers || {
                 title: 'Người dùng Mới',
                 actionLabel: 'Xem tất cả',
+                deprecated: true,
                 columns: [
                     { key: 'user', label: 'Người dùng' },
                     { key: 'role', label: 'Vai trò' },
@@ -319,6 +343,7 @@ function normalizeDashboardData(payload) {
                     { key: 'status', label: 'Trạng thái' },
                 ],
             },
+            ...insights,
         },
     };
 }
@@ -333,6 +358,8 @@ function getInitials(name) {
 }
 
 export {
+    asArray,
+    asObject,
     formatCompactCurrencyVND,
     formatCount,
     formatCurrencyVND,

@@ -56,7 +56,7 @@ export const mockUsers = [
         ]
     },
     {
-        id: 4, name: 'Phạm Minh Duy', email: 'duy.pham@email.com', role: 'Staff',
+        id: 4, name: 'Phạm Minh Duy', email: 'duy.pham@email.com', role: 'Learner',
         status: 'active', courses: 8, joinDate: '10/02/2026', lastActive: '30 phút trước',
         avatar: 'https://i.pravatar.cc/150?img=11', phone: '0901 234 567',
         address: 'Quận 3, TP. Hồ Chí Minh',

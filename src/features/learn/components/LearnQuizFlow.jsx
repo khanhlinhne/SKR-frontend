@@ -660,10 +660,11 @@ function ReviewQuestionCard({ item, questionIndex, showExplanation, onToggleExpl
 }
 
 /* ─── Quiz Results Screen ─── */
-function QuizResultsScreen({ lesson, chapter, gradient, nextLesson, result, onRetry, onShowReview, onNext }) {
+function QuizResultsScreen({ lesson, chapter, gradient, nextLesson, result, onRetry, onShowReview, onNext, isCompleted }) {
     const scoreTone = getScoreTone(result?.percentage || 0);
     const timeLimitMinutes = useMemo(() => getQuizTimeLimitMinutes(lesson), [lesson]);
     const pct = result?.percentage ?? 0;
+    const passed = pct >= 70;
     const circumference = 2 * Math.PI * 54;
     const dashOffset = circumference - (circumference * pct) / 100;
 
@@ -724,6 +725,36 @@ function QuizResultsScreen({ lesson, chapter, gradient, nextLesson, result, onRe
                             </div>
                         </div>
                     </div>
+
+                    {/* Pass / Fail banner */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className={`mt-5 flex items-start gap-3 rounded-2xl border px-4 py-4 ${
+                            passed
+                                ? 'border-emerald-200 bg-emerald-50'
+                                : 'border-rose-200 bg-rose-50'
+                        }`}
+                    >
+                        {passed ? (
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                        ) : (
+                            <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                        )}
+                        <div>
+                            <p className={`text-sm font-black ${passed ? 'text-emerald-800' : 'text-rose-800'}`}>
+                                {passed
+                                    ? (isCompleted ? 'Bài học đã được ghi nhận hoàn thành! 🎉' : 'Chúc mừng! Bài học đã được đánh dấu hoàn thành 🎉')
+                                    : 'Chưa đạt — bài học chưa được tính hoàn thành'}
+                            </p>
+                            <p className={`mt-0.5 text-xs ${passed ? 'text-emerald-700/70' : 'text-rose-700/70'}`}>
+                                {passed
+                                    ? `Bạn đạt ${pct}% (ngưỡng yêu cầu ≥ 70%). Tiến độ học tập đã được cập nhật.`
+                                    : `Bạn đạt ${pct}% (cần ≥ 70% để hoàn thành bài học). Hãy làm lại để đạt ngưỡng.`}
+                            </p>
+                        </div>
+                    </motion.div>
 
                     {/* Stat grid */}
                     <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -942,9 +973,10 @@ export default function LearnQuizFlow({
 
     if (mode === 'results' && result) {
         return (
-            <QuizResultsScreen
+        <QuizResultsScreen
                 lesson={lesson} chapter={chapter} gradient={gradient} nextLesson={nextLesson}
                 result={result} onRetry={onRetry} onShowReview={onShowReview} onNext={onNext}
+                isCompleted={isCompleted}
             />
         );
     }

@@ -50,13 +50,11 @@ export const statusConfig = {
 export const roleOptions = [
     { value: 'user', label: 'Learner', description: 'Người học' },
     { value: 'creator', label: 'Expert', description: 'Chuyên gia' },
-    { value: 'staff', label: 'Staff', description: 'Nhân viên' },
     { value: 'admin', label: 'Admin', description: 'Quản trị viên' },
 ];
 
 export const roleBadgeStyle = {
     user: 'badge-ghost',
     creator: 'badge-info',
-    staff: 'badge-warning',
     admin: 'badge-error',
 };
