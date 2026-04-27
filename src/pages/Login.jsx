@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import * as motion from 'motion/react-client';
 import { Mail, Lock, Brain, Eye, EyeOff, Sparkles, HelpCircle, Database, Share2, ArrowRight, CheckCircle2, GraduationCap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const FeatureCard = ({ icon: Icon, title, description, index }) => (
     <motion.div
@@ -21,7 +21,7 @@ const FeatureCard = ({ icon: Icon, title, description, index }) => (
     </motion.div>
 );
 
-const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false }) => {
+const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false, value, onChange, name }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
@@ -46,6 +46,9 @@ const InputField = ({ label, type, placeholder, icon: Icon, isPassword = false }
                         <Icon className="w-5 h-5" />
                     </div>
                     <input
+                        name={name}
+                        value={value}
+                        onChange={onChange}
                         type={inputType}
                         placeholder={placeholder}
                         onFocus={() => setIsFocused(true)}
@@ -85,6 +88,34 @@ export default function Login() {
             opacity: 1,
             y: 0,
             transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+        }
+    };
+
+    const navigate = useNavigate();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            const resp = await fetch('http://localhost:4000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.message || 'Đăng nhập thất bại');
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.message || 'Đã xảy ra lỗi');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -194,13 +225,18 @@ export default function Login() {
                         </motion.p>
                     </div>
 
-                    <form className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <motion.div variants={itemVariants}>
+                            {error && <div className="alert alert-error mb-4">{error}</div>}
+
                             <InputField
                                 label="Địa chỉ Email"
                                 type="email"
                                 placeholder="name@example.com"
                                 icon={Mail}
+                                name="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                             />
                         </motion.div>
 
@@ -210,6 +246,9 @@ export default function Login() {
                                 isPassword={true}
                                 placeholder="••••••••"
                                 icon={Lock}
+                                name="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
                         </motion.div>
 
@@ -226,12 +265,14 @@ export default function Login() {
                         </motion.div>
 
                         <motion.button
+                            type="submit"
                             variants={itemVariants}
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             className="btn w-full bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white rounded-xl shadow-xl shadow-blue-600/20 border-none text-base h-12 font-bold group transition-all duration-300"
+                            disabled={loading}
                         >
-                            Đăng nhập ngay
+                            {loading ? 'Đang đăng nhập...' : 'Đăng nhập ngay'}
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </motion.button>
 

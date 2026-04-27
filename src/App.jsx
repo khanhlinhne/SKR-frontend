@@ -6,6 +6,7 @@ import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function App() {
@@ -19,7 +20,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Homepage />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
+      <Route path="/signup" element={<ErrorBoundary><SignUp /></ErrorBoundary>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
