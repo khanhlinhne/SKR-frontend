@@ -110,6 +110,17 @@ function shouldFallbackToDirectGemini(error) {
         || /(quota|rate limit|too many requests|resource exhausted|temporarily unavailable|unavailable|overloaded)/.test(message);
 }
 
+function isBackendValidationMismatch(error) {
+    const status = error?.response?.status;
+    const message = String(
+        error?.response?.data?.message
+        || error?.message
+        || '',
+    ).trim().toLowerCase();
+
+    return status === 400 && message === 'validation failed';
+}
+
 const aiGeminiApi = {
     async generateQuestions({
         content,
@@ -181,7 +192,7 @@ const aiGeminiApi = {
 
             return assignment;
         } catch (error) {
-            if (shouldFallbackToDirectGemini(error)) {
+            if (shouldFallbackToDirectGemini(error) || isBackendValidationMismatch(error)) {
                 return geminiApi.generateAssignmentDraft({
                     sourceText: trimmedTopic,
                     criteriaCount,
