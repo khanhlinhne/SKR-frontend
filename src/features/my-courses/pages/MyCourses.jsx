@@ -288,10 +288,6 @@ function QuickResumeCard({ enrollment }) {
 // ─── Hero Section ─────────────────────────────────────────
 
 function HeroSection({ stats, userName = 'Người dùng', avatarUrl = '', isPremium = false }) {
-    const overallProgress = stats.totalCourses > 0
-        ? Math.round(((stats.completed + stats.inProgress * 0.5) / stats.totalCourses) * 100)
-        : 0;
-
     const greeting = (() => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Chào buổi sáng';
@@ -495,15 +491,15 @@ export default function MyCourses() {
     }, [enrollments]);
 
     return (
-        <div className="flex h-screen bg-base-200/50 overflow-hidden">
+        <div className="flex h-dvh bg-base-200/50 overflow-hidden">
             {/* Sidebar */}
             <DashboardSidebar />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 {/* Content — single continuous flow */}
                 <motion.main
-                    className="flex-1 overflow-y-auto px-4 lg:px-8 py-6"
+                    className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:py-6 sm:pb-24 lg:px-8 lg:pb-8"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"

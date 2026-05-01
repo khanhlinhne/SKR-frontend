@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     Search,
     X,
@@ -70,12 +69,12 @@ export default function MyCoursesToolbar({
                 </div>
 
                 {/* Status filter pills */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex w-full items-center gap-1.5 overflow-x-auto sm:w-auto sm:flex-shrink-0">
                     {statusOptions.map((opt) => (
                         <button
                             key={opt.value}
                             onClick={() => onStatusChange(opt.value)}
-                            className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${
+                            className={`flex-shrink-0 px-3 py-1 rounded-lg font-bold text-xs transition-all ${
                                 statusFilter === opt.value
                                     ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-md'
                                     : 'bg-base-200 text-base-content/60 hover:bg-base-300 hover:text-base-content'

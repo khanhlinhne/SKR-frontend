@@ -76,14 +76,14 @@ export default function AdminCourses() {
                 animate="visible"
                 className="space-y-5"
             >
-                <motion.div variants={fadeInUp} className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg">
+                <motion.div variants={fadeInUp} className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                        <div className="mb-1 flex items-start gap-3">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg">
                                 <BookOpen className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-black text-base-content tracking-tight">
+                                <h1 className="text-2xl font-black tracking-tight text-base-content">
                                     Quản lý Khóa học
                                 </h1>
                                 <p className="text-sm text-base-content/50 font-medium">
@@ -93,7 +93,7 @@ export default function AdminCourses() {
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <button
                             onClick={fetchCourses}
                             disabled={loading}

@@ -6,7 +6,6 @@ import {
     LayoutDashboard,
     Users,
     BookOpen,
-    BarChart3,
     Settings,
     LogOut,
     Shield,
@@ -44,7 +43,6 @@ export default function AdminSidebar() {
         { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
         { icon: Users, label: 'Người dùng', path: '/admin/users' },
         { icon: BookOpen, label: 'Khóa học', path: '/admin/courses' },
-        { icon: BarChart3, label: 'Thống kê', path: '/admin/analytics' },
     ];
 
     const isActive = (path) => {
@@ -52,12 +50,18 @@ export default function AdminSidebar() {
         return location.pathname === path || location.pathname.startsWith(path + '/');
     };
 
+    const mobileItems = [
+        ...menuItems,
+        { icon: Settings, label: 'Cài đặt', path: '/admin/settings' },
+    ];
+
     return (
+        <>
         <motion.aside
             initial={{ x: -300 }}
             animate={{ x: 0, width: collapsed ? 72 : 260 }}
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-base-300 bg-base-100"
+            className="hidden h-full flex-shrink-0 flex-col overflow-hidden border-r border-base-300 bg-base-100 md:flex"
         >
             <div className={`flex-shrink-0 border-b border-base-300 ${collapsed ? 'flex justify-center p-3' : 'p-5'}`}>
                 <div className="flex items-center gap-3">
@@ -163,5 +167,29 @@ export default function AdminSidebar() {
                 </button>
             </div>
         </motion.aside>
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-base-300 bg-base-100/95 px-2 py-2 shadow-2xl backdrop-blur md:hidden">
+            <div className="flex gap-1 overflow-x-auto">
+                {mobileItems.map((item) => (
+                    <MobileNavLink key={item.path} item={item} isActive={isActive(item.path)} />
+                ))}
+            </div>
+        </nav>
+        </>
+    );
+}
+
+function MobileNavLink({ item, isActive }) {
+    return (
+        <Link
+            to={item.path}
+            className={`flex min-w-[76px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold transition-all ${
+                isActive
+                    ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-lg'
+                    : 'text-base-content/55 hover:bg-base-200 hover:text-base-content'
+            }`}
+        >
+            <item.icon className="h-5 w-5 flex-shrink-0" />
+            <span className="max-w-full truncate">{item.label}</span>
+        </Link>
     );
 }

@@ -92,7 +92,7 @@ export default function AdminUsers() {
                             Tổng cộng <span className="font-bold text-emerald-600">{total}</span> người dùng
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
                         <button
                             onClick={fetchUsers}
                             className="btn btn-ghost btn-sm btn-circle"
@@ -103,7 +103,7 @@ export default function AdminUsers() {
                         </button>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="btn bg-gradient-to-r from-emerald-600 to-cyan-600 text-white border-none shadow-lg font-bold rounded-xl hover:shadow-emerald-500/25 hover:shadow-xl transition-all"
+                            className="btn flex-1 rounded-xl border-none bg-gradient-to-r from-emerald-600 to-cyan-600 font-bold text-white shadow-lg transition-all hover:shadow-xl hover:shadow-emerald-500/25 sm:flex-none"
                         >
                             <UserPlus className="w-4 h-4" /> Thêm người dùng
                         </button>
@@ -111,7 +111,7 @@ export default function AdminUsers() {
                 </motion.div>
 
                 {/* Filters */}
-                <motion.div variants={cardVariants} className="flex flex-col md:flex-row gap-3">
+                <motion.div variants={cardVariants} className="flex flex-col gap-3 md:flex-row">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
                         <input type="text" placeholder="Tìm kiếm theo tên hoặc email..."
@@ -120,7 +120,7 @@ export default function AdminUsers() {
                         />
                     </div>
                     <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}
-                        className="select select-bordered rounded-xl bg-base-200 border-base-300 text-sm font-bold"
+                        className="select select-bordered rounded-xl border-base-300 bg-base-200 text-sm font-bold md:w-auto"
                     >
                         <option value="all">Tất cả vai trò</option>
                         <option value="user">Learner</option>
@@ -128,7 +128,7 @@ export default function AdminUsers() {
                         <option value="admin">Admin</option>
                     </select>
                     <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                        className="select select-bordered rounded-xl bg-base-200 border-base-300 text-sm font-bold"
+                        className="select select-bordered rounded-xl border-base-300 bg-base-200 text-sm font-bold md:w-auto"
                     >
                         <option value="all">Tất cả trạng thái</option>
                         {Object.entries(statusConfig).map(([key, cfg]) => (

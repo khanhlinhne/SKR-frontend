@@ -19,22 +19,22 @@ export default function FlashcardsHeader({ onCreateNew, searchValue = '', onSear
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-black text-base-content">Flashcards</h2>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                    <h2 className="text-xl font-black text-base-content sm:text-2xl">Flashcards</h2>
                     <p className="text-sm text-base-content/60 font-medium">Quản lý và học flashcards của bạn</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative">
+                <div className="flex min-w-0 flex-wrap items-center gap-3 sm:flex-nowrap lg:gap-4">
+                    <div className="relative min-w-0 flex-1 sm:flex-none">
                         <input
                             type="text"
                             value={searchValue}
                             onChange={(event) => onSearchChange?.(event.target.value)}
                             placeholder="Tìm flashcard..."
-                            className="input input-bordered w-64 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
+                            className="input input-bordered w-full rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500 sm:w-64"
                         />
                         <Icon name="Search" size="md" className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
                     </div>
@@ -43,7 +43,7 @@ export default function FlashcardsHeader({ onCreateNew, searchValue = '', onSear
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={onCreateNew}
-                        className="btn bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white border-none rounded-xl font-bold shadow-lg shadow-blue-600/20 gap-2"
+                        className="btn gap-2 rounded-xl border-none bg-gradient-to-r from-blue-600 to-violet-600 font-bold text-white shadow-lg shadow-blue-600/20 hover:from-blue-700 hover:to-violet-700"
                     >
                         <Icon name="Plus" size="md" />
                         Tạo mới
@@ -58,8 +58,8 @@ export default function FlashcardsHeader({ onCreateNew, searchValue = '', onSear
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 pl-4 border-l border-base-300">
-                        <div className="text-right">
+                    <div className="flex min-w-0 items-center gap-3 border-l border-base-300 pl-3 sm:pl-4">
+                        <div className="hidden min-w-0 text-right sm:block">
                             <p className="font-bold text-sm text-base-content">{userData.name}</p>
                             {userData.isPremium && (
                                 <div className="flex items-center justify-end gap-1">

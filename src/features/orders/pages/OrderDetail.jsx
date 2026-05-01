@@ -78,9 +78,9 @@ export default function OrderDetail() {
     // ─── 404 State ──────────────────────────────────────
     if (!order) {
         return (
-            <div className="flex h-screen bg-base-200 overflow-hidden">
+            <div className="flex h-dvh bg-base-200 overflow-hidden">
                 <DashboardSidebar />
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex min-w-0 flex-1 items-center justify-center px-4 pb-24 md:pb-0">
                     <NotFoundState onGoBack={() => navigate('/orders')} />
                 </div>
             </div>
@@ -89,18 +89,18 @@ export default function OrderDetail() {
 
     // ─── Render ─────────────────────────────────────────
     return (
-        <div className="flex h-screen bg-base-200 overflow-hidden">
+        <div className="flex h-dvh bg-base-200 overflow-hidden">
             {/* Sidebar */}
             <DashboardSidebar />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 {/* Header */}
                 <DetailHeader />
 
                 {/* Page Content */}
                 <motion.main
-                    className="flex-1 overflow-y-auto p-6 lg:p-8"
+                    className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
@@ -271,11 +271,11 @@ function DetailHeader() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-black text-base-content">
+            <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                    <h2 className="truncate text-xl font-black text-base-content sm:text-2xl">
                         Chi Tiết Đơn Hàng
                     </h2>
                     <p className="text-sm text-base-content/60 font-medium mt-0.5">
@@ -283,7 +283,7 @@ function DetailHeader() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex flex-shrink-0 items-center gap-3 sm:gap-4">
                     {/* Notifications */}
                     <div className="indicator">
                         <span className="indicator-item badge badge-sm badge-primary">3</span>
@@ -293,7 +293,7 @@ function DetailHeader() {
                     </div>
 
                     {/* User Profile */}
-                    <div className="flex items-center gap-3 pl-4 border-l border-base-300">
+                    <div className="flex items-center gap-3 border-l border-base-300 pl-3 sm:pl-4">
                         <div className="text-right hidden sm:block">
                             <p className="font-bold text-sm text-base-content">{displayName}</p>
                             {profile.isPremium && (

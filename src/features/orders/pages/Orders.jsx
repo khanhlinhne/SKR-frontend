@@ -108,18 +108,18 @@ export default function Orders() {
 
     // ─── Render ─────────────────────────────────────────
     return (
-        <div className="flex h-screen bg-base-200 overflow-hidden">
+        <div className="flex h-dvh bg-base-200 overflow-hidden">
             {/* Sidebar */}
             <DashboardSidebar />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 {/* Header */}
                 <OrdersHeader />
 
                 {/* Page Content */}
                 <motion.main
-                    className="flex-1 overflow-y-auto p-6 lg:p-8"
+                    className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
@@ -225,11 +225,11 @@ function OrdersHeader() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-black text-base-content flex items-center gap-2">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                    <h2 className="flex items-center gap-2 text-xl font-black text-base-content sm:text-2xl">
                         <ShoppingBag className="w-6 h-6 text-blue-500" />
                         Lịch Sử Đơn Hàng
                     </h2>
@@ -238,13 +238,13 @@ function OrdersHeader() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex min-w-0 flex-wrap items-center gap-3 sm:flex-nowrap lg:gap-4">
                     {/* Search */}
-                    <div className="relative hidden lg:block">
+                    <div className="relative min-w-0 flex-1 sm:block lg:flex-none">
                         <input
                             type="text"
                             placeholder="Tìm đơn hàng..."
-                            className="input input-bordered w-72 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
+                            className="input input-bordered w-full rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500 sm:w-72"
                         />
                         <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
                     </div>
@@ -258,7 +258,7 @@ function OrdersHeader() {
                     </div>
 
                     {/* User Profile */}
-                    <div className="flex items-center gap-3 pl-4 border-l border-base-300">
+                    <div className="flex min-w-0 items-center gap-3 border-l border-base-300 pl-3 sm:pl-4">
                         <div className="text-right hidden sm:block">
                             <p className="font-bold text-sm text-base-content">{displayName}</p>
                             {profile.isPremium && (

@@ -118,7 +118,7 @@ export default function ExpertAssetLibrary() {
                                 <p className="font-black text-base-content">{storageStats.used} / {storageStats.total}</p>
                             </div>
                         </div>
-                        <div className="flex-1 min-w-[200px]">
+                        <div className="min-w-0 flex-1">
                             <div className="w-full bg-base-200 rounded-full h-3 overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
@@ -144,9 +144,9 @@ export default function ExpertAssetLibrary() {
                 </motion.div>
 
                 {/* Toolbar */}
-                <motion.div variants={cardVariants} className="flex flex-wrap items-center gap-3 mb-6">
+                <motion.div variants={cardVariants} className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                     {/* Search */}
-                    <div className="relative flex-1 min-w-[200px]">
+                    <div className="relative w-full min-w-0 flex-1 sm:min-w-[200px]">
                         <input
                             type="text"
                             placeholder="Tìm kiếm tài nguyên..."
@@ -158,7 +158,7 @@ export default function ExpertAssetLibrary() {
                     </div>
 
                     {/* Type Filter */}
-                    <div className="flex gap-1 bg-base-100 rounded-xl border border-base-300 p-1">
+                    <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-base-300 bg-base-100 p-1 sm:w-auto">
                         {[
                             { value: 'all', label: 'Tất cả' },
                             { value: 'video', label: 'Video', icon: Film },
@@ -180,7 +180,7 @@ export default function ExpertAssetLibrary() {
                     </div>
 
                     {/* View Mode */}
-                    <div className="flex gap-1 bg-base-100 rounded-xl border border-base-300 p-1">
+                    <div className="flex w-full gap-1 rounded-xl border border-base-300 bg-base-100 p-1 sm:w-auto">
                         <button
                             onClick={() => setViewMode('grid')}
                             className={`btn btn-sm btn-square rounded-lg ${viewMode === 'grid' ? 'bg-base-200' : 'btn-ghost'}`}
@@ -255,7 +255,7 @@ export default function ExpertAssetLibrary() {
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-base-100 rounded-2xl border border-base-300 shadow-lg overflow-hidden">
+                    <div className="overflow-x-auto rounded-2xl border border-base-300 bg-base-100 shadow-lg">
                         <table className="table table-sm">
                             <thead>
                                 <tr className="text-base-content/60">

@@ -12,7 +12,6 @@ import {
     User,
     Settings,
     LogOut,
-    Zap,
     GraduationCap,
     PanelLeftClose,
     PanelLeftOpen,
@@ -64,11 +63,12 @@ export default function DashboardSidebar() {
     };
 
     return (
+        <>
         <motion.aside
             initial={{ x: -300 }}
             animate={{ x: 0, width: collapsed ? 72 : 256 }}
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="flex h-full flex-shrink-0 flex-col overflow-hidden border-r border-base-300 bg-base-100"
+            className="hidden h-full flex-shrink-0 flex-col overflow-hidden border-r border-base-300 bg-base-100 md:flex"
         >
             <div className={`flex-shrink-0 border-b border-base-300 ${collapsed ? 'flex justify-center p-3' : 'p-5'}`}>
                 <div className="flex items-center gap-3">
@@ -118,43 +118,6 @@ export default function DashboardSidebar() {
                 ))}
             </nav>
 
-            {!collapsed && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.9 }}
-                    className="mx-3 mb-2 rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-pink-500/10 p-4"
-                >
-                    <div className="mb-2 flex items-center gap-2">
-                        <Zap className="h-5 w-5 text-orange-500" />
-                        <h3 className="text-sm font-black text-base-content">Nâng cấp Premium</h3>
-                    </div>
-                    <p className="mb-3 text-xs text-base-content/70">
-                        Mở khóa AI Assistant, Spaced Repetition và nhiều hơn nữa.
-                    </p>
-                    <Link to="/pricing">
-                        <button className="btn btn-sm w-full rounded-xl border-none bg-gradient-to-r from-orange-500 to-pink-500 font-bold text-white hover:from-orange-600 hover:to-pink-600">
-                            Nâng cấp ngay
-                        </button>
-                    </Link>
-                </motion.div>
-            )}
-
-            {collapsed && (
-                <div className="mb-2 flex justify-center">
-                    <Link
-                        to="/pricing"
-                        className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-pink-500/10"
-                    >
-                        <Zap className="h-4 w-4 text-orange-500" />
-                        <div className="pointer-events-none absolute left-full z-[60] ml-3 whitespace-nowrap rounded-xl bg-base-content px-3 py-1.5 text-xs font-bold text-base-100 opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
-                            Nâng cấp Premium
-                            <div className="absolute top-1/2 -left-1 h-2 w-2 -translate-y-1/2 rotate-45 bg-base-content" />
-                        </div>
-                    </Link>
-                </div>
-            )}
-
             <div className="space-y-0.5 border-t border-base-300 px-2 py-2">
                 {bottomItems.map((item) => (
                     <SidebarLink key={item.path} item={item} collapsed={collapsed} isActive={isActive(item.path)} />
@@ -176,6 +139,30 @@ export default function DashboardSidebar() {
                 </button>
             </div>
         </motion.aside>
+        <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-base-300 bg-base-100/95 px-2 py-2 shadow-2xl backdrop-blur md:hidden">
+            <div className="flex gap-1 overflow-x-auto">
+                {[...menuItems, bottomItems[0]].map((item) => (
+                    <MobileNavLink key={item.path} item={item} isActive={isActive(item.path)} />
+                ))}
+            </div>
+        </nav>
+        </>
+    );
+}
+
+function MobileNavLink({ item, isActive }) {
+    return (
+        <Link
+            to={item.path}
+            className={`flex min-w-[72px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-bold transition-all ${
+                isActive
+                    ? 'bg-gradient-to-r from-blue-600 to-violet-600 text-white shadow-lg'
+                    : 'text-base-content/55 hover:bg-base-200 hover:text-base-content'
+            }`}
+        >
+            <item.icon className="h-5 w-5 flex-shrink-0" />
+            <span className="max-w-full truncate">{item.label}</span>
+        </Link>
     );
 }
 

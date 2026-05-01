@@ -487,7 +487,6 @@ function CourseSystemHealthSection({ data }) {
     const totalCourses = getObjectTotal(summary, ['total', 'courses']);
     const missingCount = asArray(data.missingContentCourses).length;
     const noStudentCount = asArray(data.noStudentCourses).length;
-    const lowRatedCount = asArray(data.lowRatedCourses).length;
     const lowCompletionCount = asArray(data.lowCompletionCourses).length;
     const recentCount = asArray(data.recentlyUpdatedCourses).length;
     const enrolledCount = asArray(data.mostEnrolledCourses).length;
@@ -497,7 +496,6 @@ function CourseSystemHealthSection({ data }) {
     const barChartData = [
         { label: 'Thiếu nội dung', shortLabel: 'Thiếu ND', value: missingCount, icon: AlertCircle, gradient: 'from-amber-500/80 to-orange-500/80' },
         { label: 'Không HV', shortLabel: 'Không HV', value: noStudentCount, icon: Users, gradient: 'from-sky-400/80 to-cyan-500/80' },
-        { label: 'Rating thấp', shortLabel: 'Rating thấp', value: lowRatedCount, icon: TrendingDown, gradient: 'from-red-400/80 to-rose-500/80' },
         { label: 'Hoàn thành thấp', shortLabel: 'HT thấp', value: lowCompletionCount, icon: Clock3, gradient: 'from-violet-400/80 to-purple-500/80' },
         { label: 'Đông HV nhất', shortLabel: 'Đông HV', value: enrolledCount, icon: TrendingUp, gradient: 'from-emerald-400/80 to-teal-500/80' },
         { label: 'Rating cao', shortLabel: 'Rating cao', value: topRatedCount, icon: Award, gradient: 'from-emerald-500/80 to-green-500/80' },
@@ -506,7 +504,7 @@ function CourseSystemHealthSection({ data }) {
     // Metrics summary row
     const summaryMetrics = [
         { label: 'Tổng khóa học', value: formatCount(totalCourses), icon: BookOpen, gradient: 'from-blue-500 to-indigo-600' },
-        { label: 'Cần chú ý', value: formatCount(missingCount + lowRatedCount + lowCompletionCount), icon: AlertCircle, gradient: 'from-amber-500 to-orange-600', tone: 'warning', badge: missingCount + lowRatedCount + lowCompletionCount > 0 ? 'Cảnh báo' : null },
+        { label: 'Cần chú ý', value: formatCount(missingCount + lowCompletionCount), icon: AlertCircle, gradient: 'from-amber-500 to-orange-600', tone: 'warning', badge: missingCount + lowCompletionCount > 0 ? 'Cảnh báo' : null },
         { label: 'Hoạt động tốt', value: formatCount(enrolledCount + topRatedCount + recentCount), icon: CheckCircle2, gradient: 'from-emerald-500 to-teal-600', tone: 'success', badge: enrolledCount + topRatedCount + recentCount > 0 ? 'Tốt' : null },
         { label: 'Mới cập nhật', value: formatCount(recentCount), icon: CheckCircle2, gradient: 'from-sky-500 to-cyan-600', tone: 'info' },
     ];
@@ -534,7 +532,6 @@ function CourseSystemHealthSection({ data }) {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <DataList title="Thiếu nội dung" items={data.missingContentCourses} icon={AlertCircle} tone="warning" />
                 <DataList title="Chưa có học viên" items={data.noStudentCourses} icon={Users} tone="info" />
-                <DataList title="Đánh giá thấp" items={data.lowRatedCourses} icon={Star} tone="danger" metricKeys={['rating', 'averageRating']} />
                 <DataList title="Hoàn thành thấp" items={data.lowCompletionCourses} icon={TrendingDown} tone="warning" metricKeys={['completionRate', 'averageProgress']} />
                 <DataList title="Đông học viên nhất" items={data.mostEnrolledCourses} icon={TrendingUp} tone="success" metricKeys={['studentCount', 'enrollmentCount', 'totalStudents']} />
                 <DataList title="Đánh giá cao" items={data.topRatedCourses} icon={Award} tone="success" metricKeys={['rating', 'averageRating']} />
@@ -564,7 +561,6 @@ function ContentQualitySection({ data }) {
                     <BreakdownBars title="Độ khó câu hỏi" items={data.questionDifficultyBreakdown} />
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:col-span-3">
-                    <DataList title="Video hoàn thành thấp" items={data.lowCompletionVideos} icon={PlayCircle} tone="warning" metricKeys={['completionRate', 'averageProgress']} />
                     <DataList title="Tài liệu nổi bật" items={data.topDocuments} icon={FileText} tone="info" />
                     <DataList title="Flashcard nổi bật" items={data.topFlashcards} icon={Layers3} tone="success" />
                     <DataList title="Câu hỏi sai nhiều" items={data.highIncorrectQuestions} icon={HelpCircle} tone="danger" metricKeys={['incorrectCount', 'missedCount', 'attemptCount']} />
@@ -591,9 +587,8 @@ function LearningActivitySection({ data }) {
                     <MetricGrid metrics={metrics} />
                     <BreakdownBars title="Phân bổ tiến độ" items={data.progressDistribution} />
                 </div>
-                <div className="grid gap-4 md:grid-cols-3 xl:col-span-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:col-span-3">
                     <DataList title="Bài học nổi bật" items={data.topLessons} icon={BookOpen} tone="success" />
-                    <DataList title="Video xem nhiều" items={data.topVideos} icon={PlayCircle} tone="info" metricKeys={['watchMinutes', 'viewCount', 'count']} />
                     <DataList title="Điểm rơi học tập" items={data.dropOffPoints} icon={TrendingDown} tone="danger" metricKeys={['dropOffCount', 'count', 'value']} />
                 </div>
             </div>
@@ -619,10 +614,9 @@ function PaymentOperationsSection({ data }) {
                     <BreakdownBars title="Trạng thái đơn hàng" items={data.statusCounts} />
                     <BreakdownBars title="Phương thức thanh toán" items={data.paymentMethods} />
                 </div>
-                <div className="grid gap-4 md:grid-cols-3 xl:col-span-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:col-span-3">
                     <DataList title="Giao dịch thất bại" items={data.failedTransactions} icon={AlertCircle} tone="danger" metricKeys={['amount', 'totalAmount', 'finalAmount']} />
                     <DataList title="Pending quá lâu" items={data.stalePendingOrders} icon={Clock3} tone="warning" metricKeys={['amount', 'totalAmount', 'finalAmount']} />
-                    <DataList title="Coupon hiệu quả" items={data.topCoupons} icon={Award} tone="success" metricKeys={['usageCount', 'count', 'discountAmount']} />
                 </div>
             </div>
         </AnalyticsSection>
@@ -632,7 +626,6 @@ function PaymentOperationsSection({ data }) {
 function CreatorPerformanceSection({ data }) {
     const metrics = [
         { label: 'Creator', value: formatCount(data.totalCreators), icon: Users, gradient: 'from-violet-500 to-purple-600' },
-        { label: 'Có nháp/inactive', value: formatCount(asArray(data.creatorsWithDraftOrInactiveCourses).length), icon: AlertCircle, gradient: 'from-amber-500 to-orange-600' },
         { label: 'Thiếu nội dung', value: formatCount(asArray(data.creatorsWithMissingContent).length), icon: FileText, gradient: 'from-red-500 to-rose-600' },
     ];
 
@@ -646,8 +639,6 @@ function CreatorPerformanceSection({ data }) {
                     <DataList title="Xuất bản nhiều" items={data.topPublishedCreators} icon={BookOpen} tone="success" metricKeys={['publishedCourseCount', 'courseCount', 'count']} />
                     <DataList title="Nhiều học viên" items={data.topStudentCreators} icon={GraduationCap} tone="info" metricKeys={['studentCount', 'totalStudents', 'enrollmentCount']} />
                     <DataList title="Rating cao" items={data.highestRatedCreators} icon={Star} tone="success" metricKeys={['rating', 'averageRating']} />
-                    <DataList title="Rating thấp" items={data.lowestRatedCreators} icon={TrendingDown} tone="danger" metricKeys={['rating', 'averageRating']} />
-                    <DataList title="Có nháp/inactive" items={data.creatorsWithDraftOrInactiveCourses} icon={AlertCircle} tone="warning" metricKeys={['draftCourseCount', 'inactiveCourseCount', 'count']} />
                     <DataList title="Thiếu nội dung" items={data.creatorsWithMissingContent} icon={FileText} tone="danger" metricKeys={['missingContentCount', 'courseCount', 'count']} />
                 </div>
             </div>

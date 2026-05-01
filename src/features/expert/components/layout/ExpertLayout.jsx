@@ -9,17 +9,17 @@ import ExpertHeader from './ExpertHeader';
  */
 export default function ExpertLayout({ children }) {
     return (
-        <div className="flex h-screen bg-base-200 overflow-hidden">
+        <div className="flex h-dvh overflow-hidden bg-base-200">
             {/* Sidebar */}
             <ExpertSidebar />
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 {/* Header */}
                 <ExpertHeader />
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+                <main className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:px-6 lg:p-8">
                     {children}
                 </main>
             </div>

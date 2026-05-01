@@ -211,9 +211,9 @@ function CourseListItem({ course }) {
                 onClick={() => navigate(`/expert/curriculum/${course.courseId || course.id}`)}
                 className="block group cursor-pointer"
             >
-                <div className="bg-base-100 rounded-2xl border border-base-300 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group-hover:border-violet-500/30 p-4 flex items-center gap-4">
+                <div className="flex flex-col gap-4 rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg group-hover:border-violet-500/30 sm:flex-row sm:items-center">
                     {/* Thumbnail */}
-                    <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
+                    <div className="h-32 w-full flex-shrink-0 overflow-hidden rounded-xl sm:h-20 sm:w-20">
                         {course.courseBannerUrl ? (
                             <img
                                 src={course.courseBannerUrl}
@@ -247,7 +247,7 @@ function CourseListItem({ course }) {
                             <p className="text-xs text-base-content/40 truncate mt-0.5">{course.courseDescription}</p>
                         )}
                         {/* Stats */}
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                             <div className="flex items-center gap-1 text-xs text-base-content/50">
                                 <Layers className="w-3 h-3 text-violet-500" />
                                 <span className="font-bold">{chapterCount}</span> chương
@@ -264,7 +264,7 @@ function CourseListItem({ course }) {
                     </div>
 
                     {/* Right side — price + action buttons */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0 sm:justify-end">
                         {course.priceAmount > 0 ? (
                             <span className="text-sm font-black text-emerald-600 mr-1">
                                 {Number(course.priceAmount).toLocaleString('vi-VN')}đ
@@ -474,9 +474,9 @@ export default function ExpertCurriculum() {
                 </motion.div>
 
                 {/* Search & Filter Bar */}
-                <motion.div variants={cardVariants} className="flex flex-wrap items-center gap-3 mb-6">
+                <motion.div variants={cardVariants} className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                     {/* Search */}
-                    <div className="relative flex-1 min-w-[220px]">
+                    <div className="relative w-full min-w-0 flex-1 sm:min-w-[220px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/30" />
                         <input
                             type="text"
@@ -487,7 +487,7 @@ export default function ExpertCurriculum() {
                         />
                     </div>
                     {/* Status Filter */}
-                    <div className="flex items-center gap-1.5 bg-base-100 rounded-xl border border-base-300 p-1">
+                    <div className="flex w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-base-300 bg-base-100 p-1 sm:w-auto">
                         {[
                             { key: 'all', label: 'Tất cả' },
                             { key: 'published', label: 'Đã xuất bản' },
@@ -497,7 +497,7 @@ export default function ExpertCurriculum() {
                             <button
                                 key={f.key}
                                 onClick={() => setStatusFilter(f.key)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                     statusFilter === f.key
                                         ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md'
                                         : 'text-base-content/50 hover:text-base-content hover:bg-base-200'
@@ -508,7 +508,7 @@ export default function ExpertCurriculum() {
                         ))}
                     </div>
                     {/* View Mode Toggle */}
-                    <div className="flex items-center bg-base-100 rounded-xl border border-base-300 p-1">
+                    <div className="flex w-full items-center rounded-xl border border-base-300 bg-base-100 p-1 sm:w-auto">
                         <button
                             onClick={() => handleViewChange('grid')}
                             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${

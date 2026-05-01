@@ -112,8 +112,8 @@ export default function AdminOrders() {
 
                 {/* Filters */}
                 <motion.div variants={cardVariants} className="bg-base-100 rounded-2xl p-4 shadow-lg border border-base-300 mb-6">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="relative flex-1 min-w-[200px]">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        <div className="relative w-full min-w-0 flex-1 sm:min-w-[200px]">
                             <input
                                 type="text"
                                 placeholder="Tìm theo mã đơn, tên, khóa học..."
@@ -126,7 +126,7 @@ export default function AdminOrders() {
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="select select-bordered select-sm rounded-xl bg-base-200 border-base-300 font-bold text-sm"
+                            className="select select-bordered select-sm w-full rounded-xl border-base-300 bg-base-200 text-sm font-bold sm:w-auto"
                         >
                             <option value="all">Tất cả trạng thái</option>
                             <option value="completed">Hoàn thành</option>
@@ -211,7 +211,7 @@ export default function AdminOrders() {
                     </div>
 
                     {/* Pagination */}
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-base-300">
+                    <div className="flex flex-col gap-3 border-t border-base-300 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                         <p className="text-sm text-base-content/60">
                             Hiển thị <span className="font-bold">1-{filteredOrders.length}</span> trong tổng <span className="font-bold">{mockOrders.length}</span> đơn hàng
                         </p>

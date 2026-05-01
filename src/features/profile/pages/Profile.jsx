@@ -282,13 +282,13 @@ export default function Profile() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-base-200">
+        <div className="flex h-dvh overflow-hidden bg-base-200">
             <DashboardSidebar />
 
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <ProfileHeader />
 
-                <motion.main className="flex-1 overflow-y-auto" variants={containerVariants} initial="hidden" animate="visible">
+                <motion.main className="flex-1 overflow-y-auto pb-24 md:pb-0" variants={containerVariants} initial="hidden" animate="visible">
                     <ProfileHero
                         userData={userData}
                         rank={USER_STATS.rank}
@@ -302,7 +302,7 @@ export default function Profile() {
 
                     <ProfileStatsGrid userStats={USER_STATS} variants={cardVariants} />
 
-                    <div className="mx-auto max-w-7xl px-8 pb-8">
+                    <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                             <div className="space-y-6 lg:col-span-2">
                                 <ProfilePersonalInfoCard

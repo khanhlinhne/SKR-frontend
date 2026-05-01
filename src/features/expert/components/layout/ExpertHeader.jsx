@@ -1,9 +1,12 @@
 import { motion } from 'motion/react';
-import { Search, Bell, Sun, Moon } from 'lucide-react';
+import { Search, Bell, Sun, Moon, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
+import { clearTokens } from '@/shared/utils/tokenManager';
 
 export default function ExpertHeader() {
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const { profile } = useCurrentUserProfile();
@@ -20,24 +23,29 @@ export default function ExpertHeader() {
         document.documentElement.setAttribute('data-theme', newTheme);
     };
 
+    const handleLogout = () => {
+        clearTokens();
+        navigate('/login');
+    };
+
     return (
         <motion.header
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-6 lg:px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-black text-base-content">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <h2 className="truncate text-xl font-black text-base-content sm:text-2xl">
                         Creator Studio
                     </h2>
-                    <p className="text-sm text-base-content/60 font-medium">
+                    <p className="truncate text-sm font-medium text-base-content/60">
                         Xin chào, {expert.name}! 🚀
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-shrink-0 items-center gap-2 sm:gap-3">
                     {/* Search */}
                     <div className="relative hidden md:block">
                         <input
@@ -52,6 +60,7 @@ export default function ExpertHeader() {
 
                     {/* Theme Toggle */}
                     <button
+                        type="button"
                         onClick={toggleTheme}
                         className="btn btn-circle btn-ghost btn-sm"
                         title="Đổi giao diện"
@@ -71,7 +80,7 @@ export default function ExpertHeader() {
                     </div>
 
                     {/* Profile */}
-                    <div className="flex items-center gap-3 pl-3 border-l border-base-300">
+                    <div className="flex min-w-0 items-center gap-3 border-l border-base-300 pl-2 sm:pl-3">
                         <div className="text-right hidden sm:block">
                             <p className="font-bold text-sm text-base-content">{expert.name}</p>
                             <div className="flex items-center justify-end gap-1">
@@ -95,6 +104,16 @@ export default function ExpertHeader() {
                             </div>
                         </div>
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="btn btn-circle btn-ghost btn-sm text-red-500 hover:bg-red-500/10 md:hidden"
+                        aria-label="Đăng xuất"
+                        title="Đăng xuất"
+                    >
+                        <LogOut className="h-4 w-4" />
+                    </button>
                 </div>
             </div>
         </motion.header>

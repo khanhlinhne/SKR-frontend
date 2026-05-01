@@ -77,16 +77,16 @@ export default function FlashcardsLibraryView({
     onCloseDialog,
 }) {
     return (
-        <div className="flex h-screen overflow-hidden bg-base-200">
+        <div className="flex h-dvh overflow-hidden bg-base-200">
             <DashboardSidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <FlashcardsHeader
                     onCreateNew={onOpenCreate}
                     searchValue={searchQuery}
                     onSearchChange={setSearchQuery}
                 />
 
-                <motion.main className="flex-1 overflow-y-auto p-6 lg:p-8" variants={containerVariants} initial="hidden" animate="visible">
+                <motion.main className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8" variants={containerVariants} initial="hidden" animate="visible">
                     <FlashcardsStatsBar stats={stats} variants={cardVariants} />
 
                     <motion.div variants={cardVariants}>

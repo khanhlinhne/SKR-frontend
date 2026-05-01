@@ -459,13 +459,13 @@ export default function Courses({
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-base-200">
+        <div className="flex h-dvh overflow-hidden bg-base-200">
             <DashboardSidebar />
 
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <CoursesPageHeader />
                 <motion.main
-                    className="flex-1 overflow-y-auto p-6 lg:p-8"
+                    className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
@@ -521,20 +521,20 @@ function CoursesPageHeader() {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="border-b border-base-300 bg-base-100 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
                     <h2 className="text-2xl font-black text-base-content">Môn Học</h2>
                     <p className="text-sm font-medium text-base-content/60">Khám phá và đăng ký khóa học mới</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative hidden lg:block">
+                <div className="flex min-w-0 flex-wrap items-center gap-3 sm:flex-nowrap lg:gap-4">
+                    <div className="relative min-w-0 flex-1 sm:block lg:flex-none">
                         <input
                             type="text"
                             placeholder="Tìm môn học, flashcard, bài thi..."
-                            className="input input-bordered w-96 rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500"
+                            className="input input-bordered w-full rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500 sm:w-72 xl:w-96"
                         />
                         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-base-content/40" />
                     </div>
@@ -546,8 +546,8 @@ function CoursesPageHeader() {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 border-l border-base-300 pl-4">
-                        <div className="text-right">
+                    <div className="flex min-w-0 items-center gap-3 border-l border-base-300 pl-3 sm:pl-4">
+                        <div className="hidden min-w-0 text-right sm:block">
                             <p className="text-sm font-bold text-base-content">{displayName}</p>
                             {profile.isPremium && (
                                 <div className="flex items-center justify-end gap-1">

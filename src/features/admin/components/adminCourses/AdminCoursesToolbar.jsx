@@ -22,7 +22,7 @@ export default function AdminCoursesToolbar({
 }) {
     return (
         <div className="bg-base-100 rounded-2xl border border-base-300/60 p-4 shadow-[0_2px_16px_rgba(0,0,0,0.04)]">
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+            <div className="flex flex-col items-stretch gap-3 lg:flex-row lg:items-center">
                 <div className="relative flex-1 min-w-0">
                     <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-base-content/30" />
                     <input
@@ -42,7 +42,7 @@ export default function AdminCoursesToolbar({
                     )}
                 </div>
 
-                <div className="flex items-center gap-1 bg-base-200/40 rounded-xl p-1 flex-shrink-0">
+                <div className="flex flex-shrink-0 items-center gap-1 overflow-x-auto rounded-xl bg-base-200/40 p-1">
                     {[
                         { value: 'all', label: 'Tất cả' },
                         { value: 'published', label: 'Xuất bản' },
@@ -51,7 +51,7 @@ export default function AdminCoursesToolbar({
                         <button
                             key={option.value}
                             onClick={() => onFilterChange(option.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                            className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                                 filterStatus === option.value
                                     ? 'bg-base-100 text-base-content shadow-sm border border-base-300/50'
                                     : 'text-base-content/40 hover:text-base-content/70 hover:bg-base-200/40'
@@ -70,7 +70,7 @@ export default function AdminCoursesToolbar({
                 <div className="dropdown dropdown-end flex-shrink-0">
                     <label
                         tabIndex={0}
-                        className="btn btn-sm btn-ghost rounded-xl font-bold gap-1.5 text-base-content/50 text-xs"
+                        className="btn btn-sm w-full rounded-xl font-bold gap-1.5 text-base-content/50 text-xs sm:w-auto btn-ghost"
                     >
                         <ArrowUpDown className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">
@@ -102,10 +102,10 @@ export default function AdminCoursesToolbar({
                     </ul>
                 </div>
 
-                <div className="join flex-shrink-0">
+                <div className="join w-full flex-shrink-0 sm:w-auto">
                     <button
                         onClick={() => onViewModeChange('grid')}
-                        className={`btn btn-sm join-item ${
+                        className={`btn btn-sm join-item flex-1 sm:flex-none ${
                             viewMode === 'grid'
                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-none'
                                 : 'btn-ghost text-base-content/40'
@@ -115,7 +115,7 @@ export default function AdminCoursesToolbar({
                     </button>
                     <button
                         onClick={() => onViewModeChange('table')}
-                        className={`btn btn-sm join-item ${
+                        className={`btn btn-sm join-item flex-1 sm:flex-none ${
                             viewMode === 'table'
                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-none'
                                 : 'btn-ghost text-base-content/40'

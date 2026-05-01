@@ -109,10 +109,10 @@ export function StudyHeader({
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -121,15 +121,15 @@ export function StudyHeader({
                     >
                         <Icon name="X" size="lg" />
                     </motion.button>
-                    <div>
-                        <h2 className="text-xl font-black text-base-content">{deckName}</h2>
+                    <div className="min-w-0">
+                        <h2 className="truncate text-lg font-black text-base-content sm:text-xl">{deckName}</h2>
                         <p className="text-sm text-base-content/60">
                             Thẻ {currentIndex + 1} / {totalCards}
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex min-w-0 items-center gap-4 sm:gap-6">
                     <div className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1 text-green-500 font-bold">
                             <Icon name="CheckCircle2" size="sm" />
@@ -140,7 +140,7 @@ export function StudyHeader({
                             {stats.incorrect}
                         </span>
                     </div>
-                    <div className="w-48 bg-base-300 rounded-full h-2">
+                    <div className="h-2 min-w-24 flex-1 rounded-full bg-base-300 sm:w-48 sm:flex-none">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}

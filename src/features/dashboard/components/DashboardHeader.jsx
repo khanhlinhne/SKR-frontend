@@ -1,6 +1,8 @@
 ﻿import { motion } from 'motion/react';
-import { Search, Bell, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Bell, Star, LogOut } from 'lucide-react';
 import { useCurrentUserProfile, getUserInitials } from '@/shared/user';
+import { clearTokens } from '@/shared/utils/tokenManager';
 
 function getDisplayName(name) {
     return name || 'Người dùng';
@@ -13,29 +15,35 @@ function getGreetingName(name) {
 }
 
 export default function DashboardHeader() {
+    const navigate = useNavigate();
     const { profile } = useCurrentUserProfile();
     const displayName = getDisplayName(profile.name);
     const greetingName = getGreetingName(displayName);
+
+    const handleLogout = () => {
+        clearTokens();
+        navigate('/login');
+    };
 
     return (
         <motion.header
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="border-b border-base-300 bg-base-100 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-black text-base-content">Xin chào, {greetingName}!</h2>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                    <h2 className="truncate text-xl font-black text-base-content sm:text-2xl">Xin chào, {greetingName}!</h2>
                     <p className="text-sm font-medium text-base-content/60">Hôm nay bạn muốn học gì?</p>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="relative">
+                <div className="flex min-w-0 flex-wrap items-center gap-3 sm:flex-nowrap lg:gap-4">
+                    <div className="relative min-w-0 flex-1 sm:flex-none">
                         <input
                             type="text"
                             placeholder="Tìm môn học, flashcard, bài thi..."
-                            className="input input-bordered w-96 rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500"
+                            className="input input-bordered w-full rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500 sm:w-72 xl:w-96"
                         />
                         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-base-content/40" />
                     </div>
@@ -47,8 +55,8 @@ export default function DashboardHeader() {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 border-l border-base-300 pl-4">
-                        <div className="text-right">
+                    <div className="flex min-w-0 items-center gap-3 border-l border-base-300 pl-3 sm:pl-4">
+                        <div className="hidden min-w-0 text-right sm:block">
                             <p className="text-sm font-bold text-base-content">{displayName}</p>
                             {profile.isPremium && (
                                 <div className="flex items-center justify-end gap-1">
@@ -69,6 +77,16 @@ export default function DashboardHeader() {
                                 )}
                             </div>
                         </div>
+
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="btn btn-circle btn-ghost text-red-500 hover:bg-red-500/10 md:hidden"
+                            aria-label="Đăng xuất"
+                            title="Đăng xuất"
+                        >
+                            <LogOut className="h-5 w-5" />
+                        </button>
                     </div>
                 </div>
             </div>

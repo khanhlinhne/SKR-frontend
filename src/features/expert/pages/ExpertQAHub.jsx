@@ -182,8 +182,8 @@ export default function ExpertQAHub() {
                 </motion.div>
 
                 {/* Toolbar */}
-                <motion.div variants={cardVariants} className="flex flex-wrap items-center gap-3 mb-6">
-                    <div className="relative flex-1 min-w-[200px]">
+                <motion.div variants={cardVariants} className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative w-full min-w-0 flex-1 sm:min-w-[200px]">
                         <input
                             type="text"
                             placeholder="Tìm kiếm câu hỏi hoặc học viên..."
@@ -193,7 +193,7 @@ export default function ExpertQAHub() {
                         />
                         <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-base-content/40" />
                     </div>
-                    <div className="flex gap-1 bg-base-100 rounded-xl border border-base-300 p-1">
+                    <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-base-300 bg-base-100 p-1 sm:w-auto">
                         {[
                             { value: 'all', label: 'Tất cả' },
                             { value: 'pending', label: 'Chờ trả lời' },
@@ -214,7 +214,7 @@ export default function ExpertQAHub() {
                     <select
                         value={filterCourse}
                         onChange={(e) => setFilterCourse(e.target.value)}
-                        className="select select-bordered select-sm rounded-xl bg-base-100 font-bold"
+                        className="select select-bordered select-sm w-full rounded-xl bg-base-100 font-bold sm:w-auto"
                     >
                         <option value="all">Tất cả khóa học</option>
                         <option value="React">React Masterclass</option>

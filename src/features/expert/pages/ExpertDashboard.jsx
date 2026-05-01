@@ -13,7 +13,6 @@ import {
     Layers3,
     LineChart,
     ListChecks,
-    PlayCircle,
     RefreshCw,
     Star,
     TrendingDown,
@@ -705,7 +704,6 @@ function CourseStatusSection({ data }) {
                 <div className="grid gap-3 sm:grid-cols-2 xl:col-span-3">
                     <InsightList title="Thiếu nội dung" items={data.missingContentCourses} emptyText="Không có khóa thiếu nội dung." tone="warning" />
                     <InsightList title="Chưa có học viên" items={data.noStudentCourses} emptyText="Tất cả khóa đã có học viên." tone="info" />
-                    <InsightList title="Đánh giá thấp" items={data.lowRatedCourses} emptyText="Chưa có khóa bị đánh giá thấp." tone="danger" />
                     <InsightList title="Hoàn thành tốt" items={data.bestCompletionCourses} emptyText="Chưa có dữ liệu hoàn thành." tone="success" />
                 </div>
             </div>
@@ -869,9 +867,8 @@ function LearningProgressSection({ data }) {
                 </div>
 
                 {/* Content Lists */}
-                <div className="grid gap-4 sm:grid-cols-3 xl:col-span-3">
+                <div className="grid gap-4 sm:grid-cols-2 xl:col-span-3">
                     <RankedContent title="Bài học nổi bật" items={data.topLessons} icon={BookOpen} />
-                    <RankedContent title="Video xem nhiều" items={data.topVideos} icon={PlayCircle} />
                     <RankedContent title="Điểm rơi học tập" items={data.dropOffPoints} icon={TrendingDown} />
                 </div>
             </div>
@@ -955,8 +952,7 @@ function ContentQualitySection({ data }) {
                 </div>
 
                 {/* Content Lists */}
-                <div className="grid gap-3 sm:grid-cols-3 xl:col-span-3">
-                    <RankedContent title="Video hoàn thành thấp" items={data.lowCompletionVideos} icon={PlayCircle} />
+                <div className="grid gap-3 sm:grid-cols-2 xl:col-span-3">
                     <RankedContent title="Tài liệu được mở nhiều" items={data.topDocuments} icon={FileText} />
                     <div className="space-y-3">
                         <RankedContent title="Flashcard nổi bật" items={data.topFlashcards} icon={Layers3} />
@@ -1108,7 +1104,8 @@ export default function ExpertDashboard() {
             dashboard.learnerOverview.inactiveBuckets,
             dashboard.learnerOverview.topActiveLearners,
             dashboard.learningProgress.progressDistribution,
-            dashboard.contentQuality.lowCompletionVideos,
+            dashboard.contentQuality.topDocuments,
+            dashboard.contentQuality.topFlashcards,
             dashboard.quizOverview.mostMissedQuestions,
         ].some((items) => asArray(items).length > 0);
     }, [dashboard]);

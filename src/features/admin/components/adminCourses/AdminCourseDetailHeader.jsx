@@ -24,9 +24,9 @@ export default function AdminCourseDetailHeader({
     return (
         <motion.div
             variants={cardVariants}
-            className="flex flex-wrap items-center justify-between gap-4"
+            className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
         >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-start gap-3">
                 <button
                     onClick={onBack}
                     className="btn btn-circle btn-ghost btn-sm"
@@ -34,7 +34,7 @@ export default function AdminCourseDetailHeader({
                 >
                     <ArrowLeft className="h-5 w-5" />
                 </button>
-                <div>
+                <div className="min-w-0">
                     <h1 className="flex flex-wrap items-center gap-2 text-2xl font-black text-base-content lg:text-3xl">
                         {course.name}
                         <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.color}`}>
@@ -61,11 +61,11 @@ export default function AdminCourseDetailHeader({
                 </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
                 <button
                     onClick={onTogglePublish}
                     disabled={toggling}
-                    className={`btn btn-sm gap-1.5 rounded-xl font-bold ${
+                    className={`btn btn-sm flex-1 gap-1.5 rounded-xl font-bold sm:flex-none ${
                         course.status === 'published'
                             ? 'border border-amber-500/20 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
                             : 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
@@ -83,7 +83,7 @@ export default function AdminCourseDetailHeader({
 
                 <button
                     onClick={onEdit}
-                    className="btn btn-sm gap-1.5 rounded-xl border-none bg-gradient-to-r from-emerald-600 to-cyan-600 font-bold text-white shadow-lg"
+                    className="btn btn-sm flex-1 gap-1.5 rounded-xl border-none bg-gradient-to-r from-emerald-600 to-cyan-600 font-bold text-white shadow-lg sm:flex-none"
                 >
                     <Edit3 className="h-4 w-4" />
                     Chỉnh sửa

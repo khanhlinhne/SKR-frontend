@@ -179,8 +179,8 @@ export default function ExpertAssignments() {
                     ))}
                 </motion.div>
 
-                <motion.div variants={cardVariants} className="flex flex-wrap items-center gap-3">
-                    <div className="relative min-w-[220px] flex-1">
+                <motion.div variants={cardVariants} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative w-full min-w-0 flex-1 sm:min-w-[220px]">
                         <input
                             type="text"
                             value={searchQuery}
@@ -191,7 +191,7 @@ export default function ExpertAssignments() {
                         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/40" />
                     </div>
 
-                    <div className="flex items-center gap-1 rounded-2xl border border-base-300 bg-base-100 p-1">
+                    <div className="flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-base-300 bg-base-100 p-1 sm:w-auto">
                         {[
                             { value: 'all', label: 'Tất cả' },
                             { value: 'graded', label: 'Đã chấm' },

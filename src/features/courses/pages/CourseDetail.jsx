@@ -264,9 +264,9 @@ export default function CourseDetail() {
     // Loading state
     if (loading) {
         return (
-            <div className="flex h-screen bg-base-200 overflow-hidden">
+            <div className="flex h-dvh bg-base-200 overflow-hidden">
                 <DashboardSidebar />
-                <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="flex min-w-0 flex-1 flex-col items-center justify-center px-4 pb-24 md:pb-0">
                     <OwlLoader message="Đang tải thông tin môn học..." />
                 </div>
             </div>
@@ -276,11 +276,11 @@ export default function CourseDetail() {
     // Error state
     if (error || !course) {
         return (
-            <div className="flex h-screen bg-base-200 overflow-hidden">
+            <div className="flex h-dvh bg-base-200 overflow-hidden">
                 <DashboardSidebar />
-                <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     <DetailPageHeader courseName={null} />
-                    <main className="flex-1 overflow-y-auto p-6 lg:p-8 flex items-center justify-center">
+                    <main className="flex flex-1 items-center justify-center overflow-y-auto px-4 py-5 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -306,18 +306,18 @@ export default function CourseDetail() {
     }
 
     return (
-        <div className="flex h-screen bg-base-200 overflow-hidden">
+        <div className="flex h-dvh bg-base-200 overflow-hidden">
             {/* Sidebar */}
             <DashboardSidebar />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 {/* Header */}
                 <DetailPageHeader courseName={course.title} />
 
                 {/* Content */}
                 <motion.main
-                    className="flex-1 overflow-y-auto p-6 lg:p-8"
+                    className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:p-6 sm:pb-24 lg:p-8 lg:pb-8"
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
@@ -480,9 +480,9 @@ function DetailPageHeader({ courseName }) {
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="bg-base-100 border-b border-base-300 px-8 py-4"
+            className="border-b border-base-300 bg-base-100 px-4 py-4 sm:px-6 lg:px-8"
         >
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                     <h2 className="text-2xl font-black text-base-content truncate">Chi tiết môn học</h2>
                     <p className="text-sm text-base-content/60 font-medium truncate">
@@ -490,12 +490,12 @@ function DetailPageHeader({ courseName }) {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-4 flex-shrink-0">
-                    <div className="relative hidden lg:block">
+                <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center gap-3 sm:flex-nowrap lg:gap-4">
+                    <div className="relative min-w-0 flex-1 sm:block lg:flex-none">
                         <input
                             type="text"
                             placeholder="Tìm môn học, flashcard, bài thi..."
-                            className="input input-bordered w-96 pl-10 rounded-full bg-base-200 border-base-300 focus:border-blue-500"
+                            className="input input-bordered w-full rounded-full border-base-300 bg-base-200 pl-10 focus:border-blue-500 sm:w-72 xl:w-96"
                         />
                         <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
                     </div>
@@ -507,8 +507,8 @@ function DetailPageHeader({ courseName }) {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 pl-4 border-l border-base-300">
-                        <div className="text-right">
+                    <div className="flex min-w-0 items-center gap-3 border-l border-base-300 pl-3 sm:pl-4">
+                        <div className="hidden min-w-0 text-right sm:block">
                             <p className="font-bold text-sm text-base-content">{displayName}</p>
                             {profile.isPremium && (
                                 <div className="flex items-center justify-end gap-1">

@@ -30,9 +30,9 @@ export default function FlashcardsStudyView({
 
     if (itemsLoading) {
         return (
-            <div className="flex h-screen overflow-hidden bg-base-200">
+            <div className="flex h-dvh overflow-hidden bg-base-200">
                 <DashboardSidebar />
-                <div className="flex flex-1 items-center justify-center">
+                <div className="flex min-w-0 flex-1 items-center justify-center px-4 pb-24 md:pb-0">
                     <OwlLoader
                         message="Đang mở bộ flashcard..."
                         subMessage="Owl đang chuẩn bị thẻ học cho bạn."
@@ -45,9 +45,9 @@ export default function FlashcardsStudyView({
 
     if (currentDeckItems.length === 0) {
         return (
-            <div className="flex h-screen overflow-hidden bg-base-200">
+            <div className="flex h-dvh overflow-hidden bg-base-200">
                 <DashboardSidebar />
-                <div className="flex flex-1 flex-col overflow-hidden">
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     <StudyHeader
                         deckName={selectedDeck.name}
                         currentIndex={0}
@@ -56,8 +56,8 @@ export default function FlashcardsStudyView({
                         progress={0}
                         onClose={onEndStudy}
                     />
-                    <div className="flex flex-1 items-center justify-center p-8">
-                        <div className="max-w-md rounded-3xl border border-base-300 bg-base-100 p-8 text-center shadow-lg">
+                    <div className="flex flex-1 items-center justify-center px-4 py-5 pb-24 sm:p-8 sm:pb-24 md:pb-8">
+                        <div className="max-w-md rounded-3xl border border-base-300 bg-base-100 p-5 text-center shadow-lg sm:p-8">
                             <Icon name="Layers3" size="xl" className="mx-auto mb-4 text-base-content/30" />
                             <h3 className="text-xl font-bold text-base-content">Bộ này chưa có thẻ nào</h3>
                             <p className="mt-2 text-sm text-base-content/60">Hãy thêm item vào bộ flashcard trước khi bắt đầu học.</p>
@@ -72,9 +72,9 @@ export default function FlashcardsStudyView({
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-base-200">
+        <div className="flex h-dvh overflow-hidden bg-base-200">
             <DashboardSidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <StudyHeader
                     deckName={selectedDeck.name}
                     currentIndex={currentCardIndex}
@@ -83,7 +83,7 @@ export default function FlashcardsStudyView({
                     progress={progress}
                     onClose={onEndStudy}
                 />
-                <div className="flex flex-1 flex-col p-8">
+                <div className="flex flex-1 flex-col px-4 py-5 pb-24 sm:p-8 sm:pb-24 md:pb-8">
                     {error && (
                         <div className="alert alert-error mb-4">
                             <Icon name="AlertCircle" />
