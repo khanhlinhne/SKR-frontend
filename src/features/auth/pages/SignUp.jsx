@@ -313,7 +313,7 @@ export default function SignUp() {
 
                     <AuthGoogleButton
                         onClick={() => {
-                            window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/google`;
+                            window.location.href = buildGoogleAuthUrl(import.meta.env.VITE_API_BASE_URL);
                         }}
                     >
                         Đăng ký với Google
