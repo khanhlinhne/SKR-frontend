@@ -1,5 +1,4 @@
 import axiosClient from './axiosClient';
-import aiGeminiApi from './aiGeminiApi';
 import { readCachedUserProfile } from '@/shared/user';
 import {
     buildAssignmentLessonKey,
@@ -67,17 +66,13 @@ function writeSubmissionList(items) {
     localStorage.setItem(ASSIGNMENT_SUBMISSION_STORAGE_KEY, JSON.stringify(items));
 }
 
-function shouldUseLocalFallback(error) {
+function shouldUseReadFallback(error) {
     const status = error?.response?.status;
-    return !status || [404, 405, 500, 501, 503].includes(status);
+    return !status || [404, 405, 501, 503].includes(status);
 }
 
 function resolvePayload(response) {
     return response?.data || response || null;
-}
-
-function createId(prefix) {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function extractSubmissionList(payload) {
@@ -156,70 +151,6 @@ function listStoredSubmissions() {
         .filter((item) => isValidAssignmentSubmission(item));
 }
 
-function estimateSubmissionGrade(assignment, answerText) {
-    const text = String(answerText || '').trim();
-    const maxScore = Math.max(assignment?.maxScore || 100, 1);
-    const criteria = Array.isArray(assignment?.rubricCriteria) ? assignment.rubricCriteria : [];
-
-    if (!text) {
-        return {
-            score: 0,
-            summary: 'Bai nop khong co noi dung de cham diem.',
-            strengths: [],
-            improvements: ['Can nop cau tra loi day du theo de bai.'],
-            rubricScores: criteria.map((criterion) => ({
-                criterionId: criterion.criterionId,
-                criterionTitle: criterion.title,
-                awardedPoints: 0,
-                maxPoints: criterion.maxPoints,
-                feedback: 'Chua co noi dung de danh gia.',
-            })),
-        };
-    }
-
-    const wordCount = text.split(/\s+/).filter(Boolean).length;
-    const coverageRatio = Math.max(0.25, Math.min(1, wordCount / 180));
-    const clarityBoost = /(\n|- |\d+\.)/.test(text) ? 0.08 : 0;
-    const scoreRatio = Math.min(0.94, coverageRatio + clarityBoost);
-
-    const rubricScores = criteria.map((criterion) => {
-        const awardedPoints = Math.round((criterion.maxPoints || 0) * scoreRatio);
-        return {
-            criterionId: criterion.criterionId,
-            criterionTitle: criterion.title,
-            awardedPoints,
-            maxPoints: criterion.maxPoints,
-            feedback: awardedPoints >= criterion.maxPoints * 0.8
-                ? 'Bai lam dap ung kha tot tieu chi nay.'
-                : 'Can bo sung them ly giai, vi du hoac cau truc de dat diem cao hon.',
-        };
-    });
-    const score = Math.min(
-        maxScore,
-        rubricScores.reduce((sum, item) => sum + item.awardedPoints, 0) || Math.round(maxScore * scoreRatio),
-    );
-
-    return {
-        score,
-        summary: 'Diem nay duoc uoc tinh bang fallback local vi dich vu cham AI chua san sang.',
-        strengths: scoreRatio >= 0.7 ? ['Bai lam co cau truc va bao phu duoc yeu cau chinh.'] : [],
-        improvements: ['Nen bo sung ly giai cu the hon de tang do thuyet phuc.'],
-        rubricScores,
-    };
-}
-
-async function gradeSubmission(assignment, answerText) {
-    try {
-        return await aiGeminiApi.gradeAssignment({
-            assignment,
-            learnerAnswer: answerText,
-            language: 'vi',
-        });
-    } catch {
-        return estimateSubmissionGrade(assignment, answerText);
-    }
-}
-
 function persistSubmission(payload) {
     if (!isValidAssignmentSubmission(payload)) {
         return null;
@@ -259,7 +190,7 @@ const assignmentApi = {
             upsertStoredAssignment(courseId, chapterId, lessonId, normalized);
             return normalized;
         } catch (error) {
-            if (!shouldUseLocalFallback(error)) {
+            if (!shouldUseReadFallback(error)) {
                 throw error;
             }
 
@@ -276,10 +207,18 @@ const assignmentApi = {
             assignmentId: data?.assignmentId || buildAssignmentLessonKey(courseId, chapterId, lessonId),
         });
 
+        // Backend might fail if we send a string assignmentId (like "1:2:3") 
+        // that is meant to be a database ID. If it looks like a temporary key, 
+        // we remove it and let the backend identify the assignment by course/chapter/lesson.
+        const cleanedPayload = { ...payload };
+        if (typeof cleanedPayload.assignmentId === 'string' && cleanedPayload.assignmentId.includes(':')) {
+            delete cleanedPayload.assignmentId;
+        }
+
         try {
             const response = await axiosClient.put(
                 `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/assignment`,
-                payload,
+                cleanedPayload,
             );
             const normalized = normalizeAssignmentDetail(resolvePayload(response), {
                 courseId,
@@ -291,12 +230,7 @@ const assignmentApi = {
             upsertStoredAssignment(courseId, chapterId, lessonId, normalized);
             return normalized;
         } catch (error) {
-            if (!shouldUseLocalFallback(error)) {
-                throw error;
-            }
-
-            markLessonRouteUnsupported(courseId, chapterId, lessonId, true);
-            return upsertStoredAssignment(courseId, chapterId, lessonId, payload);
+            throw error;
         }
     },
 
@@ -320,7 +254,7 @@ const assignmentApi = {
             persistSubmission(payload);
             return payload;
         } catch (error) {
-            if (!shouldUseLocalFallback(error)) {
+            if (!shouldUseReadFallback(error)) {
                 throw error;
             }
 
@@ -337,12 +271,11 @@ const assignmentApi = {
     },
 
     async submitLessonAssignment(courseId, chapterId, lessonId, data = {}) {
-        const profile = readCachedUserProfile();
-
         try {
             const response = await axiosClient.post(
                 `/courses/${courseId}/chapters/${chapterId}/lessons/${lessonId}/assignment/submissions`,
                 data,
+                { timeout: 30000 },
             );
             const payload = normalizeAssignmentSubmission(resolvePayload(response), {
                 courseId,
@@ -351,69 +284,23 @@ const assignmentApi = {
             });
 
             if (!isValidAssignmentSubmission(payload)) {
-                throw new Error('Backend chua tra ve bai nop assignment hop le.');
+                throw new Error('Backend chưa trả về bài nộp assignment hợp lệ.');
             }
 
             persistSubmission(payload);
             return payload;
         } catch (error) {
-            if (!shouldUseLocalFallback(error)) {
-                throw error;
-            }
-
-            const assignment = normalizeAssignmentDetail(
-                data?.assignment || await this.getLessonAssignment(courseId, chapterId, lessonId),
-                { courseId, chapterId, lessonId },
-            );
-            const review = await gradeSubmission(assignment, data?.answerText || '');
-            const payload = normalizeAssignmentSubmission(
-                {
-                    submissionId: createId('assignment_submission'),
-                    assignmentId: assignment.assignmentId,
-                    courseId,
-                    chapterId,
-                    lessonId,
-                    courseTitle: data?.courseTitle,
-                    chapterTitle: data?.chapterTitle,
-                    lessonTitle: data?.lessonTitle,
-                    assignmentTitle: assignment.title,
-                    learnerId: profile?.userId || 'local-user',
-                    learnerName: profile?.name || 'Nguoi dung',
-                    learnerAvatarUrl: profile?.avatarUrl || '',
-                    answerText: data?.answerText || '',
-                    status: 'graded',
-                    submittedAtUtc: new Date().toISOString(),
-                    gradedAtUtc: new Date().toISOString(),
-                    score: review.score,
-                    maxScore: assignment.maxScore,
-                    summary: review.summary,
-                    strengths: review.strengths,
-                    improvements: review.improvements,
-                    rubricScores: review.rubricScores,
-                },
-                {
-                    assignment,
-                    courseId,
-                    chapterId,
-                    lessonId,
-                    courseTitle: data?.courseTitle,
-                    chapterTitle: data?.chapterTitle,
-                    lessonTitle: data?.lessonTitle,
-                },
-            );
-
-            persistSubmission(payload);
-            return payload;
+            throw error;
         }
     },
 
     async listExpertSubmissions(params = {}) {
         try {
-            const response = await axiosClient.get('/expert/assignment-submissions', { params });
+            const response = await axiosClient.get('/experts/assignment-submissions', { params });
             const payload = resolvePayload(response);
             return extractSubmissionList(payload).map((item) => normalizeAssignmentSubmission(item));
         } catch (error) {
-            if (!shouldUseLocalFallback(error)) {
+            if (!shouldUseReadFallback(error)) {
                 throw error;
             }
 
@@ -438,12 +325,12 @@ const assignmentApi = {
 
     async getSubmissionDetail(submissionId) {
         try {
-            const response = await axiosClient.get(`/expert/assignment-submissions/${submissionId}`);
+            const response = await axiosClient.get(`/experts/assignment-submissions/${submissionId}`);
             const payload = normalizeAssignmentSubmission(resolvePayload(response));
             persistSubmission(payload);
             return payload;
         } catch (error) {
-            if (!shouldUseLocalFallback(error)) {
+            if (!shouldUseReadFallback(error)) {
                 throw error;
             }
 

@@ -46,15 +46,23 @@ export function normalizeRubricCriteria(criteria, maxScore = 100) {
     ];
 
     const normalized = (items.length > 0 ? items : fallback)
-        .map((criterion, index) => ({
-            criterionId: criterion?.criterionId || criterion?.id || `criterion-${index + 1}`,
-            title: String(criterion?.title || criterion?.criterionTitle || '').trim(),
-            description: String(criterion?.description || criterion?.criterionDescription || '').trim(),
-            maxPoints: Math.max(0, toNumber(
+        .map((criterion, index) => {
+            const title = String(criterion?.title || criterion?.criterionTitle || '').trim();
+            const description = String(criterion?.description || criterion?.criterionDescription || '').trim();
+            const maxPoints = Math.max(0, toNumber(
                 criterion?.maxPoints ?? criterion?.score ?? criterion?.weight,
                 0
-            )),
-        }))
+            ));
+
+            return {
+                criterionId: criterion?.criterionId || criterion?.id || `criterion-${index + 1}`,
+                title,
+                criterionTitle: title, // Mirror field
+                description,
+                criterionDescription: description, // Mirror field
+                maxPoints,
+            };
+        })
         .filter((criterion) => criterion.title);
 
     const total = normalized.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
@@ -106,20 +114,30 @@ export function normalizeAssignmentDetail(source = {}, context = {}) {
         maxScore
     );
 
+    const title = String(source?.title || source?.assignmentTitle || context?.title || '').trim();
+    const description = String(source?.description || source?.brief || source?.prompt || '').trim();
+    const instructions = String(source?.instructions || source?.submissionInstructions || '').trim();
+    const submissionFormat = String(
+        source?.submissionFormat
+        || source?.answerFormat
+        || 'Trả lời bằng văn bản, có thể chia thành các ý nhỏ để dễ chấm điểm.'
+    ).trim();
+
     return {
         assignmentId: source?.assignmentId || source?.id || context?.assignmentId || null,
         courseId: source?.courseId || context?.courseId || null,
         chapterId: source?.chapterId || context?.chapterId || null,
         lessonId: source?.lessonId || context?.lessonId || null,
-        title: String(source?.title || source?.assignmentTitle || context?.title || '').trim(),
-        description: String(source?.description || source?.brief || source?.prompt || '').trim(),
-        instructions: String(source?.instructions || source?.submissionInstructions || '').trim(),
-        submissionFormat: String(
-            source?.submissionFormat
-            || source?.answerFormat
-            || 'Trả lời bằng văn bản, có thể chia thành các ý nhỏ để dễ chấm điểm.'
-        ).trim(),
+        title,
+        assignmentTitle: title, // Mirror field
+        description,
+        assignmentDescription: description, // Mirror field
+        instructions,
+        submissionInstructions: instructions, // Mirror field
+        submissionFormat,
+        answerFormat: submissionFormat, // Mirror field
         maxScore,
+        maximumScore: maxScore, // Mirror field
         rubricCriteria,
         sourceType: String(source?.sourceType || source?.createdBy || context?.sourceType || 'manual')
             .trim()

@@ -15,6 +15,13 @@ function shouldFallbackQuestionUpdate(error) {
     return status === 404 || message.includes('route not found');
 }
 
+function shouldUseAssignmentReadFallback(error) {
+    const status = error?.response?.status;
+    const message = String(error?.response?.data?.message || error?.message || '').toLowerCase();
+
+    return !status || status === 404 || status >= 500 || message.includes('route not found');
+}
+
 export default function useCurriculumMutations(deps) {
     const {
         courseId,
@@ -112,9 +119,17 @@ export default function useCurriculumMutations(deps) {
             const res = await courseApi.getLessonContent(courseId, chapterId, lessonId);
             const content = res?.data || res;
             const flashcardSets = await hydrateLessonFlashcardSets(getLessonFlashcardSets(content));
-            const assignment = resolvedLessonType === 'assignment'
-                ? await assignmentApi.getLessonAssignment(courseId, chapterId, lessonId)
-                : null;
+            let assignment = null;
+            if (resolvedLessonType === 'assignment') {
+                try {
+                    assignment = await assignmentApi.getLessonAssignment(courseId, chapterId, lessonId);
+                } catch (assignmentError) {
+                    console.warn('Failed to reload assignment detail after loading lesson content:', assignmentError);
+                    if (!shouldUseAssignmentReadFallback(assignmentError)) {
+                        throw assignmentError;
+                    }
+                }
+            }
             const durationMinutes = getLessonDurationMinutes(content) || getLessonDurationMinutes(lessonMeta);
 
             if (resolvedLessonType === 'flashcard' || flashcardSets.length > 0) {
@@ -132,11 +147,19 @@ export default function useCurriculumMutations(deps) {
                 assignment,
                 lessonType: flashcardSets.length > 0 ? 'flashcard' : (assignment ? 'assignment' : resolvedLessonType),
             });
-        } catch {
+        } catch (contentError) {
             const fallbackDurationMinutes = getLessonDurationMinutes(lessonMeta);
-            const assignment = resolvedLessonType === 'assignment'
-                ? await assignmentApi.getLessonAssignment(courseId, chapterId, lessonId)
-                : null;
+            let assignment = null;
+            if (resolvedLessonType === 'assignment') {
+                try {
+                    assignment = await assignmentApi.getLessonAssignment(courseId, chapterId, lessonId);
+                } catch (assignmentError) {
+                    console.warn('Failed to load assignment fallback state:', assignmentError);
+                    if (!shouldUseAssignmentReadFallback(assignmentError)) {
+                        throw contentError;
+                    }
+                }
+            }
             setLessonContent({
                 lessonType: assignment ? 'assignment' : resolvedLessonType,
                 estimatedDurationMinutes: fallbackDurationMinutes,
@@ -819,11 +842,20 @@ export default function useCurriculumMutations(deps) {
                 message: 'De bai, rubric va cau hinh cham diem da duoc cap nhat.',
             });
 
-            await loadLessonContent(chapterId, lessonId, {
-                ...getLessonById(chapterId, lessonId),
-                lessonType: 'assignment',
-                type: 'assignment',
-            });
+            try {
+                await loadLessonContent(chapterId, lessonId, {
+                    ...getLessonById(chapterId, lessonId),
+                    lessonType: 'assignment',
+                    type: 'assignment',
+                });
+            } catch (reloadError) {
+                console.warn('Assignment saved but lesson reload failed:', reloadError);
+                setLessonContent((prev) => (
+                    prev && selectedLesson?.chapterId === chapterId && selectedLesson?.lessonId === lessonId
+                        ? { ...prev, assignment: savedAssignment, lessonType: 'assignment' }
+                        : prev
+                ));
+            }
         } catch (err) {
             showToast({
                 title: 'Chua the luu assignment',

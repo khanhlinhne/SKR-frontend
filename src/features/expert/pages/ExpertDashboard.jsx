@@ -163,6 +163,46 @@ function formatPeriodLabel(period) {
    DATA NORMALIZATION
    ═══════════════════════════════════════════════════════════ */
 
+/**
+ * Pad chart points so that all expected periods are shown, even if
+ * the API returned fewer data points than expected.
+ *
+ * Strategy (safe — never discards existing API data):
+ *   1. If API returns >= expected count  → use as-is.
+ *   2. If API returns 0 points           → generate all labeled zero points.
+ *   3. If API returns 1…(n-1) points    → keep them, append zero points at end.
+ *
+ * Expected counts: week=7 (days), month=4 (weeks), year=12 (months)
+ */
+function padChartPoints(points, period) {
+    const expectedCount =
+        period === 'week' ? 7 :
+        period === 'month' ? 4 :
+        period === 'year' ? 12 : 0;
+
+    if (expectedCount === 0) return points;
+
+    function makeLabel(index) {
+        if (period === 'week') return `Ngày ${index + 1}`;
+        if (period === 'month') return `Tuần ${index + 1}`;
+        if (period === 'year') return `Tháng ${index + 1}`;
+        return String(index + 1);
+    }
+
+    // Always relabel existing points by position so labels match the period.
+    // This fixes backend label mismatches (e.g. API returns "Tu\u1ea7n 1" for month queries).
+    const relabeled = points.map((p, i) => ({ ...p, label: makeLabel(i) }));
+
+    if (relabeled.length >= expectedCount) return relabeled;
+
+    // Pad remaining positions with zero-value entries
+    const padded = [...relabeled];
+    while (padded.length < expectedCount) {
+        padded.push({ label: makeLabel(padded.length), total: 0 });
+    }
+    return padded;
+}
+
 function getFallbackSummaryCards(summary, contentQuality, learnerOverview) {
     return [
         { key: 'courses', value: summary?.courses?.total ?? 0 },
@@ -203,14 +243,17 @@ function normalizeDashboardResponse(response, selectedPeriod) {
         }));
 
     const studentLoginChart = asObject(ui.studentLoginChart);
-    const chartPoints = asArray(learnerOverview.newLearnerSeries).length > 0
+    const rawChartPoints = asArray(learnerOverview.newLearnerSeries).length > 0
         ? asArray(learnerOverview.newLearnerSeries)
         : (asArray(studentLoginChart.points).length > 0 ? asArray(studentLoginChart.points) : asArray(payload.studentLoginsByMonth));
+    const resolvedPeriod = payload.period ?? selectedPeriod;
+    // Normalize then pad so all periods are always shown (missing ones default to 0)
+    const chartPoints = padChartPoints(rawChartPoints.map(normalizeChartPoint), resolvedPeriod);
     const myCourses = asObject(ui.myCourses);
     const topCourses = asArray(myCourses.items).length > 0 ? asArray(myCourses.items) : asArray(payload.topCourses);
 
     return {
-        period: payload.period ?? selectedPeriod,
+        period: resolvedPeriod,
         periodBounds: asObject(payload.periodBounds),
         summary,
         pageTitle: 'Tổng quan',
@@ -218,9 +261,9 @@ function normalizeDashboardResponse(response, selectedPeriod) {
         summaryCards,
         newLearnerChart: {
             title: 'Học viên mới theo kỳ',
-            subtitle: `Số lượng học viên mới ${formatPeriodLabel(payload.period ?? selectedPeriod).toLowerCase()}`,
+            subtitle: `Số lượng học viên mới ${formatPeriodLabel(resolvedPeriod).toLowerCase()}`,
             legendLabel: 'Học viên mới',
-            points: chartPoints.map(normalizeChartPoint),
+            points: chartPoints,
         },
         myCourses: { title: 'Khóa học nổi bật', items: topCourses },
         courseStatus: {
@@ -233,7 +276,7 @@ function normalizeDashboardResponse(response, selectedPeriod) {
         },
         learnerOverview: {
             ...learnerOverview,
-            newLearnerSeries: chartPoints.map(normalizeChartPoint),
+            newLearnerSeries: chartPoints,
             inactiveBuckets: asArray(learnerOverview.inactiveBuckets),
             topActiveLearners: asArray(learnerOverview.topActiveLearners),
             learnersNeedingAttention: asArray(learnerOverview.learnersNeedingAttention),
@@ -539,7 +582,9 @@ function NewLearnerChartCard({ chart }) {
                             <div className="relative flex items-end gap-2" style={{ height: barHeight }}>
                                 {points.map((item, index) => {
                                     const total = toNumber(item.total);
-                                    const heightPx = Math.max(total > 0 ? 16 : 6, Math.round((total / maxValue) * (barHeight - 24)));
+                                    const heightPx = total > 0
+                                        ? Math.max(16, Math.round((total / maxValue) * (barHeight - 24)))
+                                        : 0;
                                     const isLatest = index === points.length - 1;
                                     const isMax = total === maxValue && total > 0;
 
@@ -557,24 +602,32 @@ function NewLearnerChartCard({ chart }) {
                                                 initial={{ opacity: 0, y: 4 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.5 + index * 0.05 }}
-                                                className={`mb-1.5 text-[10px] font-black ${isMax ? 'text-violet-600' : 'text-base-content/40'}`}
+                                                className={`mb-1.5 text-[10px] font-black ${
+                                                    total === 0
+                                                        ? 'text-base-content/20'
+                                                        : isMax
+                                                            ? 'text-violet-600'
+                                                            : 'text-base-content/40'
+                                                }`}
                                             >
-                                                {total > 0 ? formatInteger(total) : ''}
+                                                {total === 0 ? '0' : formatInteger(total)}
                                             </motion.span>
 
                                             {/* Bar */}
                                             <motion.div
                                                 initial={{ height: 0 }}
-                                                animate={{ height: heightPx }}
+                                                animate={{ height: heightPx > 0 ? heightPx : 4 }}
                                                 transition={{ delay: 0.15 + index * 0.05, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
                                                 className={`relative w-full cursor-pointer rounded-t-xl transition-all duration-200 group-hover:scale-x-105 ${
-                                                    isLatest || isMax
-                                                        ? 'bg-gradient-to-t from-violet-600 via-violet-500 to-fuchsia-400 shadow-lg shadow-violet-500/25'
-                                                        : 'bg-gradient-to-t from-violet-400/30 to-violet-300/20 group-hover:from-violet-500/50 group-hover:to-violet-400/30 group-hover:shadow-md group-hover:shadow-violet-400/15'
+                                                    total === 0
+                                                        ? 'bg-base-300/40 group-hover:bg-base-300/60'
+                                                        : isLatest || isMax
+                                                            ? 'bg-gradient-to-t from-violet-600 via-violet-500 to-fuchsia-400 shadow-lg shadow-violet-500/25'
+                                                            : 'bg-gradient-to-t from-violet-400/30 to-violet-300/20 group-hover:from-violet-500/50 group-hover:to-violet-400/30 group-hover:shadow-md group-hover:shadow-violet-400/15'
                                                 }`}
                                             >
                                                 {/* Inner highlight for depth */}
-                                                <div className="absolute inset-x-1 top-1 h-1/3 rounded-t-lg bg-white/10" />
+                                                {total > 0 && <div className="absolute inset-x-1 top-1 h-1/3 rounded-t-lg bg-white/10" />}
                                             </motion.div>
                                         </div>
                                     );
